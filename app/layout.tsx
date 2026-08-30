@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import LenisProvider from "./providers/LenisProvider";
 
 const geist = Geist({
   subsets: ["latin"],
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} antialiased`}>
-        {children}
+        <LenisProvider>
+          {children}
+        </LenisProvider>
         <Toaster
           position="top-right"
           toastOptions={{
