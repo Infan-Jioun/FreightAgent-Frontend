@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/incompatible-library */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/(auth)/login/page.tsx
 "use client";
 
@@ -7,7 +9,7 @@ import { Eye, EyeOff, Mail, Lock, Anchor, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ROUTES } from "../../constants/routes";
 import LoginVisual, { MobileShipmentSummary } from "./LoginVisual";
@@ -15,11 +17,15 @@ import { authService } from "@/app/services/auth.service";
 import { useAuthStore } from "@/app/store/authStore";
 import { LoginInput, loginSchema } from "@/app/validations/auth.validation";
 
-
 export default function LoginPage() {
     const router = useRouter();
     const { setUser } = useAuthStore();
     const [showPassword, setShowPassword] = useState(false);
+    const searchParams = useSearchParams();
+
+    // ── success-beat state ──
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [userName, setUserName] = useState<string | undefined>(undefined);
 
     const {
         register,
@@ -39,17 +45,18 @@ export default function LoginPage() {
 
             if (res.data?.user) {
                 setUser(res.data.user);
+                setUserName(res.data.user?.name);
             }
 
             toast.success("Welcome back!", {
                 description: "Redirecting to your dashboard...",
             });
 
-            router.push("/");
+            // Trigger the animation. The redirect logic is now safely handled in the complete callback.
+            setShowSuccess(true);
         } catch (err: any) {
             const message = err?.response?.data?.message;
 
-            // ✅ Email not verified হলে verify page এ পাঠাও
             if (err?.response?.status === 403) {
                 sessionStorage.setItem("verify_email", data.email);
                 toast.error("Email not verified", {
@@ -61,6 +68,12 @@ export default function LoginPage() {
 
             toast.error(message || "Invalid email or password");
         }
+    };
+
+    // Safely pull the URL right when the animation ends — no stale state bugs!
+    const handleSuccessAnimationComplete = () => {
+        const callbackUrl = searchParams.get("callbackUrl") || ROUTES.DASHBOARD;
+        router.push(callbackUrl);
     };
 
     return (
@@ -191,7 +204,7 @@ export default function LoginPage() {
                             </div>
 
                             {/* Forgot Password */}
-                            <div className="flex justify-end mt-[-8px]">
+                            <div className="flex justify-end -mt-2">
                                 <Link
                                     href={ROUTES?.FORGOT_PASSWORD || "/forgot-password"}
                                     className="text-sm hover:underline underline-offset-4 transition-all"
@@ -204,7 +217,7 @@ export default function LoginPage() {
                             {/* Submit */}
                             <button
                                 type="submit"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || showSuccess}
                                 className="group relative flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed overflow-hidden mt-2"
                                 style={{
                                     background: "var(--gradient-brand, linear-gradient(135deg, #00C9A7 0%, #009B82 100%))",
@@ -216,6 +229,11 @@ export default function LoginPage() {
                                     <>
                                         <Loader2 size={18} className="animate-spin" />
                                         <span>Authenticating...</span>
+                                    </>
+                                ) : showSuccess ? (
+                                    <>
+                                        <Loader2 size={18} className="animate-spin" />
+                                        <span>Signing you in...</span>
                                     </>
                                 ) : (
                                     <>
@@ -235,9 +253,9 @@ export default function LoginPage() {
 
                         {/* Divider */}
                         <div className="flex items-center gap-3 my-8">
-                            <div className="flex-1 h-px bg-gradient-to-r from-transparent to-gray-700" />
+                            <div className="flex-1 h-px bg-linear-to-r from-transparent to-gray-700" />
                             <span className="text-xs uppercase tracking-widest font-medium" style={{ color: "var(--text-muted, #8b949e)" }}>or</span>
-                            <div className="flex-1 h-px bg-gradient-to-l from-transparent to-gray-700" />
+                            <div className="flex-1 h-px bg-linear-to-l from-transparent to-gray-700" />
                         </div>
 
                         {/* Register Links */}
@@ -264,7 +282,11 @@ export default function LoginPage() {
 
                 {/* ── Right: Visual ── */}
                 <div className="relative hidden lg:flex flex-1 overflow-hidden">
-                    <LoginVisual />
+                    <LoginVisual
+                        showSuccess={showSuccess}
+                        userName={userName}
+                        onSuccessComplete={handleSuccessAnimationComplete}
+                    />
                 </div>
             </motion.div>
         </div>

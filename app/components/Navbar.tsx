@@ -82,7 +82,7 @@ export function Navbar() {
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <motion.nav
-        className="pointer-events-auto mx-auto max-w-[1200px] flex items-center justify-between px-4 md:px-5 py-3 transition-all duration-400 relative overflow-hidden"
+        className="pointer-events-auto mx-auto max-w-[1200px] flex items-center justify-between gap-2 px-4 md:px-5 py-3 transition-all duration-400 relative overflow-hidden"
         style={{
           borderRadius: "18px",
           height: scrolled ? "64px" : "72px",
@@ -116,10 +116,11 @@ export function Navbar() {
           />
         </div>
 
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        {/* Logo — flex-shrink-0 + whitespace-nowrap so it never gets
+            squeezed or wraps when the nav is tight on space */}
+        <Link href="/" className="flex shrink-0 items-center gap-2.5 group">
           <motion.div
-            className="flex h-9 w-9 items-center justify-center rounded-xl relative"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl relative"
             style={{ background: "var(--gradient-brand)" }}
             whileHover={{ rotate: 10, scale: 1.05 }}
             transition={{ duration: 0.2 }}
@@ -133,27 +134,32 @@ export function Navbar() {
             <Anchor className="h-4 w-4 relative z-10" style={{ color: "#0a0f0f" }} />
           </motion.div>
           <span
-            className="text-base md:text-lg font-bold tracking-wider"
+            className="whitespace-nowrap text-base md:text-lg font-bold tracking-wider"
             style={{ color: "var(--text-primary)" }}
           >
             Freight<span style={{ color: "var(--accent-primary)" }}>Agent</span>
           </span>
         </Link>
 
-        {/* Desktop Navigation Links */}
-        <div className="hidden lg:flex items-center gap-1 xl:gap-2 relative">
+        {/* Desktop Navigation Links — switches in at `xl` (1280px) rather
+            than `lg` (1024px). Five links + tooltips + two CTA buttons
+            genuinely need that much room; showing them at `lg` was what
+            crammed everything together and broke the alignment on
+            1024-1279px laptop screens. The mobile sheet now covers that
+            gap cleanly instead. */}
+        <div className="hidden xl:flex items-center gap-0.5 2xl:gap-2 flex-1 justify-center min-w-0">
           {NAV_LINKS.map((link) => {
             const isActive = activeSection === link.href;
             return (
               <div
                 key={link.label}
-                className="relative px-3 py-1.5"
+                className="relative px-2 2xl:px-3 py-1.5"
                 onMouseEnter={() => setHoveredLink(link.label)}
                 onMouseLeave={() => setHoveredLink(null)}
               >
                 <a
                   href={link.href}
-                  className="text-sm font-medium transition-colors duration-200 flex items-center gap-1.5"
+                  className="text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 whitespace-nowrap"
                   style={{
                     color: isActive || hoveredLink === link.label ? "var(--text-primary)" : "var(--text-secondary)",
                     opacity: isActive ? 1 : 0.75,
@@ -174,7 +180,7 @@ export function Navbar() {
                 {(isActive || hoveredLink === link.label) && (
                   <motion.div
                     layoutId="navbarUnderline"
-                    className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full"
+                    className="absolute bottom-0 left-2 right-2 2xl:left-3 2xl:right-3 h-[2px] rounded-full"
                     style={{ background: "var(--accent-primary)" }}
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
@@ -204,11 +210,12 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Desktop CTAs */}
-        <div className="hidden lg:flex items-center gap-3">
+        {/* Desktop CTAs — flex-shrink-0 + whitespace-nowrap so the buttons
+            keep their shape instead of squashing when space is tight */}
+        <div className="hidden xl:flex shrink-0 items-center gap-3">
           <Link
             href={ROUTES.LOGIN}
-            className="text-sm px-3.5 py-2 rounded-lg transition-colors relative group"
+            className="whitespace-nowrap text-sm px-3.5 py-2 rounded-lg transition-colors relative group"
             style={{ color: "var(--text-secondary)" }}
           >
             <span className="relative z-10 group-hover:text-[var(--text-primary)] transition-colors">
@@ -220,10 +227,10 @@ export function Navbar() {
             />
           </Link>
 
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="shrink-0">
             <Link
               href={ROUTES.REGISTER}
-              className="text-sm px-4 py-2 rounded-[10px] font-semibold flex items-center gap-1.5 transition-all group"
+              className="whitespace-nowrap text-sm px-4 py-2 rounded-[10px] font-semibold flex items-center gap-1.5 transition-all group"
               style={{
                 background: "var(--gradient-brand)",
                 color: "#0a0f0f",
@@ -236,8 +243,10 @@ export function Navbar() {
           </motion.div>
         </div>
 
-        {/* Mobile Trigger */}
-        <div className="lg:hidden flex items-center">
+        {/* Mobile / tablet trigger — covers everything below `xl`, so the
+            1024-1279px range (previously the cramped zone) now gets the
+            clean sheet menu instead of a squeezed desktop nav */}
+        <div className="xl:hidden flex shrink-0 items-center">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger>
               <Button
@@ -260,19 +269,19 @@ export function Navbar() {
             >
               {/* Mobile Control Panel Header */}
               <div>
-                <div className="flex items-center justify-between pb-6 border-b" style={{ borderColor: "var(--border-primary)" }}>
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between gap-3 pb-6 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                  <div className="flex min-w-0 items-center gap-2">
                     <div
-                      className="flex h-8 w-8 items-center justify-center rounded-lg"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
                       style={{ background: "var(--gradient-brand)" }}
                     >
                       <Anchor className="h-4 w-4" style={{ color: "#0a0f0f" }} />
                     </div>
-                    <span className="font-bold tracking-wider" style={{ color: "var(--text-primary)" }}>
+                    <span className="truncate font-bold tracking-wider" style={{ color: "var(--text-primary)" }}>
                       Freight<span style={{ color: "var(--accent-primary)" }}>Agent</span>
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded" style={{ background: "var(--bg-card-hover)", color: "var(--accent-primary)" }}>
+                  <span className="shrink-0 whitespace-nowrap text-[10px] uppercase tracking-widest px-2 py-1 rounded" style={{ background: "var(--bg-card-hover)", color: "var(--accent-primary)" }}>
                     Control Panel
                   </span>
                 </div>
@@ -290,7 +299,7 @@ export function Navbar() {
                         <a
                           href={link.href}
                           onClick={() => setMobileMenuOpen(false)}
-                          className="flex items-center justify-between group py-2"
+                          className="flex items-center justify-between gap-3 group py-2"
                         >
                           <span
                             className="text-lg font-medium transition-colors group-hover:text-[var(--accent-primary)]"
@@ -298,7 +307,7 @@ export function Navbar() {
                           >
                             {link.label}
                           </span>
-                          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                          <span className="shrink-0 whitespace-nowrap text-xs" style={{ color: "var(--text-muted)" }}>
                             {link.subtitle}
                           </span>
                         </a>

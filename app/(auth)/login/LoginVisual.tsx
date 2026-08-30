@@ -9,6 +9,7 @@ import ShipmentRoute, { ShipmentRouteLabels } from "./ShipmentRoute";
 import ShipmentStatusCard from "./ShipmentStatusCard";
 import TrackingLocationCard from "./TrackingLocationCard";
 import ContainerInfoCard from "./ContainerInfoCard";
+import LoginSuccessAnimation from "./LoginSuccessAnimation";
 
 // The 3D scene touches WebGL, so it must never be evaluated during SSR.
 const ShipmentScene = dynamic(() => import("./ShipmentScene"), {
@@ -89,12 +90,30 @@ export function MobileShipmentSummary() {
     );
 }
 
+interface LoginVisualProps {
+    /** Set true right after a successful login to play the success overlay. */
+    showSuccess?: boolean;
+    /** Display name to personalize the "Welcome back" beat, if available. */
+    userName?: string;
+    /** Called once the success overlay has finished playing — do the redirect here. */
+    onSuccessComplete?: () => void;
+}
+
 /**
  * Full cinematic 3D visualization panel for the desktop right column.
  * The caller is responsible for the `hidden lg:flex` sizing wrapper — this
  * component fills whatever container it's given.
+ *
+ * The success overlay lives here (not as an external sibling in the page)
+ * so it is always painted at this component's own topmost z-index — above
+ * the 3D scene, the heading, and every floating card — instead of depending
+ * on stacking order in whatever parent happens to render this component.
  */
-export default function LoginVisual() {
+export default function LoginVisual({
+    showSuccess = false,
+    userName,
+    onSuccessComplete,
+}: LoginVisualProps) {
     const reducedMotion = usePrefersReducedMotion();
 
     return (
@@ -123,7 +142,7 @@ export default function LoginVisual() {
                 <ShipmentRouteLabels />
 
                 {/* 3D hero scene */}
-                <div className="absolute inset-0 z-[4]">
+                <div className="absolute inset-0 z-4">
                     <Suspense fallback={<ScenePlaceholder />}>
                         <ShipmentScene reducedMotion={reducedMotion} />
                     </Suspense>
@@ -161,6 +180,16 @@ export default function LoginVisual() {
                 <div className="pointer-events-none absolute bottom-14 right-10 z-10">
                     <ContainerInfoCard reducedMotion={reducedMotion} className="pointer-events-auto" />
                 </div>
+
+                {/* Success overlay — always on top, z-30, regardless of anything above */}
+                {onSuccessComplete && (
+                    <LoginSuccessAnimation
+                        active={showSuccess}
+                        reducedMotion={reducedMotion}
+                        name={userName}
+                        onComplete={onSuccessComplete}
+                    />
+                )}
         </div>
     );
 }
