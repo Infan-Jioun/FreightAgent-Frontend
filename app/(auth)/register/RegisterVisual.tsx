@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -121,7 +122,7 @@ export default function RegisterVisual({ name, email, passwordStrength, success,
             />
 
             {/* 3D hero scene */}
-            <div className="absolute inset-0 z-[4]">
+            <div className="absolute inset-0 z-4">
                 <Suspense fallback={<ScenePlaceholder />}>
                     <ShipmentScene reducedMotion={reducedMotion} success={success} />
                 </Suspense>
@@ -162,7 +163,7 @@ export default function RegisterVisual({ name, email, passwordStrength, success,
                     <motion.div
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mx-auto mt-3 flex max-w-[180px] items-center gap-2"
+                        className="mx-auto mt-3 flex max-w-45 items-center gap-2"
                     >
                         <div className="flex h-1 flex-1 gap-1">
                             {[1, 2, 3, 4].map((s) => (

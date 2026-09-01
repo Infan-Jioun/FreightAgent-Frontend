@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
+import Image from "next/image";
 
 interface SidebarProps {
     open: boolean;
@@ -157,7 +158,14 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
                                 color: "#0a0f0f",
                             }}
                         >
-                            {user.name?.charAt(0).toUpperCase()}
+                            <Image
+                                src={user?.image ?? ""}
+                                alt={user?.name?.charAt(0).toUpperCase() || "U"}
+                                priority
+                                width={36}
+                                height={36}
+                                className="rounded-full object-cover"
+                            />
                         </div>
                         <div className="min-w-0">
                             <p

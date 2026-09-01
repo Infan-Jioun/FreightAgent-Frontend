@@ -1,12 +1,12 @@
-// app/(dashboard)/layout.tsx
 "use client";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
 import Sidebar from "@/components/ui/common/Sidebar";
 import DashboardNavbar from "@/components/ui/common/DashboardNavbar";
+import { AppError } from "../errorHelper/appError";
+import { toast } from "sonner";
 
 export default function DashboardLayout({
     children,
@@ -16,22 +16,66 @@ export default function DashboardLayout({
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [checking, setChecking] = useState(true);
     const router = useRouter();
-    const { user, setUser, clearUser } = useAuthStore();
+    const { setUser, clearUser } = useAuthStore();
 
     useEffect(() => {
         const verifyAuth = async () => {
             try {
-     
                 const res = await authService.getMe();
-                if (res.data) {
-                    setUser(res.data); // ← fresh user data
-                } else {
-                    throw new Error("No user");
+
+                if (!res.data) {
+                    throw new AppError(401, "No user data");
                 }
-            } catch {
+
+                const user = res.data;
+
+                if (!user.emailVerified) {
+                    sessionStorage.setItem("verify_email", user.email);
+                    router.replace("/verify-email");
+                    return;
+                }
+
+                setUser(user);
+                const params = new URLSearchParams(window.location.search);
+                const isGoogle = params.get("google");
+                const isWelcome = params.get("welcome");
+
+                if (isGoogle) {
+                    if (isWelcome) {
+                        toast.success(`Welcome to FreightAgent, ${user.name}! 🎉`, {
+                            description: "Your account has been created with Google.",
+                            duration: 5000,
+                        });
+                    } else {
+                        toast.success(`Welcome back, ${user.name}! ✅`, {
+                            description: "Signed in with Google.",
+                            duration: 3000,
+                        });
+                    }
+
+                    window.history.replaceState({}, "", "/dashboard");
+                }
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (err: any) {
+                const appError = AppError.fromAxios(err);
+
+                if (appError.isUnauthorized) {
+                    clearUser();
+                    localStorage.removeItem("auth-storage");
+                    router.replace("/login");
+                    return;
+                }
+
+                if (appError.isForbidden) {
+                    router.replace("/verify-email");
+                    return;
+                }
+
                 clearUser();
                 localStorage.removeItem("auth-storage");
                 router.replace("/login");
+
             } finally {
                 setChecking(false);
             }
@@ -40,7 +84,6 @@ export default function DashboardLayout({
         verifyAuth();
     }, []);
 
-    // ✅ Check হওয়ার আগে কিছু দেখাবে না
     if (checking) {
         return (
             <div
@@ -49,10 +92,10 @@ export default function DashboardLayout({
             >
                 <div className="flex flex-col items-center gap-3">
                     <div
-                        className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
+                        className="w-10 h-10 rounded-full border-2 animate-spin"
                         style={{
-                            borderColor: "var(--accent-primary)",
-                            borderTopColor: "transparent",
+                            borderColor: "var(--border-primary)",
+                            borderTopColor: "var(--accent-primary)",
                         }}
                     />
                     <p className="text-xs" style={{ color: "var(--text-muted)" }}>
