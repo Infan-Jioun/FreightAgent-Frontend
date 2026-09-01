@@ -115,4 +115,11 @@ export const authService = {
         const res = await api.get<IApiResponse<IUser>>(API.AUTH.ME);
         return res.data;
     },
+    createAgent: async (payload: IRegisterInput) => {
+        const res = await api.post<IApiResponse<{ user: IUser }>>(
+            API.AUTH.REGISTER_AGENT,
+            payload
+        );
+        return res.data;
+    }
 };
