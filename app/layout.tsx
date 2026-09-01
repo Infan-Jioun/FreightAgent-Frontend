@@ -30,7 +30,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} antialiased`}>
         <LenisProvider>
-          {children}
+          <div className="">
+            {children}
+          </div>
         </LenisProvider>
         <Toaster
           position="top-right"

@@ -2,6 +2,7 @@
 
 import { useAuthStore } from "@/app/store/authStore";
 import { Menu, Bell, Search } from "lucide-react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 interface NavbarProps {
@@ -88,7 +89,14 @@ export default function DashboardNavbar({ onToggleSidebar }: NavbarProps) {
                         color: "#0a0f0f",
                     }}
                 >
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                    <Image
+                        src={user?.image ?? ""}
+                        alt={user?.name?.charAt(0).toUpperCase() || "U"}
+                        priority
+                        width={36}
+                        height={36}
+                        className="rounded-full object-cover"
+                    />
                 </div>
             </div>
         </header>
