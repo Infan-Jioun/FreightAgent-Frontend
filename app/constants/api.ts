@@ -3,7 +3,7 @@ export const API = {
     // Auth
     AUTH: {
         REGISTER: "/auth/register",
-        REGISTER_AGENT: "/auth/register-agent",
+        REGISTER_AGENT: "/auth/create-agent",
         LOGIN: "/auth/login",
         LOGOUT: "/auth/logout",
         VERIFY_OTP: "/auth/verify-otp",
