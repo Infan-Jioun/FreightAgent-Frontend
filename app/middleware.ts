@@ -1,18 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// ── Route Definitions ──────────────────────────────────────────────
 const PUBLIC_ROUTES = ["/", "/login", "/register", "/register-agent", "/forgot-password", "/reset-password", "/verify-email"];
 const AUTH_ROUTES = ["/login", "/register", "/register-agent", "/forgot-password", "/reset-password", "/verify-email"];
 const CUSTOMER_ROUTES = ["/dashboard", "/shipments", "/profile", "/settings", "/tracking"];
 const AGENT_ROUTES = ["/dashboard", "/shipments", "/profile", "/tracking"];
 const ADMIN_ROUTES = ["/dashboard", "/shipments", "/profile", "/settings", "/admin"];
 
-// ── JWT Decode (without library — Edge Runtime safe) ──────────────
 function decodeJWT(token: string) {
   try {
     const base64 = token.split(".")[1];
+    if (!base64) return null;
     const decoded = Buffer.from(base64, "base64").toString("utf-8");
     return JSON.parse(decoded);
   } catch {
@@ -30,39 +28,30 @@ function getRole(payload: any): string | null {
 }
 
 function hasAccess(role: string, pathname: string): boolean {
-  const path = "/" + pathname.split("/")[1]; // root segment only
-
-  if (role === "ADMIN") {
-    return ADMIN_ROUTES.some((r) => pathname.startsWith(r));
-  }
-  if (role === "AGENT") {
-    return AGENT_ROUTES.some((r) => pathname.startsWith(r));
-  }
-  if (role === "CUSTOMER") {
-    return CUSTOMER_ROUTES.some((r) => pathname.startsWith(r));
-  }
+  if (role === "ADMIN") return ADMIN_ROUTES.some((r) => pathname.startsWith(r));
+  if (role === "AGENT") return AGENT_ROUTES.some((r) => pathname.startsWith(r));
+  if (role === "CUSTOMER") return CUSTOMER_ROUTES.some((r) => pathname.startsWith(r));
   return false;
 }
 
-// ── Security Headers ───────────────────────────────────────────────
 function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-XSS-Protection", "1; mode=block");
-  response.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
-  response.headers.set(
-    "Content-Security-Policy",
-    "frame-ancestors 'none';"
-  );
   return response;
 }
 
-// ── Middleware ─────────────────────────────────────────────────────
-export function middleware(request: NextRequest) {
+function clearAuthAndRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL("/login", request.url);
+  const response = NextResponse.redirect(loginUrl);
+  response.cookies.delete("accessToken");
+  response.cookies.delete("refreshToken");
+  response.cookies.delete("better-auth.session_token");
+  return addSecurityHeaders(response);
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ✅ Static files skip
@@ -75,11 +64,6 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ✅ Token নাও
-  const token =
-    request.cookies.get("accessToken")?.value ||
-    request.cookies.get("freightagent.accessToken")?.value;
-
   const isPublicRoute = PUBLIC_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(r + "/")
   );
@@ -87,53 +71,91 @@ export function middleware(request: NextRequest) {
     (r) => pathname === r || pathname.startsWith(r + "/")
   );
 
-  // ── Case 1: No token ────────────────────────────────────────────
-  if (!token) {
-    // Public route — allow
-    if (isPublicRoute) {
-      return addSecurityHeaders(NextResponse.next());
+  // ✅ accessToken নাও
+  let accessToken =
+    request.cookies.get("accessToken")?.value ||
+    request.cookies.get("freightagent.accessToken")?.value;
+
+  let payload = accessToken ? decodeJWT(accessToken) : null;
+
+  // ✅ Token expired হলে refresh করার চেষ্টা করো
+  if ((!accessToken || !payload || isTokenExpired(payload))) {
+    const refreshToken = request.cookies.get("refreshToken")?.value;
+
+    if (refreshToken) {
+      try {
+        const backendUrl =
+          process.env.BACKEND_API_URL ||
+          "https://freight-agent-backend.vercel.app/api/v1";
+
+        // Backend এ refresh token পাঠাও
+        const refreshRes = await fetch(
+          `${backendUrl}/auth/refresh-token`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              cookie: `refreshToken=${refreshToken}`,
+            },
+          }
+        );
+
+        if (refreshRes.ok) {
+          // ✅ নতুন accessToken পাও
+          const setCookies = refreshRes.headers.getSetCookie();
+          const newAccessTokenCookie = setCookies.find((c) =>
+            c.startsWith("accessToken=")
+          );
+
+          if (newAccessTokenCookie) {
+            const newToken = newAccessTokenCookie.split(";")[0]?.split("=")[1];
+            if (newToken) {
+              accessToken = newToken;
+              payload = decodeJWT(newToken);
+
+              // ✅ নতুন token সহ continue করো
+              const response = NextResponse.next();
+              // নতুন cookie set করো
+              setCookies.forEach((cookie) => {
+                response.headers.append("set-cookie", cookie);
+              });
+
+              const role = getRole(payload);
+              if (isAuthRoute) {
+                return NextResponse.redirect(new URL("/dashboard", request.url));
+              }
+              if (!isPublicRoute && role && !hasAccess(role, pathname)) {
+                return NextResponse.redirect(new URL("/dashboard", request.url));
+              }
+              return addSecurityHeaders(response);
+            }
+          }
+        }
+      } catch {
+        // refresh failed — login এ redirect
+      }
     }
-    // Protected route — redirect to login
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", pathname); // ← redirect back after login
-    return NextResponse.redirect(loginUrl);
+
+    // ✅ refresh ও fail হলে
+    if (!isPublicRoute) {
+      return clearAuthAndRedirect(request);
+    }
+    return addSecurityHeaders(NextResponse.next());
   }
 
-  // ── Case 2: Token exists — decode and validate ──────────────────
-  const payload = decodeJWT(token);
-
-  // Invalid or expired token
-  if (!payload || isTokenExpired(payload)) {
-    // Clear cookie + redirect to login
-    const loginUrl = new URL("/login", request.url);
-    const response = NextResponse.redirect(loginUrl);
-    response.cookies.delete("accessToken");
-    response.cookies.delete("refreshToken");
-    response.cookies.delete("better-auth.session_token");
-    return addSecurityHeaders(response);
-  }
-
+  // ✅ Valid token আছে
   const role = getRole(payload);
 
-  // ── Case 3: Logged in — trying to access auth pages ────────────
+  // Logged in — auth page এ যেতে চাইলে dashboard এ redirect
   if (isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // ── Case 4: Role-based access check ────────────────────────────
-  if (!isPublicRoute && role) {
-    // Admin route — only ADMIN
-    if (pathname.startsWith("/admin") && role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
-    // Check role has access
-    if (!hasAccess(role, pathname)) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+  // Role check
+  if (!isPublicRoute && role && !hasAccess(role, pathname)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // ── Allow ──────────────────────────────────────────────────────
   return addSecurityHeaders(NextResponse.next());
 }
 
