@@ -4,7 +4,7 @@
 // app/(auth)/login/page.tsx
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Eye, EyeOff, Mail, Lock, Anchor, Loader2, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
@@ -25,6 +25,23 @@ export default function LoginForm() {
     const { setUser } = useAuthStore();
     const [showPassword, setShowPassword] = useState(false);
     const searchParams = useSearchParams();
+
+    // Check for error parameters in URL (e.g. from Google OAuth)
+    useEffect(() => {
+        const error = searchParams.get("error");
+        if (error) {
+            if (error === "session_failed") {
+                toast.error("Google sign-in session failed. Please try again.");
+            } else if (error === "token_failed") {
+                toast.error("Failed to authenticate Google token.");
+            } else if (error === "no_email") {
+                toast.error("No email associated with this Google account.");
+            } else if (error === "server_error") {
+                toast.error("Server error during Google sign-in. Please try again.");
+            }
+            window.history.replaceState({}, "", "/login");
+        }
+    }, [searchParams]);
 
     // ── success-beat state ──
     const [showSuccess, setShowSuccess] = useState(false);

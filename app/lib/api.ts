@@ -8,6 +8,19 @@ const api = axios.create({
     withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+    if (typeof document !== "undefined") {
+        const match = document.cookie.match(/(^|;)\s*(?:accessToken|freightagent\.accessToken)=([^;]+)/);
+        if (match && match[2]) {
+            const token = decodeURIComponent(match[2]);
+            if (token && !config.headers.Authorization) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        }
+    }
+    return config;
+});
+
 interface RetryConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
 }

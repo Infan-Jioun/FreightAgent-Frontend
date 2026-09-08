@@ -19,9 +19,13 @@ export default function DashboardLayout({
     const { setUser, clearUser } = useAuthStore();
 
     useEffect(() => {
+        let cancelled = false;
+
         const verifyAuth = async () => {
             try {
                 const res = await authService.getMe();
+
+                if (cancelled) return;
 
                 if (!res.data) {
                     throw new AppError(401, "No user data");
@@ -30,39 +34,42 @@ export default function DashboardLayout({
                 const user = res.data;
 
                 if (!user.emailVerified) {
-                    sessionStorage.setItem("verify_email", user.email);
-                    router.replace("/verify-email");
+                    router.replace(
+                        `/verify-email?email=${encodeURIComponent(user.email)}`
+                    );
                     return;
                 }
 
                 setUser(user);
-                const params = new URLSearchParams(window.location.search);
-                const isGoogle = params.get("google");
-                const isWelcome = params.get("welcome");
 
-                if (isGoogle) {
-                    if (isWelcome) {
-                        toast.success(`Welcome to FreightAgent, ${user.name}! 🎉`, {
-                            description: "Your account has been created with Google.",
-                            duration: 5000,
-                        });
-                    } else {
-                        toast.success(`Welcome back, ${user.name}! ✅`, {
-                            description: "Signed in with Google.",
-                            duration: 3000,
-                        });
-                    }
+                // const params = new URLSearchParams(window.location.search);
+                // const isGoogle = params.get("google");
+                // const isWelcome = params.get("welcome");
 
-                    window.history.replaceState({}, "", "/dashboard");
-                }
+                // if (isGoogle) {
+                //     if (isWelcome) {
+                //         toast.success(`Welcome to FreightAgent, ${user.name}! 🎉`, {
+                //             description: "Your account has been created with Google.",
+                //             duration: 5000,
+                //         });
+                //     } else {
+                //         toast.success(`Welcome back, ${user.name}! ✅`, {
+                //             description: "Signed in with Google.",
+                //             duration: 3000,
+                //         });
+                //     }
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                //     window.history.replaceState({}, "", "/dashboard");
+                // }
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (err: any) {
+                if (cancelled) return;
+
                 const appError = AppError.fromAxios(err);
 
                 if (appError.isUnauthorized) {
                     clearUser();
-                    localStorage.removeItem("auth-storage");
                     router.replace("/login");
                     return;
                 }
@@ -73,15 +80,22 @@ export default function DashboardLayout({
                 }
 
                 clearUser();
-                localStorage.removeItem("auth-storage");
                 router.replace("/login");
 
             } finally {
-                setChecking(false);
+                if (!cancelled) {
+                    setChecking(false);
+                }
             }
         };
 
         verifyAuth();
+
+        return () => {
+            cancelled = true;
+        };
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     if (checking) {
