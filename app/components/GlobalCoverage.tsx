@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { CONTAINER_CLASS } from "./ContainsLayout";
 
 const STATS = [
   { value: "Global", label: "Coverage" },
@@ -26,9 +27,9 @@ export function GlobalCoverage() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="relative px-6 py-28 md:py-36" style={{ background: "var(--bg-card)" }}>
-      <div ref={ref} className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
+    <section className="relative py-14 md:py-20" style={{ background: "var(--bg-card)" }}>
+      <div ref={ref} className={CONTAINER_CLASS}>
+        <div className="text-center mb-10">
           <p className="text-xs tracking-widest mb-3 uppercase" style={{ color: "var(--accent-primary)" }}>
             Global coverage
           </p>

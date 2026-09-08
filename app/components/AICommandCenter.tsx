@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Bot, TrendingDown, Route, Clock, AlertTriangle } from "lucide-react";
+import { CONTAINER_CLASS } from "./ContainsLayout";
 
 const INSIGHTS = [
   { icon: TrendingDown, label: "Delay Risk", value: "Low", tint: "var(--accent-secondary)" },
@@ -16,8 +17,8 @@ export function AICommandCenter() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section id="ai-command-center" className="relative px-6 py-28 md:py-36 animate-fade-in" style={{ background: "var(--bg-primary)", animationDelay: "100ms" }}>
-      <div ref={ref} className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+    <section id="ai-command-center" className="relative py-14 md:py-20 animate-fade-in" style={{ background: "var(--bg-primary)", animationDelay: "100ms" }}>
+      <div ref={ref} className={`${CONTAINER_CLASS} grid md:grid-cols-2 gap-12 items-center`}>
         <motion.div
           initial={{ opacity: 0, x: -24 }}
           animate={inView ? { opacity: 1, x: 0 } : {}}

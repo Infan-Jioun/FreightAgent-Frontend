@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { CONTAINER_CLASS } from "./ContainsLayout";
 
 const ROUTE = ["Shanghai", "Singapore", "Dubai", "Rotterdam"];
 
@@ -45,8 +46,8 @@ export function LiveTracking() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="relative px-6 py-28 md:py-36" style={{ background: "var(--bg-card)" }}>
-      <div ref={ref} className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+    <section className="relative py-14 md:py-20" style={{ background: "var(--bg-card)" }}>
+      <div ref={ref} className={`${CONTAINER_CLASS} grid md:grid-cols-2 gap-12 items-center`}>
         {/* Left: tracking panel */}
         <motion.div
           initial={{ opacity: 0, x: -24 }}

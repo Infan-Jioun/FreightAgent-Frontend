@@ -3,7 +3,19 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 // ── Route Definitions ──────────────────────────────────────────────
-const PUBLIC_ROUTES = ["/", "/login", "/register", "/register-agent", "/forgot-password", "/reset-password", "/verify-email"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/about",
+  "/services",
+  "/quote",
+  "/contact",
+  "/login",
+  "/register",
+  "/register-agent",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+];
 const AUTH_ROUTES = ["/login", "/register", "/register-agent", "/forgot-password", "/reset-password", "/verify-email"];
 const CUSTOMER_ROUTES = ["/dashboard", "/shipments", "/profile", "/settings", "/tracking"];
 const AGENT_ROUTES = ["/dashboard", "/shipments", "/profile", "/tracking"];

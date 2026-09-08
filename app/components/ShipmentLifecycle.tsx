@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Warehouse, Anchor, Ship, Truck, ShieldCheck, PackageCheck } from "lucide-react";
+import { CONTAINER_CLASS } from "./ContainsLayout";
 
 const STAGES = [
   { n: "01", label: "Booked", icon: PackageCheck },
@@ -23,9 +24,9 @@ export function ShipmentLifecycle() {
   const lineWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
-    <section ref={ref} className="relative px-6 py-28 md:py-36 overflow-hidden" style={{ background: "var(--bg-primary)" }}>
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-20">
+    <section ref={ref} className="relative py-14 md:py-20 overflow-hidden" style={{ background: "var(--bg-primary)" }}>
+      <div className={CONTAINER_CLASS}>
+        <div className="text-center mb-12">
           <p className="text-xs tracking-widest mb-3 uppercase" style={{ color: "var(--accent-primary)" }}>
             Shipment lifecycle
           </p>

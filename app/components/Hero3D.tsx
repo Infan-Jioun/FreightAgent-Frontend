@@ -528,25 +528,42 @@ export function Hero3D() {
   const { progress, reducedMotion } = useScrollProgress(sectionRef);
   const pointer = usePointerParallax(reducedMotion);
   const isMobile = useIsMobile();
+  const [inView, setInView] = useState(true);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section
       ref={sectionRef}
-      className="relative h-[180vh]"
+      className="relative min-h-[92vh] md:min-h-screen flex items-center justify-center overflow-hidden pt-16 pb-8"
       style={{ background: "var(--bg-primary)" }}
     >
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* 3D canvas */}
+      <div className="absolute inset-0 w-full h-full overflow-hidden">
+        {/* 3D canvas with performance optimization */}
         <div className="absolute inset-0">
-          <Canvas shadows dpr={isMobile ? [1, 1.4] : [1, 1.75]} gl={{ antialias: true }}>
+          <Canvas
+            frameloop={inView ? "always" : "never"}
+            dpr={1}
+            gl={{ powerPreference: "high-performance", antialias: false, alpha: true }}
+          >
             <Suspense fallback={null}>
               <HeroScene progress={progress} pointer={pointer} reducedMotion={reducedMotion} isMobile={isMobile} />
             </Suspense>
           </Canvas>
         </div>
 
-        {/* vignette / atmosphere, centered now that the ship sits behind
-            the centered headline instead of off to one side */}
+        {/* vignette / atmosphere */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -554,8 +571,6 @@ export function Hero3D() {
               "radial-gradient(ellipse at 50% 42%, transparent 25%, rgba(10,15,15,0.78) 100%)",
           }}
         />
-        {/* extra legibility gradient focused behind the text block so the
-            headline stays readable without hiding the ship everywhere else */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -563,12 +578,10 @@ export function Hero3D() {
               "radial-gradient(ellipse 55% 45% at 50% 46%, rgba(5,10,10,0.55) 0%, rgba(5,10,10,0.2) 55%, transparent 80%)",
           }}
         />
+      </div>
 
-        {/* Content: centered overlay on top of the ship background */}
-        <div
-          className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center transition-opacity duration-300"
-          style={{ opacity: Math.max(0, 1 - progress * 1.6) }}
-        >
+      {/* Content: centered overlay */}
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 py-12 text-center w-full">
           <div className="max-w-4xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -717,7 +730,6 @@ export function Hero3D() {
         </div>
 
         <GlobalRouteOverlay />
-      </div>
     </section>
   );
 }

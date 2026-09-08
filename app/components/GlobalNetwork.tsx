@@ -520,21 +520,38 @@ function useQualityTier() {
 
 function Scene() {
   const tier = useQualityTier();
-  const segments = tier === "mobile" ? 32 : tier === "tablet" ? 48 : 64;
-  const dpr: [number, number] = tier === "mobile" ? [1, 1] : [1, 1.6];
+  const segments = tier === "mobile" ? 24 : 36;
+  const [inView, setInView] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <Canvas dpr={dpr} gl={{ antialias: true, alpha: true }}>
-      <Suspense fallback={null}>
-        <PerspectiveCamera makeDefault fov={45} position={[0, 0.4, 6.5]} />
-        <ambientLight intensity={0.35} />
-        <directionalLight position={LIGHT_DIR.toArray()} intensity={1.4} color="#eafcf7" />
-        {tier !== "mobile" && (
-          <Stars radius={60} depth={30} count={1200} factor={1.4} fade speed={0.4} />
-        )}
-        <Globe segments={segments} />
-      </Suspense>
-    </Canvas>
+    <div ref={containerRef} className="w-full h-full">
+      <Canvas
+        frameloop={inView ? "always" : "never"}
+        dpr={1}
+        gl={{ powerPreference: "high-performance", antialias: false, alpha: true }}
+      >
+        <Suspense fallback={null}>
+          <PerspectiveCamera makeDefault fov={45} position={[0, 0.4, 6.5]} />
+          <ambientLight intensity={0.5} />
+          <directionalLight position={LIGHT_DIR.toArray()} intensity={1.4} color="#eafcf7" />
+          <Globe segments={segments} />
+        </Suspense>
+      </Canvas>
+    </div>
   );
 }
 
@@ -552,7 +569,7 @@ export function GlobalNetwork() {
   return (
     <section
       id="global-network"
-      className="relative pt-10 md:pt-14 pb-20 md:pb-28"
+      className="relative py-10 md:py-14"
       style={{ background: "var(--bg-primary)" }}
     >
       <div className={`${CONTAINER_CLASS} grid lg:grid-cols-2 gap-12 lg:gap-16 items-center`}>

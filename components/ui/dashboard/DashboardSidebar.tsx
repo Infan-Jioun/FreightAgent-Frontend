@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
@@ -116,7 +117,8 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
             {/* Top: Brand Logo + Site Name (Visible on Large Devices) */}
             <div>
                 <Link
-                    href={ROUTES.DASHBOARD}
+                    href="/"
+                    onClick={onCloseMobile}
                     className="flex items-center gap-3 px-2 py-1.5 rounded-2xl hover:opacity-90 transition-opacity"
                 >
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20 flex-shrink-0">
@@ -207,28 +209,47 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                 {sidebarContent}
             </div>
 
-            {/* Mobile / Tablet Drawer Overlay */}
-            {mobileOpen && (
-                <div className="fixed inset-0 z-50 lg:hidden">
-                    <div
-                        className="fixed inset-0 bg-[#0a0f0f]/80 backdrop-blur-sm transition-opacity"
-                        onClick={onCloseMobile}
-                    />
-                    <div className="fixed top-0 bottom-0 left-0 w-64 bg-[#0d1f1f] border-r border-[#1a4a4a] shadow-2xl z-10 flex flex-col">
-                        <div className="flex justify-end p-3">
-                            <button
-                                onClick={onCloseMobile}
-                                className="p-1.5 rounded-lg text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a]"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto">
-                            {sidebarContent}
-                        </div>
+            {/* Mobile / Tablet Drawer Overlay with Smooth Animation */}
+            <AnimatePresence>
+                {mobileOpen && (
+                    <div className="fixed inset-0 z-50 lg:hidden flex">
+                        {/* Backdrop with fade animation */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="fixed inset-0 bg-[#0a0f0f]/80 backdrop-blur-md"
+                            onClick={onCloseMobile}
+                        />
+
+                        {/* Slide-over sidebar container */}
+                        <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="relative w-72 max-w-[85vw] bg-[#0d1f1f] border-r border-[#1a4a4a] shadow-2xl z-10 flex flex-col h-full overflow-hidden"
+                        >
+                            <div className="flex items-center justify-between p-4 border-b border-[#1a4a4a]/60">
+                                <span className="text-xs font-mono uppercase tracking-wider text-[#00c9a7] font-bold">
+                                    Navigation Menu
+                                </span>
+                                <button
+                                    onClick={onCloseMobile}
+                                    className="p-1.5 rounded-xl border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors"
+                                    aria-label="Close mobile menu"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                {sidebarContent}
+                            </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
         </>
     );
 }

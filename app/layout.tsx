@@ -27,10 +27,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.variable} antialiased`}>
+    <html lang="en" className="dark" style={{ colorScheme: "dark", backgroundColor: "#0a0f0f" }} suppressHydrationWarning>
+      <body className={`${geist.variable} antialiased bg-[#0a0f0f] text-[#e0faf5] selection:bg-[#00c9a7]/30 selection:text-[#00e5c0]`}>
         <LenisProvider>
-          <div className="">
+          <div className="min-h-screen bg-[#0a0f0f]">
             {children}
           </div>
         </LenisProvider>

@@ -4,12 +4,13 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlusCircle, Link2, Radar, PackageCheck } from "lucide-react";
+import { CONTAINER_CLASS } from "./ContainsLayout";
 
 const STEPS = [
   {
     n: "01",
     title: "Create",
-    desc: "Create a shipment in seconds — origin, destination, weight, and you're done.",
+    desc: "Create a shipment in seconds origin, destination, weight, and you're done.",
     icon: PlusCircle,
   },
   {
@@ -37,9 +38,9 @@ export function HowItWorks() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="relative px-6 py-28 md:py-36" style={{ background: "var(--bg-card)" }}>
-      <div ref={ref} className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
+    <section className="relative py-14 md:py-20" style={{ background: "var(--bg-card)" }}>
+      <div ref={ref} className={CONTAINER_CLASS}>
+        <div className="text-center mb-10">
           <p className="text-xs tracking-widest mb-3 uppercase" style={{ color: "var(--accent-primary)" }}>
             Simple process
           </p>

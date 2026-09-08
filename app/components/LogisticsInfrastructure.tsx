@@ -1,142 +1,111 @@
 "use client";
 
-import { Suspense, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Environment, PerspectiveCamera } from "@react-three/drei";
-import * as THREE from "three";
-import { ContainerModel } from "./ContainerModel";
-import { useScrollProgress } from "./useScrollProgress";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Warehouse, Anchor, Ship, Truck, CheckCircle2, Navigation, Activity } from "lucide-react";
+import { CONTAINER_CLASS } from "./ContainsLayout";
 
 const STOPS = [
-  { x: -8, label: "Warehouse" },
-  { x: -4, label: "Port" },
-  { x: 0, label: "Cargo Ship" },
-  { x: 4, label: "Port" },
-  { x: 8, label: "Destination" },
+  { id: "wh", label: "Origin Warehouse", location: "Shenzhen Hub", status: "Loaded & Manifested", icon: Warehouse },
+  { id: "origin", label: "Departure Port", location: "Yantian Terminal", status: "Customs Cleared", icon: Anchor },
+  { id: "vessel", label: "Ocean Transit", location: "Malacca Strait", status: "Underway • 22.4 knots", icon: Ship },
+  { id: "dest", label: "Arrival Port", location: "Port of Rotterdam", status: "Berth Reserved", icon: Anchor },
+  { id: "delivery", label: "Inland Drayage", location: "Duisburg Depot", status: "Scheduled Dispatch", icon: Truck },
 ];
 
-function Station({ x, kind }: { x: number; kind: "warehouse" | "port" | "ship" }) {
-  if (kind === "warehouse")
-    return (
-      <mesh position={[x, -0.4, -1.5]} castShadow receiveShadow>
-        <boxGeometry args={[2.2, 1.4, 1.6]} />
-        <meshStandardMaterial color="#0d1f1f" roughness={0.9} />
-      </mesh>
-    );
-  if (kind === "ship")
-    return (
-      <mesh position={[x, -0.9, 0]} castShadow receiveShadow>
-        <boxGeometry args={[3.2, 0.9, 2]} />
-        <meshStandardMaterial color="#06110f" roughness={0.8} metalness={0.3} />
-      </mesh>
-    );
-  // port crane
-  return (
-    <group position={[x, 0, -1.8]}>
-      <mesh position={[0, 1.2, 0]} castShadow>
-        <boxGeometry args={[0.18, 2.4, 0.18]} />
-        <meshStandardMaterial color="#00c9a7" roughness={0.4} metalness={0.7} />
-      </mesh>
-      <mesh position={[0.7, 2.2, 0]} castShadow>
-        <boxGeometry args={[1.6, 0.12, 0.12]} />
-        <meshStandardMaterial color="#00c9a7" roughness={0.4} metalness={0.7} />
-      </mesh>
-    </group>
-  );
-}
-
-function Scene({ progress }: { progress: number }) {
-  const camera = useRef<THREE.PerspectiveCamera>(null);
-  const trackLength = 18; // -9 .. 9
-  const camX = -9 + progress * trackLength;
-
-  useFrame(() => {
-    if (!camera.current) return;
-    camera.current.position.x = THREE.MathUtils.lerp(camera.current.position.x, camX, 0.1);
-    camera.current.lookAt(camX + 2.2, 0, 0);
-  });
-
-  return (
-    <>
-      <PerspectiveCamera ref={camera} makeDefault fov={50} position={[-9, 1.4, 5]} />
-      <fog attach="fog" args={["#0a0f0f", 8, 24]} />
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[4, 6, 4]} intensity={1.2} color="#e0faf5" castShadow />
-      <pointLight position={[camX, 3, 2]} intensity={0.8} color="#00c9a7" />
-
-      <ContainerModel position={[camX - 6.5, -0.1, 0.2]} rotation={[0, 0.3, 0]} scale={0.85} />
-
-      <Station x={-8} kind="warehouse" />
-      <Station x={-4} kind="port" />
-      <Station x={0} kind="ship" />
-      <Station x={4} kind="port" />
-      <mesh position={[8, -0.5, -1.2]} castShadow receiveShadow>
-        <boxGeometry args={[2, 1.2, 1.4]} />
-        <meshStandardMaterial color="#0d1f1f" roughness={0.9} />
-      </mesh>
-
-      {/* ground */}
-      <mesh position={[0, -1.3, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[40, 10]} />
-        <meshStandardMaterial color="#050b0a" roughness={1} />
-      </mesh>
-
-      <ContactShadows position={[0, -1.28, 0]} opacity={0.5} scale={30} blur={2} far={4} />
-      <Environment preset="warehouse" />
-    </>
-  );
-}
-
 export function LogisticsInfrastructure() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const { progress } = useScrollProgress(sectionRef);
-  const activeIdx = Math.min(STOPS.length - 1, Math.floor(progress * STOPS.length));
+  const [activeStop, setActiveStop] = useState(2);
 
   return (
-    <section ref={sectionRef} className="relative h-[220vh]" style={{ background: "var(--bg-primary)" }}>
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        <div className="absolute inset-0">
-          <Canvas shadows dpr={[1, 1.5]}>
-            <Suspense fallback={null}>
-              <Scene progress={progress} />
-            </Suspense>
-          </Canvas>
-        </div>
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(10,15,15,0.8) 100%)" }}
-        />
+    <section className="relative py-12 md:py-16 overflow-hidden bg-[#070b0b] border-y border-[#1a4a4a]/50">
+      {/* Precision grid background */}
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(#00c9a7 1px, transparent 1px), linear-gradient(90deg, #00c9a7 1px, transparent 1px)",
+          backgroundSize: "32px 32px",
+        }}
+      />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#00c9a7]/5 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 h-full flex flex-col items-center justify-between px-6 py-16 md:py-24 text-center">
-          <div>
-            <p className="text-xs tracking-widest mb-3 uppercase" style={{ color: "var(--accent-primary)" }}>
-              Logistics infrastructure
-            </p>
-            <h2 className="text-3xl md:text-5xl font-bold max-w-2xl" style={{ color: "var(--text-primary)" }}>
-              Every movement.
-              <br />
-              One intelligent system.
-            </h2>
+      <div className={`relative z-10 ${CONTAINER_CLASS} space-y-8`}>
+        <div className="text-center space-y-2">
+          <p className="text-xs tracking-widest uppercase font-mono font-bold text-[#00c9a7]">
+            Logistics Infrastructure
+          </p>
+          <h2 className="text-2xl sm:text-4xl font-black text-[#e0faf5] tracking-tight">
+            Every movement. One intelligent pipeline.
+          </h2>
+          <p className="text-xs sm:text-sm text-[#7ecfc4]/80 max-w-xl mx-auto">
+            Interactive multi-modal relay connecting source manufacturing directly to inland distribution hubs.
+          </p>
+        </div>
+
+        {/* Interactive Waypoint Ribbon */}
+        <div className="p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] space-y-6 shadow-xl">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {STOPS.map((stop, idx) => {
+              const IconComp = stop.icon;
+              const isSelected = activeStop === idx;
+              const isPast = idx < activeStop;
+
+              return (
+                <button
+                  key={stop.id}
+                  onClick={() => setActiveStop(idx)}
+                  className={`p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden ${
+                    isSelected
+                      ? "bg-[#00c9a7]/15 border-[#00c9a7] shadow-lg shadow-[#00c9a7]/20"
+                      : isPast
+                      ? "bg-[#0a1a1a] border-[#00c9a7]/30 text-[#7ecfc4]"
+                      : "bg-[#0a1a1a]/60 border-[#1a4a4a]/60 text-[#3a6b66] hover:border-[#00c9a7]/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        isSelected
+                          ? "bg-[#00c9a7] text-[#0a0f0f]"
+                          : isPast
+                          ? "bg-[#112a2a] text-[#00c9a7]"
+                          : "bg-[#0f1717] text-[#3a6b66]"
+                      }`}
+                    >
+                      <IconComp size={15} />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold">0{idx + 1}</span>
+                  </div>
+
+                  <div className="text-xs font-bold text-[#e0faf5] truncate">{stop.label}</div>
+                  <div className="text-[10px] text-[#7ecfc4]/70 truncate mt-0.5">{stop.location}</div>
+                </button>
+              );
+            })}
           </div>
 
-          <div className="flex items-center gap-3 md:gap-6">
-            {STOPS.map((stop, i) => (
-              <div key={i} className="flex flex-col items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 rounded-full transition-all"
-                  style={{
-                    background: i <= activeIdx ? "var(--accent-primary)" : "var(--border-primary)",
-                    boxShadow: i === activeIdx ? "0 0 12px var(--accent-primary)" : "none",
-                  }}
-                />
-                <span
-                  className="text-[10px] md:text-xs tracking-wide"
-                  style={{ color: i <= activeIdx ? "var(--text-primary)" : "var(--text-muted)" }}
-                >
-                  {stop.label}
+          {/* Active Detail Display */}
+          <div className="p-4 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30 flex items-center justify-center text-[#00b4d8]">
+                <Activity size={18} />
+              </div>
+              <div>
+                <span className="text-[10px] text-[#3a6b66] uppercase tracking-wider font-bold block">
+                  Active Milestone Telemetry
+                </span>
+                <span className="text-xs sm:text-sm font-bold text-[#e0faf5]">
+                  {STOPS[activeStop].label} — {STOPS[activeStop].location}
                 </span>
               </div>
-            ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00e5c0] animate-ping" />
+                {STOPS[activeStop].status}
+              </span>
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,12 @@
 
 export const ROUTES = {
+    // Public & Marketing
+    HOME: "/",
+    ABOUT: "/about",
+    SERVICES: "/services",
+    QUOTE: "/quote",
+    CONTACT: "/contact",
+
     // Auth
     LOGIN: "/login",
     REGISTER: "/register",

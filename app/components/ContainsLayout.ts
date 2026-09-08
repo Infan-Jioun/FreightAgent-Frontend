@@ -10,4 +10,4 @@
  *   import { CONTAINER_CLASS } from "@/app/constants/layout";
  *   <div className={CONTAINER_CLASS}>...</div>
  */
-export const CONTAINER_CLASS = "max-w-[1200px] mx-auto px-4 md:px-5";
+export const CONTAINER_CLASS = "max-w-[1240px] mx-auto px-4 sm:px-6";
