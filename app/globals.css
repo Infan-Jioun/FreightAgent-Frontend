@@ -218,3 +218,15 @@ html.lenis {
 .lenis.lenis-scrolling iframe {
   pointer-events: none;
 }
+
+/* Ensure pointer cursor on all clickable elements */
+button,
+[role="button"],
+a,
+input[type="button"],
+input[type="submit"],
+select,
+summary,
+.cursor-pointer {
+  cursor: pointer !important;
+}

@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
-import Sidebar from "@/components/ui/common/Sidebar";
-import DashboardNavbar from "@/components/ui/common/DashboardNavbar";
+import DashboardSidebar from "@/components/ui/dashboard/DashboardSidebar";
+import DashboardHeader from "@/components/ui/dashboard/DashboardHeader";
 import { AppError } from "../errorHelper/appError";
 import { toast } from "sonner";
 
@@ -13,7 +13,7 @@ export default function DashboardLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [checking, setChecking] = useState(true);
     const router = useRouter();
     const { setUser, clearUser } = useAuthStore();
@@ -42,27 +42,6 @@ export default function DashboardLayout({
 
                 setUser(user);
 
-                // const params = new URLSearchParams(window.location.search);
-                // const isGoogle = params.get("google");
-                // const isWelcome = params.get("welcome");
-
-                // if (isGoogle) {
-                //     if (isWelcome) {
-                //         toast.success(`Welcome to FreightAgent, ${user.name}! 🎉`, {
-                //             description: "Your account has been created with Google.",
-                //             duration: 5000,
-                //         });
-                //     } else {
-                //         toast.success(`Welcome back, ${user.name}! ✅`, {
-                //             description: "Signed in with Google.",
-                //             duration: 3000,
-                //         });
-                //     }
-
-                //     window.history.replaceState({}, "", "/dashboard");
-                // }
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (err: any) {
                 if (cancelled) return;
 
@@ -101,19 +80,12 @@ export default function DashboardLayout({
     if (checking) {
         return (
             <div
-                className="min-h-screen flex items-center justify-center"
-                style={{ background: "var(--bg-primary)" }}
+                className="min-h-screen flex items-center justify-center bg-[#0a0f0f]"
             >
                 <div className="flex flex-col items-center gap-3">
-                    <div
-                        className="w-10 h-10 rounded-full border-2 animate-spin"
-                        style={{
-                            borderColor: "var(--border-primary)",
-                            borderTopColor: "var(--accent-primary)",
-                        }}
-                    />
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                        Verifying session...
+                    <div className="w-10 h-10 rounded-full border-3 border-[#1a4a4a] border-t-[#00c9a7] animate-spin" />
+                    <p className="text-xs font-semibold text-[#7ecfc4]">
+                        Loading FreightAgent...
                     </p>
                 </div>
             </div>
@@ -121,22 +93,21 @@ export default function DashboardLayout({
     }
 
     return (
-        <div
-            className="flex min-h-screen"
-            style={{ background: "var(--bg-primary)" }}
-        >
-            <Sidebar
-                open={sidebarOpen}
-                onToggle={() => setSidebarOpen(!sidebarOpen)}
+        <div className="flex min-h-screen bg-[#0a0f0f] font-sans antialiased text-[#e0faf5] selection:bg-[#00c9a7]/20 selection:text-[#00e5c0]">
+            {/* Left Sidebar (Desktop w-64 showing icon + route name, mobile drawer) */}
+            <DashboardSidebar
+                mobileOpen={mobileMenuOpen}
+                onCloseMobile={() => setMobileMenuOpen(false)}
             />
-            <div
-                className="flex-1 flex flex-col transition-all duration-300"
-                style={{ marginLeft: sidebarOpen ? "260px" : "72px" }}
-            >
-                <DashboardNavbar
-                    onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+
+            {/* Right Main Content Area */}
+            <div className="flex-1 flex flex-col min-w-0">
+                <DashboardHeader
+                    onOpenMobileMenu={() => setMobileMenuOpen(true)}
                 />
-                <main className="flex-1 p-6 overflow-auto">{children}</main>
+                <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-[1600px] w-full mx-auto">
+                    {children}
+                </main>
             </div>
         </div>
     );
