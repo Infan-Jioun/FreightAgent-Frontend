@@ -29,7 +29,7 @@ export function HomeClient() {
       {/* Global Interactive Route Network */}
       <GlobalNetwork />
 
-      {/* Live Parcel & Fleet Tracking Widget */}
+      {/* Live Parcel & Freigeht Tracking Widget */}
       <LiveTracking />
 
       {/* Milestone Lifecycle Pipeline */}
