@@ -131,19 +131,24 @@ export default function AdminDashboard() {
             {/* 4 Executive Platform KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* KPI 1 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00c9a7]/40 transition-all">
+                <Link
+                    href={ROUTES.ADMIN_USERS}
+                    className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00c9a7]/40 transition-all block group"
+                >
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Total Platform Users</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00c9a7]/15 text-[#00c9a7] flex items-center justify-center">
+                        <span className="text-xs font-medium text-[#7ecfc4] group-hover:text-[#e0faf5] transition-colors">Total Platform Users</span>
+                        <div className="w-8 h-8 rounded-lg bg-[#00c9a7]/15 text-[#00c9a7] flex items-center justify-center group-hover:bg-[#00c9a7]/25 transition-colors">
                             <Users size={16} />
                         </div>
                     </div>
                     <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">4,820</span>
-                        <span className="text-xs font-semibold text-[#00e5c0]">+12.4% MoM</span>
+                        <span className="text-2xl font-extrabold text-[#e0faf5]">User Directory</span>
+                        <span className="text-xs font-semibold text-[#00e5c0] flex items-center gap-0.5">
+                            Manage <ChevronRight size={12} />
+                        </span>
                     </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">3,490 customers • 1,330 agents</p>
-                </div>
+                    <p className="text-[11px] text-[#3a6b66] mt-1">Role assignments, KYC, & directory</p>
+                </Link>
 
                 {/* KPI 2 */}
                 <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00b4d8]/40 transition-all">

@@ -109,7 +109,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href={ROUTES.SHIPMENTS} className="hover:text-[#00e5c0] transition-colors">
-                  Fleet Shipments Explorer
+                  Freigeht Shipments Explorer
                 </Link>
               </li>
               <li>
