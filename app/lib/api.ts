@@ -21,18 +21,48 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+declare module "axios" {
+    export interface AxiosRequestConfig {
+        skipAuthRedirect?: boolean;
+    }
+}
+
 interface RetryConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
+    skipAuthRedirect?: boolean;
+}
+
+const PUBLIC_PATHS = [
+    "/",
+    "/about",
+    "/services",
+    "/quote",
+    "/contact",
+    "/login",
+    "/register",
+    "/register-agent",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+];
+
+function isPublicPath(pathname: string): boolean {
+    if (!pathname || pathname === "/" || pathname === "") return true;
+    return PUBLIC_PATHS.some(
+        (p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/"))
+    );
 }
 
 api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
-        const originalRequest = error.config as RetryConfig;
+        const originalRequest = error.config as RetryConfig | undefined;
 
         if (
             error.response?.status === status.UNAUTHORIZED &&
-            !originalRequest._retry
+            originalRequest &&
+            !originalRequest._retry &&
+            !originalRequest.url?.includes("/auth/refresh-token")
         ) {
             originalRequest._retry = true;
 
@@ -46,7 +76,11 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch {
                 if (typeof window !== "undefined") {
-                    window.location.href = "/login";
+                    const currentPath = window.location.pathname;
+                    // Do not redirect to login if the user is on the home page, public route, or skipAuthRedirect is set
+                    if (!originalRequest.skipAuthRedirect && !isPublicPath(currentPath)) {
+                        window.location.href = `/login?callbackUrl=${encodeURIComponent(currentPath)}`;
+                    }
                 }
             }
         }

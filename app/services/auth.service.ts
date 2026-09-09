@@ -112,7 +112,9 @@ export const authService = {
     },
 
     getMe: async () => {
-        const res = await api.get<IApiResponse<IUser>>(API.AUTH.ME);
+        const res = await api.get<IApiResponse<IUser>>(API.AUTH.ME, {
+            skipAuthRedirect: true,
+        });
         return res.data;
     },
     createAgent: async (payload: IRegisterInput) => {

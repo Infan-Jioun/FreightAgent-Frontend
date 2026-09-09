@@ -93,10 +93,10 @@ export function middleware(request: NextRequest) {
     request.cookies.get("freightagent.accessToken")?.value;
 
   const isPublicRoute = PUBLIC_ROUTES.some(
-    (r) => pathname === r || pathname.startsWith(r + "/")
+    (r) => pathname === r || (r !== "/" && pathname.startsWith(r + "/"))
   );
   const isAuthRoute = AUTH_ROUTES.some(
-    (r) => pathname === r || pathname.startsWith(r + "/")
+    (r) => pathname === r || (r !== "/" && pathname.startsWith(r + "/"))
   );
 
   // ── Case 1: No token ────────────────────────────────────────────
@@ -116,8 +116,18 @@ export function middleware(request: NextRequest) {
 
   // Invalid or expired token
   if (!payload || isTokenExpired(payload)) {
-    // Clear cookie + redirect to login
+    // If on a public route (e.g. Home page "/"), clear cookies and allow access without redirecting to login
+    if (isPublicRoute) {
+      const response = NextResponse.next();
+      response.cookies.delete("accessToken");
+      response.cookies.delete("refreshToken");
+      response.cookies.delete("better-auth.session_token");
+      return addSecurityHeaders(response);
+    }
+
+    // Protected route — clear cookie + redirect to login
     const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete("accessToken");
     response.cookies.delete("refreshToken");
