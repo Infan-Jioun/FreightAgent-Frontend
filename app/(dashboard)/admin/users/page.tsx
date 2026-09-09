@@ -172,7 +172,7 @@ export default function AdminUsersPage() {
                         User & Agent Directory
                     </h1>
                     <p className="text-xs text-[#7ecfc4] mt-0.5">
-                        Global oversight of platform administrators, certified fleet agents, and merchant customers.
+                        Global oversight of platform administrators, certified Freigeht agents, and merchant customers.
                     </p>
                 </div>
 
@@ -198,7 +198,7 @@ export default function AdminUsersPage() {
 
                 <div className="p-4 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a]">
                     <div className="flex items-center justify-between text-[#7ecfc4] mb-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Fleet Agents</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Freigeht Agents</span>
                         <Truck size={16} className="text-[#f59e0b]" />
                     </div>
                     <p className="text-xl sm:text-2xl font-black text-[#e0faf5]">
@@ -238,11 +238,10 @@ export default function AdminUsersPage() {
                         <button
                             key={r}
                             onClick={() => setRoleFilter(r)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-                                roleFilter === r
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${roleFilter === r
                                     ? "bg-[#00c9a7] text-[#0a0f0f] shadow-sm"
                                     : "text-[#7ecfc4] hover:text-[#e0faf5]"
-                            }`}
+                                }`}
                         >
                             {r === "ALL" ? "All Users" : r.charAt(0) + r.slice(1).toLowerCase() + "s"}
                         </button>
@@ -352,11 +351,10 @@ export default function AdminUsersPage() {
 
                                                 <button
                                                     onClick={() => handleToggleStatus(u.id)}
-                                                    className={`p-1.5 rounded-lg border transition-colors ${
-                                                        u.status === "ACTIVE"
+                                                    className={`p-1.5 rounded-lg border transition-colors ${u.status === "ACTIVE"
                                                             ? "text-[#ff6b6b] border-[#ff6b6b]/30 hover:bg-[#ff6b6b]/10"
                                                             : "text-[#00e5c0] border-[#00c9a7]/30 hover:bg-[#00c9a7]/10"
-                                                    }`}
+                                                        }`}
                                                     title={u.status === "ACTIVE" ? "Suspend user" : "Reactivate user"}
                                                 >
                                                     {u.status === "ACTIVE" ? <Ban size={13} /> : <UserCheck size={13} />}

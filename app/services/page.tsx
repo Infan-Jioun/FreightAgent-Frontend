@@ -81,7 +81,7 @@ const SERVICES: ServiceItem[] = [
     leadTime: "12 Hours - 4 Days",
     capacity: "Standard 53ft, Flatbed, Lowboy, Curtainsider",
     summary:
-      "Complete inland drayage from ocean terminals and rail ramps directly to your warehouse doors. GPS-equipped fleet with live driver dispatch and electronic proof of delivery.",
+      "Complete inland drayage from ocean terminals and rail ramps directly to your warehouse doors. GPS-equipped Freigeht with live driver dispatch and electronic proof of delivery.",
     features: [
       "Port & rail container drayage with zero demurrage guarantees",
       "Cross-border bonded transit under TIR carnet",
@@ -203,11 +203,10 @@ export default function ServicesPage() {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  activeCategory === cat
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeCategory === cat
                     ? "bg-[#00c9a7] text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20"
                     : "bg-[#0d1f1f] text-[#7ecfc4] border border-[#1a4a4a] hover:border-[#00c9a7]/50"
-                }`}
+                  }`}
               >
                 {cat}
               </button>

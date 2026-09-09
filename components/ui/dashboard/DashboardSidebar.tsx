@@ -48,7 +48,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                     { label: "Overview", href: ROUTES.DASHBOARD, icon: Home },
                     { label: "User Management", href: ROUTES.ADMIN_USERS, icon: Users },
                     { label: "All Shipments", href: ROUTES.ADMIN_SHIPMENTS, icon: Package },
-                    { label: "Fleet Tracking", href: "/tracking", icon: MapPin },
+                    { label: "Freigeht Tracking", href: "/tracking", icon: MapPin },
                     { label: "Profile", href: ROUTES.PROFILE, icon: User },
                 ];
             case "AGENT":
@@ -163,11 +163,10 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                                 key={item.label}
                                 href={item.href}
                                 onClick={onCloseMobile}
-                                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
-                                    isActive
+                                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
                                         ? "bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/50 shadow-sm shadow-[#00c9a7]/10"
                                         : "text-[#7ecfc4]/80 hover:text-[#e0faf5] hover:bg-[#112a2a]"
-                                }`}
+                                    }`}
                             >
                                 <Icon
                                     size={18}

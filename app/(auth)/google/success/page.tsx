@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import GoogleSuccessContent from "./GoogleSuccessContent";
 
+export const dynamic = "force-dynamic";
+
 export default function GoogleSuccessPage() {
     return (
         <Suspense

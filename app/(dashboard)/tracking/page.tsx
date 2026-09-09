@@ -264,7 +264,7 @@ function TrackingContent() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-black text-[#e0faf5] tracking-tight">
-                        Live Fleet & Parcel Tracking
+                        Live Freigeht & Parcel Tracking
                     </h1>
                     <p className="text-xs text-[#7ecfc4] mt-0.5">
                         Real-time GPS telemetry, waypoint milestones, and carrier status.
@@ -281,11 +281,10 @@ function TrackingContent() {
                                 setInputCode(code);
                                 setCurrentTracking(SAMPLE_TRACKING_DATA[code]);
                             }}
-                            className={`text-[10px] font-mono px-2.5 py-1 rounded-full border transition-colors ${
-                                currentTracking.trackingCode === code
+                            className={`text-[10px] font-mono px-2.5 py-1 rounded-full border transition-colors ${currentTracking.trackingCode === code
                                     ? "bg-[#00c9a7]/20 text-[#00e5c0] border-[#00c9a7]"
                                     : "bg-[#0d1f1f] text-[#7ecfc4] border-[#1a4a4a] hover:border-[#00c9a7]/40"
-                            }`}
+                                }`}
                         >
                             {code}
                         </button>
@@ -403,11 +402,10 @@ function TrackingContent() {
             <div className="flex items-center gap-2 p-1.5 bg-[#0d1f1f] rounded-2xl border border-[#1a4a4a] w-fit shadow-md">
                 <button
                     onClick={() => setTrackingView("MARITIME")}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        trackingView === "MARITIME"
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${trackingView === "MARITIME"
                             ? "bg-[#00c9a7] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20"
                             : "text-[#7ecfc4] hover:text-[#e0faf5]"
-                    }`}
+                        }`}
                 >
                     <Ship size={14} />
                     <span>Maritime Vessel Corridor: Bangladesh ⇄ China</span>
@@ -415,11 +413,10 @@ function TrackingContent() {
 
                 <button
                     onClick={() => setTrackingView("REGIONAL")}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        trackingView === "REGIONAL"
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${trackingView === "REGIONAL"
                             ? "bg-[#00b4d8] text-[#0a0f0f] shadow-md shadow-[#00b4d8]/20"
                             : "text-[#7ecfc4] hover:text-[#e0faf5]"
-                    }`}
+                        }`}
                 >
                     <Truck size={14} />
                     <span>Regional Ground Transit</span>
@@ -446,99 +443,99 @@ function TrackingContent() {
                                 </span>
                             </div>
 
-                        {/* Interactive Dark Map Canvas */}
-                        <div className="relative h-64 rounded-2xl bg-[#0a1414] border border-[#1a4a4a]/70 overflow-hidden flex items-center justify-center">
-                            {/* Grid styling */}
-                            <div
-                                className="absolute inset-0 opacity-20"
-                                style={{
-                                    backgroundImage: `radial-gradient(#00c9a7 1px, transparent 1px)`,
-                                    backgroundSize: "20px 20px",
-                                }}
-                            />
-
-                            {/* Waypoint Connection Line */}
-                            <svg className="absolute inset-0 w-full h-full">
-                                <path
-                                    d="M 60 180 Q 240 60, 480 140 T 700 90"
-                                    fill="none"
-                                    stroke="#1a4a4a"
-                                    strokeWidth="3"
-                                    strokeDasharray="6 6"
+                            {/* Interactive Dark Map Canvas */}
+                            <div className="relative h-64 rounded-2xl bg-[#0a1414] border border-[#1a4a4a]/70 overflow-hidden flex items-center justify-center">
+                                {/* Grid styling */}
+                                <div
+                                    className="absolute inset-0 opacity-20"
+                                    style={{
+                                        backgroundImage: `radial-gradient(#00c9a7 1px, transparent 1px)`,
+                                        backgroundSize: "20px 20px",
+                                    }}
                                 />
-                                <path
-                                    d="M 60 180 Q 240 60, 360 100"
-                                    fill="none"
-                                    stroke="url(#gradient-brand)"
-                                    strokeWidth="4"
-                                />
-                                <defs>
-                                    <linearGradient id="gradient-brand" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#00c9a7" />
-                                        <stop offset="100%" stopColor="#00b4d8" />
-                                    </linearGradient>
-                                </defs>
-                            </svg>
 
-                            {/* Origin Pin */}
-                            <div className="absolute left-12 bottom-12 flex flex-col items-center">
-                                <div className="w-6 h-6 rounded-full bg-[#00c9a7] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/40">
-                                    <Package size={13} />
-                                </div>
-                                <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded border border-[#1a4a4a]">
-                                    Origin
-                                </span>
-                            </div>
+                                {/* Waypoint Connection Line */}
+                                <svg className="absolute inset-0 w-full h-full">
+                                    <path
+                                        d="M 60 180 Q 240 60, 480 140 T 700 90"
+                                        fill="none"
+                                        stroke="#1a4a4a"
+                                        strokeWidth="3"
+                                        strokeDasharray="6 6"
+                                    />
+                                    <path
+                                        d="M 60 180 Q 240 60, 360 100"
+                                        fill="none"
+                                        stroke="url(#gradient-brand)"
+                                        strokeWidth="4"
+                                    />
+                                    <defs>
+                                        <linearGradient id="gradient-brand" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor="#00c9a7" />
+                                            <stop offset="100%" stopColor="#00b4d8" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
 
-                            {/* Live Moving Truck Icon */}
-                            <div className="absolute left-1/2 top-1/3 -translate-x-1/2 flex flex-col items-center animate-pulse">
-                                <div className="w-10 h-10 rounded-full bg-[#00b4d8]/20 border-2 border-[#00b4d8] flex items-center justify-center text-[#00e5c0] shadow-xl shadow-[#00b4d8]/40">
-                                    <Truck size={20} />
-                                </div>
-                                <div className="mt-2 bg-[#0d1f1f]/95 border border-[#00c9a7] px-2.5 py-1 rounded-lg text-center shadow-lg">
-                                    <span className="text-[10px] font-bold text-[#e0faf5] block">
-                                        Waypoint 03 • 58 mph
-                                    </span>
-                                    <span className="text-[9px] text-[#7ecfc4]">
-                                        Next Stop: Akron Depot
+                                {/* Origin Pin */}
+                                <div className="absolute left-12 bottom-12 flex flex-col items-center">
+                                    <div className="w-6 h-6 rounded-full bg-[#00c9a7] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/40">
+                                        <Package size={13} />
+                                    </div>
+                                    <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded border border-[#1a4a4a]">
+                                        Origin
                                     </span>
                                 </div>
-                            </div>
 
-                            {/* Destination Pin */}
-                            <div className="absolute right-12 top-14 flex flex-col items-center">
-                                <div className="w-6 h-6 rounded-full bg-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00b4d8]/40">
-                                    <MapPin size={13} />
+                                {/* Live Moving Truck Icon */}
+                                <div className="absolute left-1/2 top-1/3 -translate-x-1/2 flex flex-col items-center animate-pulse">
+                                    <div className="w-10 h-10 rounded-full bg-[#00b4d8]/20 border-2 border-[#00b4d8] flex items-center justify-center text-[#00e5c0] shadow-xl shadow-[#00b4d8]/40">
+                                        <Truck size={20} />
+                                    </div>
+                                    <div className="mt-2 bg-[#0d1f1f]/95 border border-[#00c9a7] px-2.5 py-1 rounded-lg text-center shadow-lg">
+                                        <span className="text-[10px] font-bold text-[#e0faf5] block">
+                                            Waypoint 03 • 58 mph
+                                        </span>
+                                        <span className="text-[9px] text-[#7ecfc4]">
+                                            Next Stop: Akron Depot
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded border border-[#1a4a4a]">
-                                    Dest
-                                </span>
-                            </div>
-                        </div>
 
-                        {/* Specs Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                            <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
-                                <span className="text-[10px] text-[#3a6b66] font-semibold block">Total Weight</span>
-                                <span className="text-xs font-bold text-[#e0faf5]">{currentTracking.weight}</span>
+                                {/* Destination Pin */}
+                                <div className="absolute right-12 top-14 flex flex-col items-center">
+                                    <div className="w-6 h-6 rounded-full bg-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00b4d8]/40">
+                                        <MapPin size={13} />
+                                    </div>
+                                    <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded border border-[#1a4a4a]">
+                                        Dest
+                                    </span>
+                                </div>
                             </div>
-                            <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
-                                <span className="text-[10px] text-[#3a6b66] font-semibold block">Dimensions</span>
-                                <span className="text-xs font-bold text-[#e0faf5]">{currentTracking.dimensions}</span>
-                            </div>
-                            <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
-                                <span className="text-[10px] text-[#3a6b66] font-semibold block">Assigned Plate</span>
-                                <span className="text-xs font-bold text-[#e0faf5] font-mono">{currentTracking.vehiclePlate}</span>
-                            </div>
-                            <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
-                                <span className="text-[10px] text-[#3a6b66] font-semibold block">Security Status</span>
-                                <span className="text-xs font-bold text-[#00e5c0] flex items-center gap-1">
-                                    <ShieldCheck size={12} /> Verified
-                                </span>
+
+                            {/* Specs Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                                <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
+                                    <span className="text-[10px] text-[#3a6b66] font-semibold block">Total Weight</span>
+                                    <span className="text-xs font-bold text-[#e0faf5]">{currentTracking.weight}</span>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
+                                    <span className="text-[10px] text-[#3a6b66] font-semibold block">Dimensions</span>
+                                    <span className="text-xs font-bold text-[#e0faf5]">{currentTracking.dimensions}</span>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
+                                    <span className="text-[10px] text-[#3a6b66] font-semibold block">Assigned Plate</span>
+                                    <span className="text-xs font-bold text-[#e0faf5] font-mono">{currentTracking.vehiclePlate}</span>
+                                </div>
+                                <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60">
+                                    <span className="text-[10px] text-[#3a6b66] font-semibold block">Security Status</span>
+                                    <span className="text-xs font-bold text-[#00e5c0] flex items-center gap-1">
+                                        <ShieldCheck size={12} /> Verified
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
                     {/* Assigned Courier Contact Card */}
                     <div className="p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -585,13 +582,12 @@ function TrackingContent() {
                                 <div key={ev.id} className="relative flex items-start gap-4 pl-8">
                                     {/* Timeline Dot */}
                                     <div
-                                        className={`absolute left-0 top-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                                            ev.current
+                                        className={`absolute left-0 top-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${ev.current
                                                 ? "bg-[#00c9a7] border-[#0a0f0f] text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/50 animate-pulse"
                                                 : ev.completed
-                                                ? "bg-[#0d1f1f] border-[#00c9a7] text-[#00c9a7]"
-                                                : "bg-[#0d1f1f] border-[#1a4a4a] text-[#3a6b66]"
-                                        }`}
+                                                    ? "bg-[#0d1f1f] border-[#00c9a7] text-[#00c9a7]"
+                                                    : "bg-[#0d1f1f] border-[#1a4a4a] text-[#3a6b66]"
+                                            }`}
                                     >
                                         {ev.completed ? (
                                             <CheckCircle2 size={12} strokeWidth={3} />
@@ -603,13 +599,12 @@ function TrackingContent() {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <h5
-                                                className={`text-xs font-bold ${
-                                                    ev.current
+                                                className={`text-xs font-bold ${ev.current
                                                         ? "text-[#00e5c0]"
                                                         : ev.completed
-                                                        ? "text-[#e0faf5]"
-                                                        : "text-[#3a6b66]"
-                                                }`}
+                                                            ? "text-[#e0faf5]"
+                                                            : "text-[#3a6b66]"
+                                                    }`}
                                             >
                                                 {ev.title}
                                             </h5>

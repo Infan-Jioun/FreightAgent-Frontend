@@ -152,11 +152,11 @@ export function Navbar() {
   const displayName = user?.name || "Member";
   const userInitials = user?.name
     ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : "U";
 
   return (
@@ -232,11 +232,10 @@ export function Navbar() {
               >
                 <Link
                   href={link.href}
-                  className={`text-xs xl:text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 whitespace-nowrap ${
-                    isActive
+                  className={`text-xs xl:text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 whitespace-nowrap ${isActive
                       ? "text-[#00e5c0] font-semibold"
                       : "text-[#7ecfc4]/80 hover:text-[#e0faf5]"
-                  }`}
+                    }`}
                 >
                   {isActive && (
                     <motion.span
@@ -304,9 +303,8 @@ export function Navbar() {
                   </span>
                   <ChevronDown
                     size={13}
-                    className={`text-[#7ecfc4] transition-transform duration-200 ${
-                      userDropdownOpen ? "rotate-180 text-[#00e5c0]" : ""
-                    }`}
+                    className={`text-[#7ecfc4] transition-transform duration-200 ${userDropdownOpen ? "rotate-180 text-[#00e5c0]" : ""
+                      }`}
                   />
                 </button>
 
@@ -343,7 +341,7 @@ export function Navbar() {
                           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#7ecfc4] hover:text-[#00e5c0] hover:bg-[#112a2a] transition-colors"
                         >
                           <LayoutDashboard size={14} className="text-[#00c9a7]" />
-                          <span>Fleet Dashboard</span>
+                          <span>Freigeht Dashboard</span>
                         </Link>
 
                         <Link
@@ -445,7 +443,7 @@ export function Navbar() {
                 className="w-4 h-[2px] bg-[#00e5c0] rounded-full origin-center"
               />
             </div>
-          
+
           </button>
         </div>
 
@@ -519,11 +517,11 @@ export function Navbar() {
                       </button>
                     </div>
 
-                    {/* Live Fleet Telemetry Ribbon */}
+                    {/* Live Freigeht Telemetry Ribbon */}
                     <div className="px-3 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]/80 flex items-center justify-between text-[10px] font-mono text-[#7ecfc4]">
                       <span className="flex items-center gap-1.5 text-[#00e5c0]">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#00e5c0] animate-ping" />
-                        Fleet Grid Active
+                        Freigeht Grid Active
                       </span>
                       <span className="text-[#3a6b66]">140+ Nodes</span>
                     </div>
@@ -574,19 +572,17 @@ export function Navbar() {
                             <Link
                               href={link.href}
                               onClick={() => setMobileMenuOpen(false)}
-                              className={`flex items-center justify-between p-3 rounded-2xl border transition-all group ${
-                                isActive
+                              className={`flex items-center justify-between p-3 rounded-2xl border transition-all group ${isActive
                                   ? "bg-[#00c9a7]/15 border-[#00c9a7] text-[#00e5c0] shadow-md shadow-[#00c9a7]/10"
                                   : "bg-[#0a1a1a] border-[#1a4a4a]/70 text-[#7ecfc4] hover:bg-[#112a2a] hover:border-[#00c9a7]/40 hover:text-[#e0faf5]"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-3">
                                 <div
-                                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                                    isActive
+                                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isActive
                                       ? "bg-[#00c9a7] text-[#0a0f0f] shadow-sm shadow-[#00c9a7]/30"
                                       : "bg-[#112a2a] text-[#00c9a7] border border-[#1a4a4a]"
-                                  }`}
+                                    }`}
                                 >
                                   <IconComponent size={16} />
                                 </div>
@@ -622,7 +618,7 @@ export function Navbar() {
                           className="w-full py-3 rounded-xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20"
                         >
                           <LayoutDashboard size={15} />
-                          <span>Open Fleet Dashboard</span>
+                          <span>Open Freigeht Dashboard</span>
                         </Link>
 
                         <button

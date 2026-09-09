@@ -20,7 +20,7 @@ export default function TransportationCard() {
                 </div>
 
                 <button
-                    onClick={() => toast.info("Transportation details & fleet info")}
+                    onClick={() => toast.info("Transportation details & Freigeht info")}
                     className="w-6 h-6 rounded-full bg-[#00c9a7]/15 hover:bg-[#00c9a7]/30 text-[#00c9a7] flex items-center justify-center transition-colors shadow-xs"
                     aria-label="Add or view details"
                 >
