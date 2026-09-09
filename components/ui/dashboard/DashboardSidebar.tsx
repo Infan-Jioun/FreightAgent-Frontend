@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
+import { clearClientCookies } from "@/app/lib/cookie";
 
 interface SidebarProps {
     mobileOpen: boolean;
@@ -80,6 +81,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
         } finally {
             clearUser();
             localStorage.removeItem("auth-storage");
+            clearClientCookies();
             toast.success("Logged out successfully");
             router.push(ROUTES.LOGIN);
             setLoggingOut(false);

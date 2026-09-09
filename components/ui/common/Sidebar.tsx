@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
+import { clearClientCookies } from "@/app/lib/cookie";
 import Image from "next/image";
 
 interface SidebarProps {
@@ -71,6 +72,9 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
 
             // ✅ LocalStorage clear করো
             localStorage.removeItem("auth-storage");
+
+            // ✅ Client cookies clear করো
+            clearClientCookies();
 
             toast.success("Logged out successfully");
 

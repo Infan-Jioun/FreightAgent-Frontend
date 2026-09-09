@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
+import { clearClientCookies } from "@/app/lib/cookie";
 import { gsap } from "@/app/lib/gsap";
 import { toast } from "sonner";
 
@@ -142,6 +143,7 @@ export function Navbar() {
     } finally {
       clearUser();
       localStorage.removeItem("auth-storage");
+      clearClientCookies();
       toast.success("Logged out successfully");
       router.push(ROUTES.LOGIN);
     }

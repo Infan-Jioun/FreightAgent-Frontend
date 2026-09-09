@@ -10,6 +10,7 @@ import {
     IApiResponse,
 } from "../types/auth.types";
 import api from "../lib/api";
+import { clearClientCookies } from "../lib/cookie";
 
 export interface RateLimitInfo {
     limit: number;
@@ -76,8 +77,34 @@ export const authService = {
     },
 
     logout: async () => {
-        const res = await api.post<IApiResponse<null>>(API.AUTH.LOGOUT);
-        return res.data;
+        try {
+            // 1. Invalidate session and clear cookies on the backend
+            await api.post<IApiResponse<null>>(API.AUTH.LOGOUT);
+        } catch (e) {
+            console.error("Backend logout error:", e);
+        }
+
+        try {
+            // 2. Clear cookies on frontend domain via Next.js route handler
+            if (typeof window !== "undefined") {
+                await fetch(`${API.AUTH.LOGOUT}`, {
+                    method: "POST",
+                    credentials: "include",
+                });
+            }
+        } catch (e) {
+            console.error("Frontend cookie clearance error:", e);
+        }
+
+        // 3. Clear all auth cookies directly via document.cookie
+        clearClientCookies();
+
+        // 4. Remove local auth storage
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("auth-storage");
+        }
+
+        return { success: true, message: "Logged out successfully" };
     },
 
     verifyOtp: async (payload: IVerifyOtpInput) => {
