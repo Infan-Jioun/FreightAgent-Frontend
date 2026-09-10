@@ -76,8 +76,15 @@ export default function LoginForm() {
     // never escape this function unhandled.
     const parseLoginError = (err: unknown) => {
         const anyErr = err as any;
-        const status: number | undefined = anyErr?.response?.status;
-        const message: string | undefined = anyErr?.response?.data?.message;
+        const status: number | undefined =
+            anyErr?.response?.status ??
+            anyErr?.response?.data?.statusCode ??
+            anyErr?.status;
+        const message: string | undefined =
+            anyErr?.response?.data?.message ??
+            anyErr?.response?.data?.error ??
+            anyErr?.message ??
+            (typeof err === "string" ? err : undefined);
         const retryAfter = anyErr?.response?.data?.data?.retryAfter;
         const limit = anyErr?.response?.data?.data?.limit;
         return { status, message, retryAfter, limit };
@@ -132,6 +139,21 @@ export default function LoginForm() {
             try {
                 const { status, message, retryAfter, limit } = parseLoginError(err);
 
+                // 1. Check if this is the 3-device simultaneous sign-in limit FIRST
+                const isSessionLimit = Boolean(
+                    message &&
+                    /device|simultaneous|session limit|maximum.*3|log out from another/i.test(message)
+                );
+
+                if (isSessionLimit) {
+                    setPendingCredentials(data);
+                    setShowDeviceLimitModal(true);
+                    toast.error("Device Limit Exceeded", {
+                        description: "3 devices are currently active. You can terminate other sessions to log in here.",
+                    });
+                    return;
+                }
+
                 if (status === 429) {
                     if (retryAfter) startCountdown(retryAfter);
                     toast.error("Too many attempts", {
@@ -143,21 +165,7 @@ export default function LoginForm() {
                 }
 
                 if (status === 403) {
-                    // Check if this is the 3-device simultaneous sign-in limit
-                    const isSessionLimit =
-                        message &&
-                        /device|simultaneous|session limit|maximum.*device|log out/i.test(message);
-
-                    if (isSessionLimit) {
-                        setPendingCredentials(data);
-                        setShowDeviceLimitModal(true);
-                        toast.error("Device Limit Exceeded", {
-                            description: "3 devices are currently active. You can terminate other sessions to log in here.",
-                        });
-                        return;
-                    }
-
-                    // Otherwise, handle unverified email flow
+                    // Unverified email flow
                     sessionStorage.setItem("verify_email", data.email);
                     toast.error("Email not verified", {
                         description: "OTP sent to your email.",
