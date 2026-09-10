@@ -300,7 +300,7 @@ export default function ProfilePage() {
         try {
             setRevokingSessionId(sessionId);
             const res = await userService.revokeSession(sessionId);
-            toast.success(res.message || "Session revoked");
+            toast.success(res.message || "Session revoked successfully");
             setSessions((prev) => prev.filter((s) => s.id !== sessionId));
             setBreakdown((prev) => ({
                 ...prev,
@@ -308,7 +308,17 @@ export default function ProfilePage() {
             }));
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to revoke session";
-            toast.error(message);
+            // If the record was already deleted/not found, remove it from UI gracefully
+            if (/record.*not found|not found/i.test(message)) {
+                toast.success("Session revoked successfully");
+                setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+                setBreakdown((prev) => ({
+                    ...prev,
+                    total: Math.max(0, prev.total - 1),
+                }));
+            } else {
+                toast.error(message);
+            }
         } finally {
             setRevokingSessionId(null);
         }
