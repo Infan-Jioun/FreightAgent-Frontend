@@ -1,24 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-    Settings,
     Bell,
-    Shield,
     Key,
     Globe,
-    Moon,
     Lock,
     Smartphone,
     Save,
-    Check,
-    HelpCircle,
     Eye,
     EyeOff,
+    KeyRound,
+    Mail,
+    X,
+    CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/app/store/authStore";
+import { authService } from "@/app/services/auth.service";
+import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
+    const { user: authUser, setUser } = useAuthStore();
+
     // Preferences state
     const [currency, setCurrency] = useState("USD ($)");
     const [timezone, setTimezone] = useState("America/Chicago (UTC-5)");
@@ -28,31 +33,68 @@ export default function SettingsPage() {
     const [emailAlerts, setEmailAlerts] = useState(true);
     const [smsUpdates, setSmsUpdates] = useState(true);
     const [dispatchReports, setDispatchReports] = useState(false);
-    const [marketingNews, setMarketingNews] = useState(false);
 
     // Password state
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [updatingPassword, setUpdatingPassword] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // OTP Modal state
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
+    const [isSendingOtp, setIsSendingOtp] = useState(false);
+    const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+    const [countdown, setCountdown] = useState(0);
 
     // 2FA state
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
+
+    // Ensure user data is loaded if refreshed directly on /settings
+    useEffect(() => {
+        if (!authUser) {
+            authService
+                .getMe()
+                .then((res) => {
+                    if (res?.data) {
+                        setUser(res.data);
+                    }
+                })
+                .catch(() => {
+                    // silently catch
+                });
+        }
+    }, [authUser, setUser]);
+
+    // Resend countdown timer
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (countdown > 0) {
+            timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [countdown]);
 
     const handleSavePreferences = (e: React.FormEvent) => {
         e.preventDefault();
         toast.success("Preferences saved successfully");
     };
 
-    const handleUpdatePassword = (e: React.FormEvent) => {
+    // Step 1: Validate inputs and request email OTP
+    const handleRequestOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentPassword) {
             toast.error("Please enter your current password");
             return;
         }
-        if (newPassword.length < 6) {
-            toast.error("New password must be at least 6 characters");
+        if (newPassword.length < 8) {
+            toast.error("New password must be at least 8 characters");
+            return;
+        }
+        if (newPassword === currentPassword) {
+            toast.error("New password cannot be the same as current password");
             return;
         }
         if (newPassword !== confirmPassword) {
@@ -60,14 +102,72 @@ export default function SettingsPage() {
             return;
         }
 
-        setUpdatingPassword(true);
-        setTimeout(() => {
-            setUpdatingPassword(false);
+        try {
+            setIsSendingOtp(true);
+            const res = await authService.sendChangePasswordOtp({ currentPassword });
+            toast.success(res.message || "Verification code sent to your email");
+            setCountdown(60);
+            setOtpCode("");
+            setIsOtpModalOpen(true);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to send verification code";
+            toast.error(message);
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
+
+    // Resend verification code inside the modal
+    const handleResendOtp = async () => {
+        if (countdown > 0 || isSendingOtp) return;
+        try {
+            setIsSendingOtp(true);
+            const res = await authService.sendChangePasswordOtp({ currentPassword });
+            toast.success(res.message || "A new verification code has been sent to your email");
+            setCountdown(60);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to resend verification code";
+            toast.error(message);
+        } finally {
+            setIsSendingOtp(false);
+        }
+    };
+
+    // Step 2: Confirm OTP and finalize change password
+    const handleConfirmPasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!otpCode || otpCode.length !== 6) {
+            toast.error("Please enter the 6-digit verification code");
+            return;
+        }
+
+        try {
+            setIsVerifyingOtp(true);
+            const res = await authService.changePassword({
+                currentPassword,
+                oldPassword: currentPassword,
+                newPassword,
+                otp: otpCode.trim(),
+            });
+
+            toast.success(res.message || "Password changed successfully");
+            setIsOtpModalOpen(false);
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
-            toast.success("Security credentials updated");
-        }, 800);
+            setOtpCode("");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to change password";
+            toast.error(message);
+        } finally {
+            setIsVerifyingOtp(false);
+        }
+    };
+
+    const closeOtpModal = () => {
+        if (isVerifyingOtp) return;
+        setIsOtpModalOpen(false);
+        setOtpCode("");
     };
 
     return (
@@ -106,7 +206,7 @@ export default function SettingsPage() {
                                 <select
                                     value={currency}
                                     onChange={(e) => setCurrency(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] transition-colors"
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
                                 >
                                     <option value="USD ($)">USD ($) - US Dollar</option>
                                     <option value="EUR (€)">EUR (€) - Euro</option>
@@ -122,7 +222,7 @@ export default function SettingsPage() {
                                 <select
                                     value={timezone}
                                     onChange={(e) => setTimezone(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] transition-colors"
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
                                 >
                                     <option value="America/Chicago (UTC-5)">Central Time (US & Canada)</option>
                                     <option value="America/New_York (UTC-4)">Eastern Time (US & Canada)</option>
@@ -138,7 +238,7 @@ export default function SettingsPage() {
                                 <select
                                     value={distanceUnit}
                                     onChange={(e) => setDistanceUnit(e.target.value)}
-                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] transition-colors"
+                                    className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
                                 >
                                     <option value="Miles (mi)">Imperial (Miles, Lbs)</option>
                                     <option value="Kilometers (km)">Metric (Kilometers, Kg)</option>
@@ -147,13 +247,15 @@ export default function SettingsPage() {
                         </div>
 
                         <div className="pt-2 flex justify-end">
-                            <button
+                            <Button
                                 type="submit"
-                                className="px-5 py-2 rounded-2xl bg-[#112a2a] hover:bg-[#00c9a7]/20 border border-[#1a4a4a] hover:border-[#00c9a7] text-xs font-bold text-[#00e5c0] transition-colors flex items-center gap-2"
+                                variant="outline"
+                                shape="box"
+                                size="sm"
+                                leftIcon={<Save size={14} />}
                             >
-                                <Save size={14} />
                                 Save Preferences
-                            </button>
+                            </Button>
                         </div>
                     </form>
 
@@ -180,7 +282,7 @@ export default function SettingsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setEmailAlerts(!emailAlerts)}
-                                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
+                                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer ${
                                         emailAlerts ? "bg-[#00c9a7]" : "bg-[#1a4a4a]"
                                     }`}
                                 >
@@ -204,7 +306,7 @@ export default function SettingsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setSmsUpdates(!smsUpdates)}
-                                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
+                                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer ${
                                         smsUpdates ? "bg-[#00c9a7]" : "bg-[#1a4a4a]"
                                     }`}
                                 >
@@ -228,7 +330,7 @@ export default function SettingsPage() {
                                 <button
                                     type="button"
                                     onClick={() => setDispatchReports(!dispatchReports)}
-                                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
+                                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 cursor-pointer ${
                                         dispatchReports ? "bg-[#00c9a7]" : "bg-[#1a4a4a]"
                                     }`}
                                 >
@@ -244,7 +346,7 @@ export default function SettingsPage() {
 
                     {/* Change Password */}
                     <form
-                        onSubmit={handleUpdatePassword}
+                        onSubmit={handleRequestOtp}
                         className="p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-lg shadow-black/20 space-y-4"
                     >
                         <div className="flex items-center justify-between pb-3 border-b border-[#1a4a4a]/60">
@@ -262,18 +364,19 @@ export default function SettingsPage() {
                                 </label>
                                 <div className="relative">
                                     <input
-                                        type={showPassword ? "text" : "password"}
+                                        type={showCurrentPassword ? "text" : "password"}
                                         value={currentPassword}
                                         onChange={(e) => setCurrentPassword(e.target.value)}
                                         placeholder="••••••••••••"
-                                        className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] transition-colors"
+                                        className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
+                                        required
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3a6b66] hover:text-[#7ecfc4]"
+                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3a6b66] hover:text-[#7ecfc4] cursor-pointer"
                                     >
-                                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        {showCurrentPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                                     </button>
                                 </div>
                             </div>
@@ -283,38 +386,61 @@ export default function SettingsPage() {
                                     <label className="text-[11px] font-semibold text-[#7ecfc4]">
                                         New Password
                                     </label>
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        placeholder="••••••••••••"
-                                        className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showNewPassword ? "text" : "password"}
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            placeholder="••••••••••••"
+                                            className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowNewPassword(!showNewPassword)}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3a6b66] hover:text-[#7ecfc4] cursor-pointer"
+                                        >
+                                            {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[11px] font-semibold text-[#7ecfc4]">
                                         Confirm New Password
                                     </label>
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        placeholder="••••••••••••"
-                                        className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder="••••••••••••"
+                                            className="w-full px-3.5 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3a6b66] hover:text-[#7ecfc4] cursor-pointer"
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="pt-2 flex justify-end">
-                            <button
+                            <Button
                                 type="submit"
-                                disabled={updatingPassword}
-                                className="px-5 py-2 rounded-2xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                                variant="gradient"
+                                shape="box"
+                                size="default"
+                                isLoading={isSendingOtp}
+                                loadingText="Sending OTP..."
+                                leftIcon={<Lock size={14} />}
                             >
-                                <Lock size={14} />
-                                {updatingPassword ? "Updating..." : "Update Password"}
-                            </button>
+                                Update Password
+                            </Button>
                         </div>
                     </form>
                 </div>
@@ -343,7 +469,7 @@ export default function SettingsPage() {
                             Protect your dispatch records and cargo manifests with authenticator app or OTP verification.
                         </p>
 
-                        <button
+                        <Button
                             type="button"
                             onClick={() => {
                                 setTwoFactorEnabled(!twoFactorEnabled);
@@ -353,10 +479,12 @@ export default function SettingsPage() {
                                         : "Two-factor authentication enabled"
                                 );
                             }}
-                            className="w-full py-2.5 rounded-2xl bg-[#112a2a] hover:bg-[#00c9a7]/15 border border-[#1a4a4a] hover:border-[#00c9a7] text-xs font-bold text-[#00e5c0] transition-colors"
+                            variant="outline"
+                            shape="box"
+                            className="w-full"
                         >
                             {twoFactorEnabled ? "Disable 2FA Protection" : "Enable Authenticator 2FA"}
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Developer Webhook & API Key Card */}
@@ -376,7 +504,7 @@ export default function SettingsPage() {
                                     navigator.clipboard.writeText("fa_live_99831a0942bf9182374e7");
                                     toast.success("API key copied to clipboard");
                                 }}
-                                className="text-[#00c9a7] hover:underline"
+                                className="text-[#00c9a7] hover:underline cursor-pointer"
                             >
                                 Copy
                             </button>
@@ -384,6 +512,120 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* OTP Verification Modal */}
+            <AnimatePresence>
+                {isOtpModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-2xl relative overflow-hidden flex flex-col gap-5"
+                        >
+                            {/* Close Button */}
+                            <button
+                                type="button"
+                                onClick={closeOtpModal}
+                                disabled={isVerifyingOtp}
+                                className="absolute top-5 right-5 p-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7] transition-colors cursor-pointer disabled:opacity-50"
+                            >
+                                <X size={15} />
+                            </button>
+
+                            {/* Modal Header */}
+                            <div className="flex items-center gap-3 pr-8">
+                                <div className="w-10 h-10 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
+                                    <KeyRound size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-[#e0faf5]">
+                                        Verify Password Change
+                                    </h3>
+                                    <p className="text-[11px] text-[#7ecfc4] mt-0.5">
+                                        Security verification required
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Form */}
+                            <form onSubmit={handleConfirmPasswordChange} className="flex flex-col gap-4">
+                                <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60 text-[11px] text-[#7ecfc4]/90 flex items-start gap-2">
+                                    <Mail size={14} className="text-[#00c9a7] shrink-0 mt-0.5" />
+                                    <span>
+                                        A 6-digit security code was sent to{" "}
+                                        <strong className="text-[#e0faf5]">{authUser?.email || "your registered email"}</strong>.
+                                        Enter it below to confirm your new password.
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[11px] font-semibold text-[#7ecfc4]">
+                                        Enter 6-Digit Email OTP
+                                    </label>
+                                    <div className="relative">
+                                        <KeyRound
+                                            size={15}
+                                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#3a6b66]"
+                                        />
+                                        <input
+                                            type="text"
+                                            maxLength={6}
+                                            value={otpCode}
+                                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                                            placeholder="000000"
+                                            className="w-full pl-10 pr-3.5 py-3 text-center tracking-[0.5em] font-mono text-base font-black rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
+                                            required
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="flex items-center justify-between text-[11px] pt-1">
+                                        <span className="text-[#3a6b66]">Didn&apos;t receive email?</span>
+                                        {countdown > 0 ? (
+                                            <span className="text-[#3a6b66]">Resend in {countdown}s</span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={handleResendOtp}
+                                                disabled={isSendingOtp}
+                                                className="text-[#00c9a7] hover:underline font-semibold cursor-pointer"
+                                            >
+                                                Resend Code
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={closeOtpModal}
+                                        disabled={isVerifyingOtp}
+                                    >
+                                        Cancel
+                                    </Button>
+
+                                    <Button
+                                        type="submit"
+                                        variant="gradient"
+                                        shape="box"
+                                        size="default"
+                                        isLoading={isVerifyingOtp}
+                                        loadingText="Verifying..."
+                                        rightIcon={<CheckCircle2 size={14} />}
+                                        disabled={otpCode.length !== 6}
+                                    >
+                                        Confirm & Change
+                                    </Button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

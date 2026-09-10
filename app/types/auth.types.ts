@@ -40,6 +40,13 @@ export interface IResetPasswordInput {
     newPassword: string;
 }
 
+export interface IChangePasswordInput {
+    currentPassword?: string;
+    oldPassword?: string;
+    newPassword: string;
+    otp: string;
+}
+
 export interface IApiResponse<T> {
     success: boolean;
     message: string;

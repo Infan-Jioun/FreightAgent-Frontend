@@ -6,11 +6,13 @@ import {
     IVerifyOtpInput,
     IForgotPasswordInput,
     IResetPasswordInput,
+    IChangePasswordInput,
     IUser,
     IApiResponse,
 } from "../types/auth.types";
 import api from "../lib/api";
 import { clearClientCookies } from "../lib/cookie";
+import { getErrorMessage } from "../errorHelper/appError";
 
 export interface RateLimitInfo {
     limit: number;
@@ -150,5 +152,35 @@ export const authService = {
             payload
         );
         return res.data;
-    }
+    },
+
+    sendChangePasswordOtp: async (payload?: { currentPassword?: string; email?: string }): Promise<{ message: string }> => {
+        try {
+            const res = await api.post<IApiResponse<null>>(
+                API.AUTH.CHANGE_PASSWORD_OTP,
+                payload || {}
+            );
+            return { message: res.data?.message || "Verification code sent to your email" };
+        } catch (err: unknown) {
+            throw new Error(getErrorMessage(err, "Failed to send change password verification code"));
+        }
+    },
+
+    changePassword: async (payload: IChangePasswordInput): Promise<{ message: string }> => {
+        try {
+            const body = {
+                currentPassword: payload.currentPassword || payload.oldPassword,
+                oldPassword: payload.oldPassword || payload.currentPassword,
+                newPassword: payload.newPassword,
+                otp: payload.otp.trim(),
+            };
+            const res = await api.post<IApiResponse<any>>(
+                API.AUTH.CHANGE_PASSWORD,
+                body
+            );
+            return { message: res.data?.message || "Password changed successfully" };
+        } catch (err: unknown) {
+            throw new Error(getErrorMessage(err, "Failed to change password"));
+        }
+    },
 };
