@@ -28,9 +28,34 @@ export default function LoginForm() {
     const searchParams = useSearchParams();
 
     // Check for error parameters in URL (e.g. from Google OAuth)
+    const [isGoogleLimit, setIsGoogleLimit] = useState(false);
+    const [googleEmail, setGoogleEmail] = useState<string | null>(null);
+
     useEffect(() => {
         const error = searchParams.get("error");
+        const message = searchParams.get("message");
+        const emailParam = searchParams.get("email");
+
         if (error) {
+            // Check for Google OAuth session limit / device limit
+            const isSessionLimitError =
+                error === "session_limit" ||
+                error === "device_limit" ||
+                error === "maximum_devices" ||
+                error === "max_devices" ||
+                (typeof message === "string" && /device|session|simultaneous|limit/i.test(message));
+
+            if (isSessionLimitError) {
+                setIsGoogleLimit(true);
+                if (emailParam) setGoogleEmail(emailParam);
+                setShowDeviceLimitModal(true);
+                toast.error("Device Limit Exceeded", {
+                    description: "Your account is active on 3 devices. Terminate other sessions to log in with Google.",
+                });
+                window.history.replaceState({}, "", "/login");
+                return;
+            }
+
             if (error === "session_failed") {
                 toast.error("Google sign-in session failed. Please try again.");
             } else if (error === "token_failed") {
@@ -92,6 +117,19 @@ export default function LoginForm() {
     };
 
     const handleRevokeOthersAndLogin = async () => {
+        // If the session limit was triggered via Google OAuth
+        if (isGoogleLimit) {
+            setShowDeviceLimitModal(false);
+            setIsGoogleLimit(false);
+            const queryParams = new URLSearchParams();
+            queryParams.set("revokeOthers", "true");
+            if (googleEmail) {
+                queryParams.set("login_hint", googleEmail);
+            }
+            window.location.href = `${envConfig.NEXT_PUBLIC_API_URL}/auth/google?${queryParams.toString()}`;
+            return;
+        }
+
         if (!pendingCredentials) return;
         try {
             setIsRevokingAndLoggingIn(true);
@@ -120,6 +158,8 @@ export default function LoginForm() {
     const handleDismissDeviceLimitModal = () => {
         setShowDeviceLimitModal(false);
         setPendingCredentials(null);
+        setIsGoogleLimit(false);
+        setGoogleEmail(null);
     };
 
     const onSubmit = async (data: LoginInput) => {
@@ -524,7 +564,9 @@ export default function LoginForm() {
                                     leftIcon={<LogOut size={13} />}
                                     className="w-full sm:w-auto bg-linear-to-r from-[#ff6b6b] to-[#f59e0b] text-[#0a0f0f] font-bold text-xs border-none shadow-md shadow-[#ff6b6b]/20 hover:opacity-95"
                                 >
-                                    Log Out All Other Sessions & Login
+                                    {isGoogleLimit
+                                        ? "Log Out All Other Sessions & Sign in with Google"
+                                        : "Log Out All Other Sessions & Login"}
                                 </Button>
                             </div>
                         </motion.div>
