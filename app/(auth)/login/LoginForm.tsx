@@ -32,18 +32,18 @@ export default function LoginForm() {
     const [googleEmail, setGoogleEmail] = useState<string | null>(null);
 
     useEffect(() => {
-        const error = searchParams.get("error");
-        const message = searchParams.get("message");
+        const error = searchParams.get("error") || "";
+        const message = searchParams.get("message") || "";
         const emailParam = searchParams.get("email");
 
-        if (error) {
-            // Check for Google OAuth session limit / device limit
+        const combined = `${error} ${message}`.toLowerCase();
+
+        if (error || message) {
+            // Check for Google OAuth session limit / device limit in either parameter
             const isSessionLimitError =
                 error === "session_limit" ||
                 error === "device_limit" ||
-                error === "maximum_devices" ||
-                error === "max_devices" ||
-                (typeof message === "string" && /device|session|simultaneous|limit/i.test(message));
+                /device|simultaneous|session_limit|device_limit|session limit|maximum.*3|log out/i.test(combined);
 
             if (isSessionLimitError) {
                 setIsGoogleLimit(true);
@@ -441,7 +441,7 @@ export default function LoginForm() {
                             size="lg"
                             shape="default"
                             onClick={handleGoogleLogin}
-                            className="w-full py-3.5 h-auto text-sm font-semibold flex items-center justify-center gap-3 bg-[var(--bg-input)] border-[var(--border-primary)] text-[var(--text-primary)] hover:opacity-90"
+                            className="w-full py-3.5 h-auto text-sm font-semibold flex items-center justify-center gap-3 bg-(--bg-input) border-[var(--border-primary)] text-[var(--text-primary)] hover:opacity-90"
                             leftIcon={
                                 <svg width="18" height="18" viewBox="0 0 24 24">
                                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -487,50 +487,44 @@ export default function LoginForm() {
                 </div>
             </motion.div>
 
-            {/* ── 3-Device Simultaneous Limit Modal ── */}
+            {/* ── 3-Device Simultaneous Limit Modal (Common Modal Design) ── */}
             <AnimatePresence>
                 {showDeviceLimitModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 16 }}
-                            transition={{ duration: 0.2 }}
-                            className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#ff6b6b]/40 shadow-2xl shadow-black/80 flex flex-col gap-5 relative overflow-hidden"
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-2xl relative overflow-hidden flex flex-col gap-5"
                         >
-                            {/* Glowing top line */}
-                            <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-transparent via-[#ff6b6b] to-transparent" />
+                            {/* Close Button */}
+                            <button
+                                type="button"
+                                onClick={handleDismissDeviceLimitModal}
+                                disabled={isRevokingAndLoggingIn}
+                                className="absolute top-5 right-5 p-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7] transition-colors cursor-pointer"
+                                aria-label="Close modal"
+                            >
+                                <X size={15} />
+                            </button>
 
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-[#ff6b6b]/15 border border-[#ff6b6b]/30 flex items-center justify-center text-[#ff6b6b] shrink-0">
-                                        <Smartphone size={20} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-sm font-bold text-[#e0faf5]">
-                                            Session Limit Reached
-                                        </h3>
-                                        <span className="text-[11px] font-semibold text-[#ff6b6b]">
-                                            Maximum 3 Devices Active
-                                        </span>
-                                    </div>
+                            {/* Modal Header */}
+                            <div className="flex items-center gap-3 pr-8">
+                                <div className="w-10 h-10 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
+                                    <Smartphone size={18} />
                                 </div>
-
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    shape="square"
-                                    onClick={handleDismissDeviceLimitModal}
-                                    disabled={isRevokingAndLoggingIn}
-                                    className="text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a]"
-                                    aria-label="Close modal"
-                                >
-                                    <X size={16} />
-                                </Button>
+                                <div>
+                                    <h3 className="text-sm font-bold text-[#e0faf5]">
+                                        Session Limit Reached
+                                    </h3>
+                                    <p className="text-[11px] text-[#ff6b6b] font-semibold mt-0.5">
+                                        Maximum 3 Active Devices Allowed
+                                    </p>
+                                </div>
                             </div>
 
-                            <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#7ecfc4] flex flex-col gap-2 leading-relaxed">
+                            <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/70 text-xs text-[#7ecfc4] flex flex-col gap-2 leading-relaxed">
                                 <p>
                                     Your account is already signed in on <strong>3 active devices or browsers</strong>.
                                 </p>
@@ -539,33 +533,30 @@ export default function LoginForm() {
                                 </p>
                             </div>
 
-                            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+                            <div className="flex items-center justify-end gap-2.5 pt-2">
                                 <Button
                                     type="button"
-                                    variant="secondary"
+                                    variant="ghost"
                                     size="sm"
-                                    shape="default"
                                     onClick={handleDismissDeviceLimitModal}
                                     disabled={isRevokingAndLoggingIn}
-                                    className="w-full sm:w-auto text-xs font-semibold"
                                 >
-                                    Cancel (Log out manually)
+                                    Cancel
                                 </Button>
 
                                 <Button
                                     type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    shape="default"
+                                    variant="gradient"
+                                    shape="box"
+                                    size="default"
                                     onClick={handleRevokeOthersAndLogin}
                                     disabled={isRevokingAndLoggingIn}
                                     isLoading={isRevokingAndLoggingIn}
-                                    loadingText="Logging out others..."
-                                    leftIcon={<LogOut size={13} />}
-                                    className="w-full sm:w-auto bg-linear-to-r from-[#ff6b6b] to-[#f59e0b] text-[#0a0f0f] font-bold text-xs border-none shadow-md shadow-[#ff6b6b]/20 hover:opacity-95"
+                                    loadingText="Terminating..."
+                                    leftIcon={<LogOut size={14} />}
                                 >
                                     {isGoogleLimit
-                                        ? "Log Out All Other Sessions & Sign in with Google"
+                                        ? "Log Out All Other Sessions & Continue with Google"
                                         : "Log Out All Other Sessions & Login"}
                                 </Button>
                             </div>
