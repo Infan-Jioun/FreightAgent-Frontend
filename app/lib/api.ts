@@ -2,6 +2,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { envConfig } from "../config/env";
 import status from "http-status";
+import { clearClientCookies } from "./cookie";
 
 const api = axios.create({
     baseURL: envConfig.NEXT_PUBLIC_API_URL,
@@ -76,6 +77,8 @@ api.interceptors.response.use(
                 return api(originalRequest);
             } catch {
                 if (typeof window !== "undefined") {
+                    localStorage.removeItem("auth-storage");
+                    clearClientCookies();
                     const currentPath = window.location.pathname;
                     // Do not redirect to login if the user is on the home page, public route, or skipAuthRedirect is set
                     if (!originalRequest.skipAuthRedirect && !isPublicPath(currentPath)) {

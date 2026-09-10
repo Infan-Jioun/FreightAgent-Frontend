@@ -107,6 +107,15 @@ export default function LoginForm() {
                 }
 
                 if (status === 403) {
+                    // Check if this is the 3-device simultaneous sign-in limit
+                    if (message && /device|simultaneously|log out/i.test(message)) {
+                        toast.error("Device Limit Exceeded", {
+                            description: message,
+                        });
+                        return;
+                    }
+
+                    // Otherwise, handle unverified email flow
                     sessionStorage.setItem("verify_email", data.email);
                     toast.error("Email not verified", {
                         description: "OTP sent to your email.",

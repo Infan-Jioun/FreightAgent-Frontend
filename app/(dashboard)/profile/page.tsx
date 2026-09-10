@@ -439,7 +439,9 @@ export default function ProfilePage() {
                                 <Mail size={13} className="text-[#00c9a7]" />
                                 <span>{profile?.email || "loading..."}</span>
                                 {profile?.emailVerified && (
-                                    <CheckCircle2 size={13} className="text-[#00e5c0]" title="Email verified" />
+                                    <span title="Email verified" className="inline-flex items-center">
+                                        <CheckCircle2 size={13} className="text-[#00e5c0]" />
+                                    </span>
                                 )}
                             </span>
 
