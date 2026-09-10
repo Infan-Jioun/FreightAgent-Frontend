@@ -204,8 +204,8 @@ export default function ServicesPage() {
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeCategory === cat
-                    ? "bg-[#00c9a7] text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20"
-                    : "bg-[#0d1f1f] text-[#7ecfc4] border border-[#1a4a4a] hover:border-[#00c9a7]/50"
+                  ? "bg-[#00c9a7] text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20"
+                  : "bg-[#0d1f1f] text-[#7ecfc4] border border-[#1a4a4a] hover:border-[#00c9a7]/50"
                   }`}
               >
                 {cat}

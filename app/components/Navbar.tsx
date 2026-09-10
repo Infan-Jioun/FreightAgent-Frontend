@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
+import Image from "next/image";
 import {
   Anchor,
   Menu,
@@ -15,7 +16,9 @@ import {
   Layers,
   Package,
   Calculator,
+  Phone,
   PhoneCall,
+  Mail,
   User as UserIcon,
   LogOut,
   Settings,
@@ -39,6 +42,48 @@ const NAV_LINKS = [
   { label: "Quote", href: "/quote", icon: Calculator, subtitle: "Instant rate calculator" },
   { label: "Contact", href: "/contact", icon: PhoneCall, subtitle: "24/7 Dispatch desk" },
 ];
+
+interface UserAvatarProps {
+  src?: string | null;
+  name?: string;
+  initials: string;
+  size?: "sm" | "md" | "lg";
+}
+
+function UserAvatar({ src, name, initials, size = "md" }: UserAvatarProps) {
+  const [imgError, setImgError] = useState(false);
+
+  const sizeClasses = {
+    sm: "w-7 h-7 text-[10px] rounded-lg",
+    md: "w-9 h-9 text-xs rounded-xl",
+    lg: "w-11 h-11 text-sm rounded-2xl",
+  }[size];
+
+  if (src && !imgError) {
+    return (
+      <div
+        className={`relative ${sizeClasses} overflow-hidden border border-[#00c9a7]/40 shrink-0 shadow-xs bg-[#112a2a]`}
+      >
+        <Image
+          src={src}
+          alt={name || "User avatar"}
+          fill
+          sizes={size === "lg" ? "44px" : "36px"}
+          className="object-cover"
+          onError={() => setImgError(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${sizeClasses} bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-black flex items-center justify-center shrink-0 shadow-md`}
+    >
+      {initials}
+    </div>
+  );
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -233,8 +278,8 @@ export function Navbar() {
                 <Link
                   href={link.href}
                   className={`text-xs xl:text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 whitespace-nowrap ${isActive
-                      ? "text-[#00e5c0] font-semibold"
-                      : "text-[#7ecfc4]/80 hover:text-[#e0faf5]"
+                    ? "text-[#00e5c0] font-semibold"
+                    : "text-[#7ecfc4]/80 hover:text-[#e0faf5]"
                     }`}
                 >
                   {isActive && (
@@ -251,7 +296,7 @@ export function Navbar() {
                 {(isActive || hoveredLink === link.label) && (
                   <motion.div
                     layoutId="navUnderline"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-gradient-to-r from-[#00c9a7] to-[#00b4d8]"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8]"
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
@@ -293,12 +338,15 @@ export function Navbar() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[#0d1f1f] border border-[#1a4a4a] hover:border-[#00c9a7]/60 transition-all text-xs text-[#e0faf5]"
+                  className="flex items-center gap-2 p-1.5 pr-2.5 rounded-xl bg-[#0d1f1f] border border-[#1a4a4a] hover:border-[#00c9a7]/60 transition-all text-xs text-[#e0faf5] cursor-pointer"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-black flex items-center justify-center text-xs shadow-md">
-                    {userInitials}
-                  </div>
-                  <span className="max-w-[80px] truncate text-xs font-bold text-[#e0faf5]">
+                  <UserAvatar
+                    src={user.image}
+                    name={user.name}
+                    initials={userInitials}
+                    size="sm"
+                  />
+                  <span className="max-w-[85px] truncate text-xs font-bold text-[#e0faf5]">
                     {displayName}
                   </span>
                   <ChevronDown
@@ -316,21 +364,55 @@ export function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 6, scale: 0.96 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] p-2 shadow-2xl z-50 overflow-hidden"
+                      className="absolute right-0 mt-2 w-72 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] p-2.5 shadow-2xl z-50 overflow-hidden"
                     >
                       {/* User Header */}
-                      <div className="p-3 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]/60 mb-2 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-black text-[#e0faf5] truncate block">
-                            {user.name}
-                          </span>
-                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30">
-                            {user.role}
-                          </span>
+                      <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/70 mb-2 flex flex-col gap-2.5">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar
+                            src={user.image}
+                            name={user.name}
+                            initials={userInitials}
+                            size="md"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="text-xs font-bold text-[#e0faf5] truncate block">
+                                {user.name}
+                              </span>
+                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30 shrink-0">
+                                {user.role}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/80 mt-0.5 truncate">
+                              <Mail size={11} className="text-[#00c9a7] shrink-0" />
+                              <span className="truncate">{user.email}</span>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-[11px] text-[#7ecfc4]/70 truncate block">
-                          {user.email}
-                        </span>
+
+                        {/* Phone Number Display alongside Email */}
+                        <div className="pt-2 border-t border-[#1a4a4a]/50 flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-1.5 min-w-0 text-[#7ecfc4]/90">
+                            <Phone size={11} className="text-[#00c9a7] shrink-0" />
+                            <span className="font-mono text-[11px] truncate">
+                              {user.phone ? user.phone : "No phone linked"}
+                            </span>
+                          </div>
+                          {user.phone ? (
+                            <span className="text-[9px] font-semibold text-[#00e5c0] bg-[#00c9a7]/10 px-1.5 py-0.5 rounded border border-[#00c9a7]/20 shrink-0">
+                              Linked
+                            </span>
+                          ) : (
+                            <Link
+                              href={ROUTES.PROFILE}
+                              onClick={() => setUserDropdownOpen(false)}
+                              className="text-[10px] font-semibold text-[#00c9a7] hover:underline shrink-0"
+                            >
+                              + Add
+                            </Link>
+                          )}
+                        </div>
                       </div>
 
                       {/* Dropdown Links */}
@@ -528,23 +610,52 @@ export function Navbar() {
 
                     {/* User Card if Authenticated */}
                     {isAuthenticated && user && (
-                      <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-black text-xs flex items-center justify-center flex-shrink-0">
-                            {userInitials}
+                      <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <UserAvatar
+                              src={user.image}
+                              name={user.name}
+                              initials={userInitials}
+                              size="md"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-[#e0faf5] truncate block">
+                                {user.name}
+                              </span>
+                              <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/80 truncate">
+                                <Mail size={11} className="text-[#00c9a7] shrink-0" />
+                                <span className="truncate">{user.email}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <span className="text-xs font-bold text-[#e0faf5] truncate block">
-                              {user.name}
-                            </span>
-                            <span className="text-[10px] text-[#3a6b66] truncate block">
-                              {user.email}
-                            </span>
-                          </div>
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30 shrink-0">
+                            {user.role}
+                          </span>
                         </div>
-                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30">
-                          {user.role}
-                        </span>
+
+                        {/* Phone Number Display alongside Email */}
+                        <div className="pt-2 border-t border-[#1a4a4a]/50 flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-1.5 min-w-0 text-[#7ecfc4]/90">
+                            <Phone size={11} className="text-[#00c9a7] shrink-0" />
+                            <span className="font-mono text-[11px] truncate">
+                              {user.phone ? user.phone : "No phone linked"}
+                            </span>
+                          </div>
+                          {user.phone ? (
+                            <span className="text-[9px] font-semibold text-[#00e5c0] bg-[#00c9a7]/10 px-1.5 py-0.5 rounded border border-[#00c9a7]/20 shrink-0">
+                              Linked
+                            </span>
+                          ) : (
+                            <Link
+                              href={ROUTES.PROFILE}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className="text-[10px] font-semibold text-[#00c9a7] hover:underline shrink-0"
+                            >
+                              + Add
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -573,15 +684,15 @@ export function Navbar() {
                               href={link.href}
                               onClick={() => setMobileMenuOpen(false)}
                               className={`flex items-center justify-between p-3 rounded-2xl border transition-all group ${isActive
-                                  ? "bg-[#00c9a7]/15 border-[#00c9a7] text-[#00e5c0] shadow-md shadow-[#00c9a7]/10"
-                                  : "bg-[#0a1a1a] border-[#1a4a4a]/70 text-[#7ecfc4] hover:bg-[#112a2a] hover:border-[#00c9a7]/40 hover:text-[#e0faf5]"
+                                ? "bg-[#00c9a7]/15 border-[#00c9a7] text-[#00e5c0] shadow-md shadow-[#00c9a7]/10"
+                                : "bg-[#0a1a1a] border-[#1a4a4a]/70 text-[#7ecfc4] hover:bg-[#112a2a] hover:border-[#00c9a7]/40 hover:text-[#e0faf5]"
                                 }`}
                             >
                               <div className="flex items-center gap-3">
                                 <div
                                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${isActive
-                                      ? "bg-[#00c9a7] text-[#0a0f0f] shadow-sm shadow-[#00c9a7]/30"
-                                      : "bg-[#112a2a] text-[#00c9a7] border border-[#1a4a4a]"
+                                    ? "bg-[#00c9a7] text-[#0a0f0f] shadow-sm shadow-[#00c9a7]/30"
+                                    : "bg-[#112a2a] text-[#00c9a7] border border-[#1a4a4a]"
                                     }`}
                                 >
                                   <IconComponent size={16} />
@@ -615,7 +726,7 @@ export function Navbar() {
                         <Link
                           href={ROUTES.DASHBOARD}
                           onClick={() => setMobileMenuOpen(false)}
-                          className="w-full py-3 rounded-xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20"
+                          className="w-full py-3 rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20"
                         >
                           <LayoutDashboard size={15} />
                           <span>Open Freigeht Dashboard</span>

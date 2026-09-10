@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import MaritimeRouteTrackingWidget from "@/components/ui/dashboard/MaritimeRouteTrackingWidget";
+import { Button } from "@/components/ui/button";
 
 
 interface TrackingEvent {
@@ -259,12 +260,12 @@ function TrackingContent() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             {/* Header + Search Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-black text-[#e0faf5] tracking-tight">
-                        Live Freigeht & Parcel Tracking
+                        Live Freight & Parcel Tracking
                     </h1>
                     <p className="text-xs text-[#7ecfc4] mt-0.5">
                         Real-time GPS telemetry, waypoint milestones, and carrier status.
@@ -275,19 +276,19 @@ function TrackingContent() {
                 <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[11px] font-semibold text-[#3a6b66]">Quick Demo:</span>
                     {Object.keys(SAMPLE_TRACKING_DATA).map((code) => (
-                        <button
+                        <Button
                             key={code}
+                            variant={currentTracking.trackingCode === code ? "pill-active" : "pill-inactive"}
+                            size="xs"
+                            shape="pill"
+                            className="font-mono"
                             onClick={() => {
                                 setInputCode(code);
                                 setCurrentTracking(SAMPLE_TRACKING_DATA[code]);
                             }}
-                            className={`text-[10px] font-mono px-2.5 py-1 rounded-full border transition-colors ${currentTracking.trackingCode === code
-                                    ? "bg-[#00c9a7]/20 text-[#00e5c0] border-[#00c9a7]"
-                                    : "bg-[#0d1f1f] text-[#7ecfc4] border-[#1a4a4a] hover:border-[#00c9a7]/40"
-                                }`}
                         >
                             {code}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>
@@ -307,24 +308,27 @@ function TrackingContent() {
                         value={inputCode}
                         onChange={(e) => setInputCode(e.target.value)}
                         placeholder="Enter tracking number (e.g. #26277887-ID-YK)"
-                        className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs font-mono text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-none focus:border-[#00c9a7] transition-colors"
+                        className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs font-mono text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
                     />
                 </div>
-                <button
+                <Button
                     type="submit"
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 transition-opacity flex items-center justify-center gap-2"
+                    variant="gradient"
+                    shape="box"
+                    size="default"
+                    leftIcon={<Navigation size={15} />}
+                    className="w-full sm:w-auto"
                 >
-                    <Navigation size={15} />
                     Track Shipment
-                </button>
+                </Button>
             </form>
 
             {/* Overview Banner */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#0d1f1f] via-[#0d1f1f] to-[#112a2a] border border-[#1a4a4a] shadow-xl relative overflow-hidden">
+            <div className="p-5 sm:p-6 rounded-3xl bg-linear-to-br from-[#0d1f1f] via-[#0d1f1f] to-[#112a2a] border border-[#1a4a4a] shadow-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-[#00c9a7]/5 rounded-full blur-3xl pointer-events-none" />
 
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-3 flex-wrap">
                             <h2 className="text-lg sm:text-xl font-mono font-bold text-[#e0faf5] flex items-center gap-2">
                                 {currentTracking.trackingCode}
@@ -371,7 +375,7 @@ function TrackingContent() {
                 {/* Origin to Destination Bar */}
                 <div className="mt-6 pt-5 border-t border-[#1a4a4a]/50 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00c9a7] flex-shrink-0 mt-0.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00c9a7] shrink-0 mt-0.5">
                             <MapPin size={16} />
                         </div>
                         <div className="min-w-0">
@@ -384,7 +388,7 @@ function TrackingContent() {
                     </div>
 
                     <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30 flex items-center justify-center text-[#00b4d8] flex-shrink-0 mt-0.5">
+                        <div className="w-8 h-8 rounded-xl bg-[#00b4d8]/15 border border-[#00b4d8]/30 flex items-center justify-center text-[#00b4d8] shrink-0 mt-0.5">
                             <MapPin size={16} />
                         </div>
                         <div className="min-w-0">
@@ -400,38 +404,34 @@ function TrackingContent() {
 
             {/* Transit Mode Switcher: Maritime Container Liner vs Regional Ground */}
             <div className="flex items-center gap-2 p-1.5 bg-[#0d1f1f] rounded-2xl border border-[#1a4a4a] w-fit shadow-md">
-                <button
+                <Button
+                    variant={trackingView === "MARITIME" ? "teal" : "ghost"}
+                    size="sm"
                     onClick={() => setTrackingView("MARITIME")}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${trackingView === "MARITIME"
-                            ? "bg-[#00c9a7] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20"
-                            : "text-[#7ecfc4] hover:text-[#e0faf5]"
-                        }`}
+                    leftIcon={<Ship size={14} />}
                 >
-                    <Ship size={14} />
-                    <span>Maritime Vessel Corridor: Bangladesh ⇄ China</span>
-                </button>
+                    Maritime Vessel Corridor: Bangladesh ⇄ China
+                </Button>
 
-                <button
+                <Button
+                    variant={trackingView === "REGIONAL" ? "blue" : "ghost"}
+                    size="sm"
                     onClick={() => setTrackingView("REGIONAL")}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${trackingView === "REGIONAL"
-                            ? "bg-[#00b4d8] text-[#0a0f0f] shadow-md shadow-[#00b4d8]/20"
-                            : "text-[#7ecfc4] hover:text-[#e0faf5]"
-                        }`}
+                    leftIcon={<Truck size={14} />}
                 >
-                    <Truck size={14} />
-                    <span>Regional Ground Transit</span>
-                </button>
+                    Regional Ground Transit
+                </Button>
             </div>
 
             {/* Main Layout: Progress Map & Event Timeline */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left 2 Cols: Interactive Map Visual & Driver specs */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 flex flex-col gap-6">
                     {trackingView === "MARITIME" ? (
                         <MaritimeRouteTrackingWidget />
                     ) : (
                         /* Simulated Radar / Map Route Panel */
-                        <div className="p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] space-y-4">
+                        <div className="p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#7ecfc4] flex items-center gap-2">
                                     <Navigation size={14} className="text-[#00c9a7]" />
@@ -482,7 +482,7 @@ function TrackingContent() {
                                     <div className="w-6 h-6 rounded-full bg-[#00c9a7] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/40">
                                         <Package size={13} />
                                     </div>
-                                    <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded border border-[#1a4a4a]">
+                                    <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded-sm border border-[#1a4a4a]">
                                         Origin
                                     </span>
                                 </div>
@@ -507,7 +507,7 @@ function TrackingContent() {
                                     <div className="w-6 h-6 rounded-full bg-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00b4d8]/40">
                                         <MapPin size={13} />
                                     </div>
-                                    <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded border border-[#1a4a4a]">
+                                    <span className="text-[9px] font-bold text-[#e0faf5] mt-1 bg-[#0a0f0f]/80 px-2 py-0.5 rounded-sm border border-[#1a4a4a]">
                                         Dest
                                     </span>
                                 </div>
@@ -540,7 +540,7 @@ function TrackingContent() {
                     {/* Assigned Courier Contact Card */}
                     <div className="p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] font-black text-base shadow-md shadow-[#00c9a7]/20">
+                            <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] font-black text-base shadow-md shadow-[#00c9a7]/20">
                                 {currentTracking.driverName.charAt(0)}
                             </div>
                             <div>
@@ -577,16 +577,16 @@ function TrackingContent() {
                         </div>
 
                         {/* Steps List */}
-                        <div className="mt-5 space-y-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#1a4a4a]">
+                        <div className="mt-5 flex flex-col gap-6 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#1a4a4a]">
                             {currentTracking.events.map((ev, idx) => (
                                 <div key={ev.id} className="relative flex items-start gap-4 pl-8">
                                     {/* Timeline Dot */}
                                     <div
                                         className={`absolute left-0 top-0.5 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${ev.current
-                                                ? "bg-[#00c9a7] border-[#0a0f0f] text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/50 animate-pulse"
-                                                : ev.completed
-                                                    ? "bg-[#0d1f1f] border-[#00c9a7] text-[#00c9a7]"
-                                                    : "bg-[#0d1f1f] border-[#1a4a4a] text-[#3a6b66]"
+                                            ? "bg-[#00c9a7] border-[#0a0f0f] text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/50 animate-pulse"
+                                            : ev.completed
+                                                ? "bg-[#0d1f1f] border-[#00c9a7] text-[#00c9a7]"
+                                                : "bg-[#0d1f1f] border-[#1a4a4a] text-[#3a6b66]"
                                             }`}
                                     >
                                         {ev.completed ? (
@@ -596,20 +596,20 @@ function TrackingContent() {
                                         )}
                                     </div>
 
-                                    <div className="space-y-1">
+                                    <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <h5
                                                 className={`text-xs font-bold ${ev.current
-                                                        ? "text-[#00e5c0]"
-                                                        : ev.completed
-                                                            ? "text-[#e0faf5]"
-                                                            : "text-[#3a6b66]"
+                                                    ? "text-[#00e5c0]"
+                                                    : ev.completed
+                                                        ? "text-[#e0faf5]"
+                                                        : "text-[#3a6b66]"
                                                     }`}
                                             >
                                                 {ev.title}
                                             </h5>
                                             {ev.current && (
-                                                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/40">
+                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/40">
                                                     Current Status
                                                 </span>
                                             )}

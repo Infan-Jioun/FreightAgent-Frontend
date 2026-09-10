@@ -1,33 +1,40 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { UserPlus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/app/store/authStore";
 import { adminService } from "@/app/services/admin.service";
 import { IAdminUser, ICreateUserPayload, UserRole } from "@/app/types/admin.types";
-import UsersStatsCards from "./components/UsersStatsCards";
-import UsersFilters from "./components/UsersFilters";
-import UsersTable from "./components/UsersTable";
-import UpdateRoleModal from "./components/UpdateRoleModal";
-import DeleteUserModal from "./components/DeleteUserModal";
-import UserDetailsModal from "./components/UserDetailsModal";
-import AddUserModal from "./components/AddUserModal";
+import { getErrorMessage } from "@/app/errorHelper/appError";
+import UsersStatsCards from "./UsersStatsCards";
+import UsersFilters from "./UsersFilters";
+import UsersTable from "./UsersTable";
+import UpdateRoleModal from "./UpdateRoleModal";
+import DeleteUserModal from "./DeleteUserModal";
+import UserDetailsModal from "./UserDetailsModal";
+import AddUserModal from "./AddUserModal";
 
 const USERS_PER_PAGE = 8;
 
-export default function AdminUsersPage() {
+interface AdminUsersClientProps {
+    initialUsers: IAdminUser[];
+}
+
+export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps) {
     const { user: currentAdmin } = useAuthStore();
 
-    const [usersList, setUsersList] = useState<IAdminUser[]>([]);
-    const [loadingUsers, setLoadingUsers] = useState(true);
+    // ── Data State (Initialized from SSR) ───────────────────────────────
+    const [usersList, setUsersList] = useState<IAdminUser[]>(initialUsers);
     const [refreshing, setRefreshing] = useState(false);
 
+    // ── Filters & Search State ──────────────────────────────────────────
     const [searchQuery, setSearchQuery] = useState("");
     const [roleFilter, setRoleFilter] = useState<"ALL" | UserRole>("ALL");
     const [verifiedFilter, setVerifiedFilter] = useState<"ALL" | "VERIFIED" | "UNVERIFIED">("ALL");
     const [currentPage, setCurrentPage] = useState(1);
 
+    // ── Modals & Mutation States ────────────────────────────────────────
     const [selectedUserForDetails, setSelectedUserForDetails] = useState<IAdminUser | null>(null);
     const [editingUserForRole, setEditingUserForRole] = useState<IAdminUser | null>(null);
     const [updatingRole, setUpdatingRole] = useState(false);
@@ -38,24 +45,46 @@ export default function AdminUsersPage() {
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
     const [creatingUser, setCreatingUser] = useState(false);
 
-    // ── Fetch Users ─────────────────────────────────────────────────────
-    const fetchUsers = useCallback(async (isRefresh = false) => {
-        isRefresh ? setRefreshing(true) : setLoadingUsers(true);
+    // ── Manual Refresh Function ─────────────────────────────────────────
+    const handleRefresh = useCallback(async () => {
         try {
-            const users = await adminService.getAllUsers();
-            setUsersList(Array.isArray(users) ? users : []);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || "Failed to load users");
-            setUsersList([]);
+            setRefreshing(true);
+            const freshUsers = await adminService.getAllUsers();
+            setUsersList(freshUsers);
+            toast.success("User directory refreshed");
+        } catch (err: unknown) {
+            console.error("Failed to refresh users:", err);
+            toast.error(getErrorMessage(err, "Failed to refresh user list"));
         } finally {
-            setLoadingUsers(false);
             setRefreshing(false);
         }
     }, []);
 
-    useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+    // ── Filtering Logic ─────────────────────────────────────────────────
+    const filteredUsers = useMemo(() => {
+        return usersList.filter((u) => {
+            const q = searchQuery.toLowerCase();
+            const matchesQuery =
+                u.name?.toLowerCase().includes(q) ||
+                u.email?.toLowerCase().includes(q) ||
+                u.id?.toLowerCase().includes(q);
+
+            const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
+
+            const matchesVerified =
+                verifiedFilter === "ALL" ||
+                (verifiedFilter === "VERIFIED" ? u.emailVerified : !u.emailVerified);
+
+            return matchesQuery && matchesRole && matchesVerified;
+        });
+    }, [usersList, searchQuery, roleFilter, verifiedFilter]);
+
+    // ── Pagination Calculation ──────────────────────────────────────────
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
+    const paginatedUsers = useMemo(() => {
+        const start = (currentPage - 1) * USERS_PER_PAGE;
+        return filteredUsers.slice(start, start + USERS_PER_PAGE);
+    }, [filteredUsers, currentPage]);
 
     // ── Update Role ─────────────────────────────────────────────────────
     const handleSaveRole = async (newRole: UserRole) => {
@@ -78,8 +107,8 @@ export default function AdminUsersPage() {
 
             toast.success(`Role updated to ${newRole} for ${editingUserForRole.name}`);
             setEditingUserForRole(null);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || "Failed to update role");
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, "Failed to update role"));
         } finally {
             setUpdatingRole(false);
         }
@@ -107,8 +136,8 @@ export default function AdminUsersPage() {
 
             toast.success(`${deletingUser.name} deleted successfully`);
             setDeletingUser(null);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || "Failed to delete user");
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, "Failed to delete user"));
         } finally {
             setDeleting(false);
         }
@@ -122,42 +151,16 @@ export default function AdminUsersPage() {
             setUsersList((prev) => [created, ...prev]);
             toast.success(`${formData.name} created successfully`);
             setIsAddUserOpen(false);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || "Failed to create user");
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, "Failed to create user"));
         } finally {
             setCreatingUser(false);
         }
     };
 
-    // ── Filter & Pagination ─────────────────────────────────────────────
-    const filteredUsers = useMemo(() => {
-        return usersList.filter((u) => {
-            const q = searchQuery.toLowerCase();
-            const matchesQuery =
-                u.name?.toLowerCase().includes(q) ||
-                u.email?.toLowerCase().includes(q) ||
-                u.id?.toLowerCase().includes(q);
-
-            const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
-
-            const matchesVerified =
-                verifiedFilter === "ALL" ||
-                (verifiedFilter === "VERIFIED" ? u.emailVerified : !u.emailVerified);
-
-            return matchesQuery && matchesRole && matchesVerified;
-        });
-    }, [usersList, searchQuery, roleFilter, verifiedFilter]);
-
-    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
-
-    const paginatedUsers = useMemo(() => {
-        const start = (currentPage - 1) * USERS_PER_PAGE;
-        return filteredUsers.slice(start, start + USERS_PER_PAGE);
-    }, [filteredUsers, currentPage]);
-
     return (
-        <div className="space-y-6 pb-8">
-            {/* Header */}
+        <div className="space-y-6">
+            {/* Header + Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2.5">
@@ -169,25 +172,27 @@ export default function AdminUsersPage() {
                         </span>
                     </div>
                     <p className="text-xs text-[#7ecfc4] mt-1">
-                        Live management of system accounts, certified Freigeht agents, and merchant customers.
+                        Live management of system accounts, certified Freigeht agents, and merchant customers via Admin APIs.
                     </p>
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Live Refresh Button */}
                     <button
                         type="button"
-                        onClick={() => fetchUsers(true)}
-                        disabled={refreshing || loadingUsers}
+                        onClick={handleRefresh}
+                        disabled={refreshing}
                         className="p-2.5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-all disabled:opacity-50 cursor-pointer"
-                        title="Refresh"
+                        title="Refresh users from server"
                     >
                         <RefreshCw size={16} className={refreshing ? "animate-spin text-[#00c9a7]" : ""} />
                     </button>
 
+                    {/* Add / Invite User */}
                     <button
                         type="button"
                         onClick={() => setIsAddUserOpen(true)}
-                        className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 transition-opacity flex items-center gap-2 cursor-pointer"
+                        className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <UserPlus size={15} />
                         <span>Add User / Agent</span>
@@ -195,20 +200,32 @@ export default function AdminUsersPage() {
                 </div>
             </div>
 
+            {/* Quick Summary Cards */}
             <UsersStatsCards users={usersList} />
 
+            {/* Filter & Search Bar */}
             <UsersFilters
                 searchQuery={searchQuery}
-                onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1); }}
+                onSearchChange={(q) => {
+                    setSearchQuery(q);
+                    setCurrentPage(1);
+                }}
                 roleFilter={roleFilter}
-                onRoleFilterChange={(r) => { setRoleFilter(r); setCurrentPage(1); }}
+                onRoleFilterChange={(r) => {
+                    setRoleFilter(r);
+                    setCurrentPage(1);
+                }}
                 verifiedFilter={verifiedFilter}
-                onVerifiedFilterChange={(v) => { setVerifiedFilter(v); setCurrentPage(1); }}
+                onVerifiedFilterChange={(v) => {
+                    setVerifiedFilter(v);
+                    setCurrentPage(1);
+                }}
             />
 
+            {/* Users Table */}
             <UsersTable
                 users={paginatedUsers}
-                loading={loadingUsers}
+                loading={false}
                 currentAdminId={currentAdmin?.id}
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -220,6 +237,7 @@ export default function AdminUsersPage() {
                 onDelete={setDeletingUser}
             />
 
+            {/* ── MODAL: Update User Role ── */}
             <UpdateRoleModal
                 isOpen={Boolean(editingUserForRole)}
                 user={editingUserForRole}
@@ -228,6 +246,7 @@ export default function AdminUsersPage() {
                 onSaveRole={handleSaveRole}
             />
 
+            {/* ── MODAL: Delete User Confirmation ── */}
             <DeleteUserModal
                 isOpen={Boolean(deletingUser)}
                 user={deletingUser}
@@ -237,13 +256,15 @@ export default function AdminUsersPage() {
                 onConfirmDelete={handleDeleteUser}
             />
 
+            {/* ── MODAL: User Details ── */}
             <UserDetailsModal
                 isOpen={Boolean(selectedUserForDetails)}
                 user={selectedUserForDetails}
                 onClose={() => setSelectedUserForDetails(null)}
-                onChangeRoleClick={setEditingUserForRole}
+                onChangeRoleClick={(user) => setEditingUserForRole(user)}
             />
 
+            {/* ── MODAL: Add User / Agent ── */}
             <AddUserModal
                 isOpen={isAddUserOpen}
                 creating={creatingUser}

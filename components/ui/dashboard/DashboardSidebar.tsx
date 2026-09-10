@@ -164,8 +164,8 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                                 href={item.href}
                                 onClick={onCloseMobile}
                                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
-                                        ? "bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/50 shadow-sm shadow-[#00c9a7]/10"
-                                        : "text-[#7ecfc4]/80 hover:text-[#e0faf5] hover:bg-[#112a2a]"
+                                    ? "bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/50 shadow-sm shadow-[#00c9a7]/10"
+                                    : "text-[#7ecfc4]/80 hover:text-[#e0faf5] hover:bg-[#112a2a]"
                                     }`}
                             >
                                 <Icon

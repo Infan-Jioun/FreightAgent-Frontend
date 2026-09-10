@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 export interface PortNode {
     id: string;
@@ -295,7 +296,7 @@ export default function MaritimeRouteTrackingWidget() {
             {/* Top Control Bar */}
             <div className="p-4 sm:p-5 border-b border-[#1a4a4a] flex flex-wrap items-center justify-between gap-3 bg-[#0a1a1a]/70">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20 shrink-0">
                         <Ship size={20} strokeWidth={2.5} />
                     </div>
                     <div>
@@ -316,7 +317,9 @@ export default function MaritimeRouteTrackingWidget() {
 
                 <div className="flex items-center gap-2">
                     {/* Direction Toggle */}
-                    <button
+                    <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => {
                             setDirection(direction === "BD_TO_CN" ? "CN_TO_BD" : "BD_TO_CN");
                             toast.success(
@@ -325,21 +328,21 @@ export default function MaritimeRouteTrackingWidget() {
                                     : "Corridor Switched: Bangladesh ➔ China (Export Liner)"
                             );
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-[#0a1a1a] hover:bg-[#112a2a] border border-[#1a4a4a] text-[11px] font-bold text-[#7ecfc4] hover:text-[#e0faf5] transition-colors flex items-center gap-1.5 cursor-pointer"
+                        leftIcon={<RotateCcw size={12} />}
                         title="Toggle Trade Direction"
                     >
-                        <RotateCcw size={12} />
-                        <span>{direction === "BD_TO_CN" ? "BD ➔ CN (Export)" : "CN ➔ BD (Import)"}</span>
-                    </button>
+                        {direction === "BD_TO_CN" ? "BD ➔ CN (Export)" : "CN ➔ BD (Import)"}
+                    </Button>
 
                     {/* Expand/Collapse */}
-                    <button
+                    <Button
+                        variant="secondary"
+                        size="icon-sm"
                         onClick={() => setExpanded(!expanded)}
-                        className="p-2 rounded-xl bg-[#0a1a1a] hover:bg-[#112a2a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#00c9a7] transition-colors cursor-pointer"
                         title={expanded ? "Minimize Radar" : "Maximize Fullscreen"}
                     >
                         {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -615,7 +618,7 @@ export default function MaritimeRouteTrackingWidget() {
                                 {shipPosition.name}
                             </span>
                         </div>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30">
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30">
                             {shipPosition.speed}
                         </span>
                     </div>
@@ -702,7 +705,7 @@ export default function MaritimeRouteTrackingWidget() {
             </div>
 
             {/* Bottom Ports Selector & Voyage Telemetry Bar */}
-            <div className="p-4 bg-[#0d1f1f] border-t border-[#1a4a4a] space-y-3">
+            <div className="p-4 bg-[#0d1f1f] border-t border-[#1a4a4a] flex flex-col gap-3">
                 {/* Voyage Progress Indicator */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
@@ -728,29 +731,27 @@ export default function MaritimeRouteTrackingWidget() {
                 {/* Progress Bar */}
                 <div className="relative w-full h-1.5 rounded-full bg-[#0a1a1a] overflow-hidden border border-[#1a4a4a]">
                     <div
-                        className="h-full bg-gradient-to-r from-[#00c9a7] via-[#00e5c0] to-[#00b4d8] rounded-full shadow-sm shadow-[#00c9a7]"
+                        className="h-full bg-linear-to-r from-[#00c9a7] via-[#00e5c0] to-[#00b4d8] rounded-full shadow-xs shadow-[#00c9a7]"
                         style={{ width: `${routeProgress}%` }}
                     />
                 </div>
 
                 {/* Quick Port Pills Selection List */}
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 scrollbar-none">
-                    <span className="text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider flex-shrink-0 mr-1">
+                    <span className="text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider shrink-0 mr-1">
                         Ports:
                     </span>
                     {ALL_CORRIDOR_PORTS.map((port) => (
-                        <button
+                        <Button
                             key={port.id}
                             onClick={() => setSelectedPort(port)}
-                            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border whitespace-nowrap transition-colors flex items-center gap-1 cursor-pointer ${
-                                selectedPort.id === port.id
-                                    ? "bg-[#00c9a7] text-[#0a0f0f] border-[#00c9a7] shadow-sm"
-                                    : "bg-[#0a1a1a] text-[#7ecfc4] border-[#1a4a4a] hover:border-[#00c9a7]/40 hover:text-[#e0faf5]"
-                            }`}
+                            variant={selectedPort.id === port.id ? "teal" : "secondary"}
+                            size="xs"
+                            leftIcon={<span>{port.flag}</span>}
+                            className="whitespace-nowrap"
                         >
-                            <span>{port.flag}</span>
-                            <span>{port.code}</span>
-                        </button>
+                            {port.code}
+                        </Button>
                     ))}
                 </div>
             </div>

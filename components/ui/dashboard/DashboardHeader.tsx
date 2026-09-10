@@ -11,6 +11,7 @@ import {
     User as UserIcon,
     Settings,
     LogOut,
+    Home,
 } from "lucide-react";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
@@ -80,7 +81,17 @@ export default function DashboardHeader({ onOpenMobileMenu }: HeaderProps) {
             </form>
 
             {/* Right: Notifications & User Chip */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+                {/* Back to Home Button */}
+                <Link
+                    href={ROUTES.HOME}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#0d1f1f] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/50 hover:bg-[#112a2a] transition-all text-xs font-medium shadow-sm"
+                    title="Back to Home"
+                >
+                    <Home size={15} />
+                    <span className="hidden md:inline">Back to Home</span>
+                </Link>
+
                 {/* Notification Bell */}
                 <div className="relative">
                     <button
@@ -148,8 +159,19 @@ export default function DashboardHeader({ onOpenMobileMenu }: HeaderProps) {
                         <div className="absolute right-0 mt-2 w-48 bg-[#0d1f1f] rounded-2xl shadow-2xl border border-[#1a4a4a] py-1.5 z-30 animate-in fade-in slide-in-from-top-2">
                             <div className="px-3.5 py-2 border-b border-[#1a4a4a]">
                                 <p className="text-xs font-semibold text-[#e0faf5] truncate">{displayName}</p>
-                                <p className="text-[11px] text-[#3a6b66] truncate">{user?.email || "user@example.com"}</p>
+                                <p className="text-[11px] text-[#7ecfc4]/80 truncate">{user?.email || "user@example.com"}</p>
+                                {user?.phone && (
+                                    <p className="text-[10px] text-[#3a6b66] font-mono truncate mt-0.5">{user.phone}</p>
+                                )}
                             </div>
+                            <Link
+                                href={ROUTES.HOME}
+                                onClick={() => setUserMenuOpen(false)}
+                                className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors cursor-pointer"
+                            >
+                                <Home size={14} className="text-[#3a6b66]" />
+                                Back to Home
+                            </Link>
                             <Link
                                 href={ROUTES.PROFILE}
                                 onClick={() => setUserMenuOpen(false)}

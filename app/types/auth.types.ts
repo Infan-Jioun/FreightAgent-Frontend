@@ -4,8 +4,13 @@ export interface IUser {
     email: string;
     role: "ADMIN" | "AGENT" | "CUSTOMER";
     image: string | null;
+    phone?: string | null;
+    address?: string | null;
     emailVerified: boolean;
+    isBlocked?: boolean;
+    twoFactorEnabled?: boolean;
     createdAt: string;
+    updatedAt?: string;
 }
 
 export interface IRegisterInput {

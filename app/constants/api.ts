@@ -15,7 +15,15 @@ export const API = {
         CHANGE_PASSWORD_OTP: "/auth/change-password/send-otp",
         CHANGE_PASSWORD: "/auth/change-password",
     },
-
+    USER: {
+        ME: "/user/me",
+        UPDATE_PROFILE: "/user/profile",
+        UPLOAD_AVATAR: "/user/avatar",
+        REQUEST_PHONE_VERIFICATION: "/user/phone/request",
+        VERIFY_PHONE: "/user/phone/verify",
+        ACTIVE_SESSIONS: "/user/sessions",
+        DELETE_SESSION: (id: string) => `/user/sessions/${id}`,
+    },
     // Shipment
     SHIPMENT: {
         CREATE: "/shipment",
@@ -29,9 +37,9 @@ export const API = {
 
     // Admin
     ADMIN: {
-        GET_ALL_USERS: "/admin",
-        GET_USER_BY_ID: (id: string) => `/admin/${id}`,
-        UPDATE_ROLE: (id: string) => `/admin/${id}/role`,
-        DELETE_USER: (id: string) => `/admin/${id}`,
+        GET_ALL_USERS: "/admin/users",
+        GET_USER_BY_ID: (id: string) => `/admin/users/${id}`,
+        UPDATE_ROLE: (id: string) => `/admin/users/${id}/role`,
+        DELETE_USER: (id: string) => `/admin/users/${id}`,
     },
 } as const;
