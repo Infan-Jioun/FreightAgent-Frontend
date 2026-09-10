@@ -67,6 +67,7 @@ export default function ProfilePage() {
     });
     const [isLoadingSessions, setIsLoadingSessions] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+    const [isRevokingAll, setIsRevokingAll] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -321,6 +322,27 @@ export default function ProfilePage() {
             }
         } finally {
             setRevokingSessionId(null);
+        }
+    };
+
+    // ─── Revoke All Other Remote Sessions ───────────────────────────────────
+    const handleRevokeAllOtherSessions = async () => {
+        const remoteSessions = sessions.filter((s) => !s.isCurrent);
+        if (remoteSessions.length === 0) return;
+
+        try {
+            setIsRevokingAll(true);
+            await Promise.all(
+                remoteSessions.map((s) =>
+                    userService.revokeSession(s.id).catch(() => null)
+                )
+            );
+            toast.success("All other sessions terminated successfully");
+            await loadSessions();
+        } catch {
+            toast.error("Failed to revoke some sessions");
+        } finally {
+            setIsRevokingAll(false);
         }
     };
 
@@ -698,14 +720,29 @@ export default function ProfilePage() {
                         </p>
                     </div>
 
-                    <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={loadSessions}
-                        leftIcon={<RefreshCw size={12} className={isLoadingSessions ? "animate-spin" : ""} />}
-                    >
-                        Refresh Sessions
-                    </Button>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {sessions.some((s) => !s.isCurrent) && (
+                            <Button
+                                variant="destructive"
+                                size="xs"
+                                onClick={handleRevokeAllOtherSessions}
+                                isLoading={isRevokingAll}
+                                loadingText="Terminating..."
+                                leftIcon={<LogOut size={12} />}
+                            >
+                                Log Out All Other Sessions ({sessions.filter((s) => !s.isCurrent).length})
+                            </Button>
+                        )}
+
+                        <Button
+                            variant="secondary"
+                            size="xs"
+                            onClick={loadSessions}
+                            leftIcon={<RefreshCw size={12} className={isLoadingSessions ? "animate-spin" : ""} />}
+                        >
+                            Refresh Sessions
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Device Breakdown Metric Badges */}

@@ -22,6 +22,7 @@ export interface IRegisterInput {
 export interface ILoginInput {
     email: string;
     password: string;
+    revokeOthers?: boolean;
 }
 
 export interface IVerifyOtpInput {

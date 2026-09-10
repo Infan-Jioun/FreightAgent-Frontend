@@ -5,8 +5,8 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Eye, EyeOff, Mail, Lock, Anchor, Loader2, Clock } from "lucide-react";
-import { motion } from "framer-motion";
+import { Eye, EyeOff, Mail, Lock, Anchor, Loader2, Clock, Smartphone, LogOut, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -47,6 +47,11 @@ export default function LoginForm() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [userName, setUserName] = useState<string | undefined>(undefined);
 
+    // ── 3-device limit modal state ──
+    const [showDeviceLimitModal, setShowDeviceLimitModal] = useState(false);
+    const [isRevokingAndLoggingIn, setIsRevokingAndLoggingIn] = useState(false);
+    const [pendingCredentials, setPendingCredentials] = useState<LoginInput | null>(null);
+
     // Rate-limit countdown — its own storage key, separate from register.
     const {
         isActive: loginLimited,
@@ -76,6 +81,37 @@ export default function LoginForm() {
         const retryAfter = anyErr?.response?.data?.data?.retryAfter;
         const limit = anyErr?.response?.data?.data?.limit;
         return { status, message, retryAfter, limit };
+    };
+
+    const handleRevokeOthersAndLogin = async () => {
+        if (!pendingCredentials) return;
+        try {
+            setIsRevokingAndLoggingIn(true);
+            const res = await authService.login({
+                ...pendingCredentials,
+                revokeOthers: true,
+            });
+
+            if (res.data?.user) {
+                setUser(res.data.user);
+                setUserName(res.data.user?.name);
+            }
+
+            setShowDeviceLimitModal(false);
+            setPendingCredentials(null);
+            toast.success("Other sessions terminated. Welcome back!");
+            setShowSuccess(true);
+        } catch (err: unknown) {
+            const { message } = parseLoginError(err);
+            toast.error(message || "Failed to terminate other sessions");
+        } finally {
+            setIsRevokingAndLoggingIn(false);
+        }
+    };
+
+    const handleDismissDeviceLimitModal = () => {
+        setShowDeviceLimitModal(false);
+        setPendingCredentials(null);
     };
 
     const onSubmit = async (data: LoginInput) => {
@@ -108,9 +144,15 @@ export default function LoginForm() {
 
                 if (status === 403) {
                     // Check if this is the 3-device simultaneous sign-in limit
-                    if (message && /device|simultaneously|log out/i.test(message)) {
+                    const isSessionLimit =
+                        message &&
+                        /device|simultaneous|session limit|maximum.*device|log out/i.test(message);
+
+                    if (isSessionLimit) {
+                        setPendingCredentials(data);
+                        setShowDeviceLimitModal(true);
                         toast.error("Device Limit Exceeded", {
-                            description: message,
+                            description: "3 devices are currently active. You can terminate other sessions to log in here.",
                         });
                         return;
                     }
@@ -406,6 +448,89 @@ export default function LoginForm() {
                     />
                 </div>
             </motion.div>
+
+            {/* ── 3-Device Simultaneous Limit Modal ── */}
+            <AnimatePresence>
+                {showDeviceLimitModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#ff6b6b]/40 shadow-2xl shadow-black/80 flex flex-col gap-5 relative overflow-hidden"
+                        >
+                            {/* Glowing top line */}
+                            <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-r from-transparent via-[#ff6b6b] to-transparent" />
+
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-[#ff6b6b]/15 border border-[#ff6b6b]/30 flex items-center justify-center text-[#ff6b6b] shrink-0">
+                                        <Smartphone size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-[#e0faf5]">
+                                            Session Limit Reached
+                                        </h3>
+                                        <span className="text-[11px] font-semibold text-[#ff6b6b]">
+                                            Maximum 3 Devices Active
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={handleDismissDeviceLimitModal}
+                                    disabled={isRevokingAndLoggingIn}
+                                    className="p-1.5 rounded-xl text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors cursor-pointer"
+                                    aria-label="Close modal"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#7ecfc4] flex flex-col gap-2 leading-relaxed">
+                                <p>
+                                    Your account is already signed in on <strong>3 active devices or browsers</strong>.
+                                </p>
+                                <p className="text-[11px] text-[#3a6b66]">
+                                    To log in here, you can log out manually from one of your other devices, or force-logout all other sessions now to gain instant access.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleDismissDeviceLimitModal}
+                                    disabled={isRevokingAndLoggingIn}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[#1a4a4a] text-xs font-semibold text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors cursor-pointer"
+                                >
+                                    Cancel (Log out manually)
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleRevokeOthersAndLogin}
+                                    disabled={isRevokingAndLoggingIn}
+                                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-linear-to-r from-[#ff6b6b] to-[#f59e0b] text-[#0a0f0f] font-bold text-xs flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-md shadow-[#ff6b6b]/20 cursor-pointer disabled:opacity-50"
+                                >
+                                    {isRevokingAndLoggingIn ? (
+                                        <>
+                                            <Loader2 size={13} className="animate-spin" />
+                                            <span>Logging out others...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <LogOut size={13} />
+                                            <span>Log Out All Other Sessions & Login</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
