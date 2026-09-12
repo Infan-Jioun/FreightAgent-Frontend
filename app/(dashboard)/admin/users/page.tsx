@@ -187,7 +187,7 @@ export default function AdminUsersPage() {
                     <button
                         type="button"
                         onClick={() => setIsAddUserOpen(true)}
-                        className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 transition-opacity flex items-center gap-2 cursor-pointer"
+                        className="px-4 py-2.5 rounded-2xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 transition-opacity flex items-center gap-2 cursor-pointer"
                     >
                         <UserPlus size={15} />
                         <span>Add User / Agent</span>

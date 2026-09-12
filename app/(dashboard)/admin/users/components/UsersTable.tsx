@@ -136,7 +136,7 @@ export default function UsersTable({
                                         {/* User Name & Email */}
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#00c9a7]/20 to-[#00b4d8]/20 border border-[#00c9a7]/40 flex items-center justify-center font-bold text-[11px] text-[#00e5c0] flex-shrink-0">
+                                                <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-[#00c9a7]/20 to-[#00b4d8]/20 border border-[#00c9a7]/40 flex items-center justify-center font-bold text-[11px] text-[#00e5c0] shrink-0">
                                                     {initials}
                                                 </div>
                                                 <div className="min-w-0">
