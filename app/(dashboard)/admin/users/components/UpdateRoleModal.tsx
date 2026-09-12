@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, X, Check, Loader2 } from "lucide-react";
+import { Shield, X, Check, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { IAdminUser, UserRole } from "@/app/types/admin.types";
 
 interface UpdateRoleModalProps {
     isOpen: boolean;
     user: IAdminUser | null;
     updating?: boolean;
+    currentAdminId?: string;
     onClose: () => void;
     onSaveRole: (role: UserRole) => void;
 }
@@ -21,7 +23,7 @@ const ROLE_OPTIONS = [
     },
     {
         role: "AGENT",
-        title: "Freigeht Agent",
+        title: "Freight Agent",
         desc: "Certified carrier capable of transporting cargo",
     },
     {
@@ -35,6 +37,7 @@ export default function UpdateRoleModal({
     isOpen,
     user,
     updating = false,
+    currentAdminId,
     onClose,
     onSaveRole,
 }: UpdateRoleModalProps) {
@@ -42,13 +45,28 @@ export default function UpdateRoleModal({
 
     useEffect(() => {
         if (user) {
+            // Default selection to another role if possible
             setSelectedRole(user.role);
         }
     }, [user]);
 
     if (!isOpen || !user) return null;
 
+    const isSelf = currentAdminId ? user.id.trim() === currentAdminId.trim() : false;
+    const isSameRole = selectedRole === user.role;
+
     const handleConfirm = () => {
+        if (isSelf) {
+            toast.error("You cannot modify your own administrative role.");
+            onClose();
+            return;
+        }
+
+        if (isSameRole) {
+            toast.info("Please select a different role to update.");
+            return;
+        }
+
         onSaveRole(selectedRole);
     };
 
@@ -62,6 +80,7 @@ export default function UpdateRoleModal({
                     className="w-full max-w-md rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] p-6 shadow-2xl shadow-black relative"
                 >
                     <button
+                        type="button"
                         onClick={onClose}
                         className="absolute top-5 right-5 text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer"
                         title="Close modal"
@@ -79,37 +98,68 @@ export default function UpdateRoleModal({
                         </div>
                     </div>
 
-                    <p className="text-xs text-[#7ecfc4]/80 mb-4">
-                        Select the target role for <strong>{user.name}</strong>. Updating the role will adjust the user&apos;s portal access and route permissions immediately.
-                    </p>
+                    {isSelf ? (
+                        <div className="p-3.5 rounded-2xl bg-[#e11d48]/10 border border-[#e11d48]/30 flex items-start gap-2.5 text-xs text-[#f43f5e] mb-6">
+                            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                            <span>
+                                You cannot change the role of your own Administrator account. Self-demotion is restricted for security.
+                            </span>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-[#7ecfc4]/80 mb-4">
+                            Select the target role for <strong className="text-[#e0faf5]">{user.name}</strong>. Updating the role will adjust the user&apos;s portal access and route permissions immediately.
+                        </p>
+                    )}
 
                     {/* Role Radio Group */}
                     <div className="space-y-2 mb-6">
-                        {ROLE_OPTIONS.map((item) => (
-                            <div
-                                key={item.role}
-                                onClick={() => setSelectedRole(item.role)}
-                                className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex items-start gap-3 ${selectedRole === item.role
-                                    ? "bg-[#00c9a7]/10 border-[#00c9a7] text-[#e0faf5]"
-                                    : "bg-[#0a1a1a] border-[#1a4a4a] text-[#7ecfc4] hover:border-[#3a6b66]"
-                                    }`}
-                            >
+                        {ROLE_OPTIONS.map((item) => {
+                            const isCurrent = item.role === user.role;
+                            const isSelected = selectedRole === item.role;
+
+                            return (
                                 <div
-                                    className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center ${selectedRole === item.role
-                                        ? "border-[#00c9a7] bg-[#00c9a7]"
-                                        : "border-[#3a6b66]"
-                                        }`}
+                                    key={item.role}
+                                    onClick={() => {
+                                        if (!isSelf && !isCurrent) {
+                                            setSelectedRole(item.role);
+                                        }
+                                    }}
+                                    className={`p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3 ${
+                                        isCurrent
+                                            ? "bg-[#0a1a1a]/60 border-[#1a4a4a] opacity-60 cursor-not-allowed text-[#7ecfc4]"
+                                            : isSelected
+                                            ? "bg-[#00c9a7]/10 border-[#00c9a7] text-[#e0faf5] cursor-pointer"
+                                            : "bg-[#0a1a1a] border-[#1a4a4a] text-[#7ecfc4] hover:border-[#3a6b66] cursor-pointer"
+                                    }`}
                                 >
-                                    {selectedRole === item.role && (
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#0a0f0f]" />
-                                    )}
+                                    <div className="flex items-start gap-3">
+                                        <div
+                                            className={`w-4 h-4 rounded-full mt-0.5 border flex items-center justify-center ${
+                                                isSelected
+                                                    ? "border-[#00c9a7] bg-[#00c9a7]"
+                                                    : "border-[#3a6b66]"
+                                            }`}
+                                        >
+                                            {isSelected && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#0a0f0f]" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold block">{item.title}</span>
+                                                {isCurrent && (
+                                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-sm bg-[#3a6b66]/30 text-[#7ecfc4] border border-[#3a6b66]/40">
+                                                        Current Role
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="text-[11px] text-[#7ecfc4]/70 block">{item.desc}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span className="text-xs font-bold block">{item.title}</span>
-                                    <span className="text-[11px] text-[#7ecfc4]/70 block">{item.desc}</span>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     <div className="flex items-center justify-end gap-2.5">
@@ -123,8 +173,8 @@ export default function UpdateRoleModal({
                         <button
                             type="button"
                             onClick={handleConfirm}
-                            disabled={updating}
-                            className="px-4 py-2 rounded-xl bg-[#00c9a7] text-[#0a0f0f] text-xs font-bold hover:bg-[#00e5c0] transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                            disabled={updating || isSelf || isSameRole}
+                            className="px-4 py-2 rounded-xl bg-[#00c9a7] text-[#0a0f0f] text-xs font-bold hover:bg-[#00e5c0] transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {updating ? (
                                 <>

@@ -40,6 +40,7 @@ export const API = {
         GET_ALL_USERS: "/admin/users",
         GET_USER_BY_ID: (id: string) => `/admin/users/${id}`,
         UPDATE_ROLE: (id: string) => `/admin/users/${id}/role`,
+        UPDATE_STATUS: (id: string) => `/admin/users/${id}/status`,
         DELETE_USER: (id: string) => `/admin/users/${id}`,
     },
 } as const;

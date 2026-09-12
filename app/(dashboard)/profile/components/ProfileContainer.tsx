@@ -28,6 +28,10 @@ export default function ProfileContainer({
         isSaving,
         isUploadingAvatar,
         isLocating,
+        isProfileRateLimited,
+        profileRateLimitMsg,
+        isPhoneRateLimited,
+        phoneRateLimitMsg,
         fileInputRef,
         handleDetectLocation,
         handleSaveProfile,
@@ -89,6 +93,8 @@ export default function ProfileContainer({
                         setAddress={setAddress}
                         isSaving={isSaving}
                         isLocating={isLocating}
+                        isProfileRateLimited={isProfileRateLimited}
+                        profileRateLimitMsg={profileRateLimitMsg}
                         onSave={handleSaveProfile}
                         onDetectLocation={handleDetectLocation}
                         onOpenPhoneModal={openPhoneModal}
@@ -125,6 +131,8 @@ export default function ProfileContainer({
                 countdown={countdown}
                 isSendingOtp={isSendingOtp}
                 isVerifyingOtp={isVerifyingOtp}
+                isPhoneRateLimited={isPhoneRateLimited}
+                phoneRateLimitMsg={phoneRateLimitMsg}
                 userEmail={profile?.email}
                 onClose={closePhoneModal}
                 onSendOtp={handleSendPhoneOtp}

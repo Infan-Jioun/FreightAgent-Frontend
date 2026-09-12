@@ -15,10 +15,12 @@ import {
     Mail,
     X,
     CheckCircle2,
+    AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
+import { AppError } from "@/app/errorHelper/appError";
 import { Button } from "@/components/ui/button";
 
 export default function SettingsPage() {
@@ -48,6 +50,10 @@ export default function SettingsPage() {
     const [isSendingOtp, setIsSendingOtp] = useState(false);
     const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
     const [countdown, setCountdown] = useState(0);
+
+    // Rate Limiting (Daily 3/3 Limits)
+    const [isPasswordRateLimited, setIsPasswordRateLimited] = useState(false);
+    const [passwordRateLimitMsg, setPasswordRateLimitMsg] = useState("");
 
     // 2FA state
     const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
@@ -105,13 +111,26 @@ export default function SettingsPage() {
         try {
             setIsSendingOtp(true);
             const res = await authService.sendChangePasswordOtp({ currentPassword });
+            setIsPasswordRateLimited(false);
+            setPasswordRateLimitMsg("");
             toast.success(res.message || "Verification code sent to your email");
             setCountdown(60);
             setOtpCode("");
             setIsOtpModalOpen(true);
         } catch (err: unknown) {
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
             const message = err instanceof Error ? err.message : "Failed to send verification code";
-            toast.error(message);
+
+            if (isRateLimited) {
+                setIsPasswordRateLimited(true);
+                setPasswordRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsSendingOtp(false);
         }
@@ -123,11 +142,24 @@ export default function SettingsPage() {
         try {
             setIsSendingOtp(true);
             const res = await authService.sendChangePasswordOtp({ currentPassword });
+            setIsPasswordRateLimited(false);
+            setPasswordRateLimitMsg("");
             toast.success(res.message || "A new verification code has been sent to your email");
             setCountdown(60);
         } catch (err: unknown) {
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
             const message = err instanceof Error ? err.message : "Failed to resend verification code";
-            toast.error(message);
+
+            if (isRateLimited) {
+                setIsPasswordRateLimited(true);
+                setPasswordRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsSendingOtp(false);
         }
@@ -150,6 +182,8 @@ export default function SettingsPage() {
                 otp: otpCode.trim(),
             });
 
+            setIsPasswordRateLimited(false);
+            setPasswordRateLimitMsg("");
             toast.success(res.message || "Password changed successfully");
             setIsOtpModalOpen(false);
             setCurrentPassword("");
@@ -157,8 +191,19 @@ export default function SettingsPage() {
             setConfirmPassword("");
             setOtpCode("");
         } catch (err: unknown) {
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
             const message = err instanceof Error ? err.message : "Failed to change password";
-            toast.error(message);
+
+            if (isRateLimited) {
+                setIsPasswordRateLimited(true);
+                setPasswordRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsVerifyingOtp(false);
         }
@@ -429,12 +474,35 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
-                        <div className="pt-2 flex justify-end">
+                        {/* Rate Limit Warning Banner */}
+                        {isPasswordRateLimited && (
+                            <div className="p-3.5 rounded-2xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 flex items-start gap-3 text-xs text-[#ff6b6b]">
+                                <AlertCircle size={16} className="shrink-0 mt-0.5 text-[#ff6b6b]" />
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold">Daily Password Change Limit Reached (3/3)</span>
+                                    <span className="text-[11px] text-[#ff6b6b]/90 leading-relaxed">
+                                        {passwordRateLimitMsg ||
+                                            "You have reached the maximum daily limit (3/3) for password changes. Please try again tomorrow."}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="pt-2 flex items-center justify-between">
+                            {isPasswordRateLimited ? (
+                                <span className="text-[11px] text-[#ff6b6b] font-semibold">
+                                    Daily limit reached (3 of 3)
+                                </span>
+                            ) : (
+                                <span />
+                            )}
+
                             <Button
                                 type="submit"
                                 variant="gradient"
                                 shape="box"
                                 size="default"
+                                disabled={isSendingOtp || isPasswordRateLimited}
                                 isLoading={isSendingOtp}
                                 loadingText="Sending OTP..."
                                 leftIcon={<Lock size={14} />}
@@ -549,6 +617,20 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
+                            {/* Rate Limit Warning Banner in Modal */}
+                            {isPasswordRateLimited && (
+                                <div className="p-3 rounded-2xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 flex items-start gap-2.5 text-xs text-[#ff6b6b]">
+                                    <AlertCircle size={16} className="shrink-0 mt-0.5 text-[#ff6b6b]" />
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold">Limit Reached</span>
+                                        <span className="text-[11px] text-[#ff6b6b]/90 leading-relaxed">
+                                            {passwordRateLimitMsg ||
+                                                "Daily password change quota reached. Please try again tomorrow."}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Form */}
                             <form onSubmit={handleConfirmPasswordChange} className="flex flex-col gap-4">
                                 <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/60 text-[11px] text-[#7ecfc4]/90 flex items-start gap-2">
@@ -616,7 +698,7 @@ export default function SettingsPage() {
                                         isLoading={isVerifyingOtp}
                                         loadingText="Verifying..."
                                         rightIcon={<CheckCircle2 size={14} />}
-                                        disabled={otpCode.length !== 6}
+                                        disabled={otpCode.length !== 6 || isVerifyingOtp || isPasswordRateLimited}
                                     >
                                         Confirm & Change
                                     </Button>

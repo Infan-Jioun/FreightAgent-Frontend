@@ -12,7 +12,7 @@ import {
 } from "../types/auth.types";
 import api from "../lib/api";
 import { clearClientCookies } from "../lib/cookie";
-import { getErrorMessage } from "../errorHelper/appError";
+import { AppError, getErrorMessage } from "../errorHelper/appError";
 
 export interface RateLimitInfo {
     limit: number;
@@ -162,7 +162,7 @@ export const authService = {
             );
             return { message: res.data?.message || "Verification code sent to your email" };
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to send change password verification code"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -180,7 +180,7 @@ export const authService = {
             );
             return { message: res.data?.message || "Password changed successfully" };
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to change password"));
+            throw AppError.fromAxios(err);
         }
     },
 };

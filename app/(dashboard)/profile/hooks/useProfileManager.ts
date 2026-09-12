@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/app/store/authStore";
 import { userService } from "@/app/services/user.service";
+import { AppError } from "@/app/errorHelper/appError";
 import {
     IUserProfile,
     ISessionItem,
@@ -24,6 +25,12 @@ export interface UseProfileManagerReturn {
     isSaving: boolean;
     isUploadingAvatar: boolean;
     fileInputRef: React.RefObject<HTMLInputElement | null>;
+
+    // Rate Limiting (Daily 3/3 Limits)
+    isProfileRateLimited: boolean;
+    profileRateLimitMsg: string;
+    isPhoneRateLimited: boolean;
+    phoneRateLimitMsg: string;
 
     // Location Auto-detect
     isLocating: boolean;
@@ -79,10 +86,12 @@ export function useProfileManager(
     const [address, setAddress] = useState(initialProfile?.address || "");
     const [phone, setPhone] = useState(initialProfile?.phone || "");
 
-    // ─── Loading States ────────────────────────────────────────────────────
+    // ─── Loading & Rate Limiting States ────────────────────────────────────
     const [isSaving, setIsSaving] = useState(false);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
+    const [isProfileRateLimited, setIsProfileRateLimited] = useState(false);
+    const [profileRateLimitMsg, setProfileRateLimitMsg] = useState("");
 
     // ─── Phone Verification Modal State ────────────────────────────────────
     const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
@@ -94,6 +103,8 @@ export function useProfileManager(
     const [isSendingOtp, setIsSendingOtp] = useState(false);
     const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
     const [countdown, setCountdown] = useState(0);
+    const [isPhoneRateLimited, setIsPhoneRateLimited] = useState(false);
+    const [phoneRateLimitMsg, setPhoneRateLimitMsg] = useState("");
 
     // ─── Sessions State ────────────────────────────────────────────────────
     const [sessions, setSessions] = useState<ISessionItem[]>(
@@ -196,6 +207,8 @@ export function useProfileManager(
             });
 
             setProfile((prev) => (prev ? { ...prev, ...updated } : updated));
+            setIsProfileRateLimited(false);
+            setProfileRateLimitMsg("");
 
             if (authUser) {
                 setUser({
@@ -206,8 +219,22 @@ export function useProfileManager(
 
             toast.success("Profile details updated successfully");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to update profile";
-            toast.error(message);
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "Failed to update profile";
+
+            if (isRateLimited) {
+                setIsProfileRateLimited(true);
+                setProfileRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsSaving(false);
         }
@@ -235,6 +262,7 @@ export function useProfileManager(
             const res = await userService.uploadAvatar(file);
 
             setProfile((prev) => (prev ? { ...prev, image: res.image } : prev));
+            setIsProfileRateLimited(false);
 
             if (authUser) {
                 setUser({
@@ -246,8 +274,20 @@ export function useProfileManager(
             toast.dismiss(toastId);
             toast.success("Avatar updated successfully");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to upload avatar";
-            toast.error(message);
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
+            const message =
+                err instanceof Error ? err.message : "Failed to upload avatar";
+
+            if (isRateLimited) {
+                setIsProfileRateLimited(true);
+                setProfileRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsUploadingAvatar(false);
             if (fileInputRef.current) {
@@ -264,6 +304,8 @@ export function useProfileManager(
         setModalPhone(phone || `${parsed.country.dialCode}`);
         setOtpCode("");
         setPhoneStep("input");
+        setIsPhoneRateLimited(false);
+        setPhoneRateLimitMsg("");
         setIsPhoneModalOpen(true);
     };
 
@@ -323,6 +365,9 @@ export function useProfileManager(
                 phone: formatted,
             });
 
+            setIsPhoneRateLimited(false);
+            setPhoneRateLimitMsg("");
+
             toast.success(res.message || "Verification OTP dispatched!", {
                 description: `A 6-digit code was sent to ${profile?.email}. Enter it below.`,
             });
@@ -330,8 +375,20 @@ export function useProfileManager(
             setPhoneStep("otp");
             setCountdown(60);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to send verification code";
-            toast.error(message);
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
+            const message =
+                err instanceof Error ? err.message : "Failed to send verification code";
+
+            if (isRateLimited) {
+                setIsPhoneRateLimited(true);
+                setPhoneRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsSendingOtp(false);
         }
@@ -353,6 +410,9 @@ export function useProfileManager(
                 code: trimmedCode,
             });
 
+            setIsPhoneRateLimited(false);
+            setPhoneRateLimitMsg("");
+
             setPhone(updated.phone || modalPhone.trim());
             setProfile((prev) => (prev ? { ...prev, phone: updated.phone } : prev));
             setIsPhoneModalOpen(false);
@@ -361,8 +421,20 @@ export function useProfileManager(
 
             toast.success("Phone number verified and saved successfully!");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Invalid or expired verification code";
-            toast.error(message);
+            const isRateLimited =
+                (err instanceof AppError && err.isRateLimited) ||
+                (err instanceof Error && /daily.*limit|too many requests|rate limit/i.test(err.message));
+
+            const message =
+                err instanceof Error ? err.message : "Invalid or expired verification code";
+
+            if (isRateLimited) {
+                setIsPhoneRateLimited(true);
+                setPhoneRateLimitMsg(message);
+                toast.error(message, { duration: 6000 });
+            } else {
+                toast.error(message);
+            }
         } finally {
             setIsVerifyingOtp(false);
         }
@@ -444,6 +516,11 @@ export function useProfileManager(
         isSaving,
         isUploadingAvatar,
         fileInputRef,
+
+        isProfileRateLimited,
+        profileRateLimitMsg,
+        isPhoneRateLimited,
+        phoneRateLimitMsg,
 
         isLocating,
         handleDetectLocation,

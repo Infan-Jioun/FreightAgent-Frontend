@@ -34,11 +34,30 @@ export interface IAdminUser {
     role: UserRole;
     status?: UserStatus;
     image?: string | null;
+    isBlocked?: boolean;
+    blockedReason?: string | null;
+    blockedAt?: string | null;
     emailVerified?: boolean;
+    lastLoginAt?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    shipmentsCount?: number;
     createdAt?: string;
     updatedAt?: string;
-    phone?: string;
-    shipmentsCount?: number;
+}
+
+// ── Admin User Detailed Shipments ──────────────────────────────────
+export interface IAdminUserShipment {
+    id: string;
+    trackingId: string;
+    origin: string;
+    destination: string;
+    status: string;
+    createdAt: string;
+}
+
+export interface IAdminUserDetail extends IAdminUser {
+    shipments?: IAdminUserShipment[];
 }
 
 // ── Request Payloads ────────────────────────────────────────────────
@@ -51,22 +70,41 @@ export interface ICreateUserPayload {
 }
 
 export interface IUpdateUserRolePayload {
-    id: string;
+    id?: string;
     role: UserRole;
+}
+
+export interface IRoleUpdatePayload {
+    role: UserRole;
+}
+
+export interface IUserStatusUpdatePayload {
+    isBlocked: boolean;
+    status?: "ACTIVE" | "SUSPENDED" | string;
+    reason?: string;
+    blockedReason?: string;
 }
 
 export interface IAdminUserQueryParams {
     page?: number;
     limit?: number;
     searchTerm?: string;
+    search?: string;
     role?: UserRole | "ALL";
     verified?: "ALL" | "VERIFIED" | "UNVERIFIED";
-    status?: UserStatus;
+    status?: "ALL" | "ACTIVE" | "SUSPENDED" | string;
     sortBy?: string;
     sortOrder?: "asc" | "desc";
 }
 
 // ── Pre-composed Generic Response Aliases ───────────────────────────
+export interface IAdminUsersResult {
+    users: IAdminUser[];
+    meta?: IPaginationMeta;
+}
+
 export type IAdminUsersResponse = IApiResponse<IAdminUser[]>;
 export type IAdminUserResponse = IApiResponse<IAdminUser>;
+export type IAdminUserDetailResponse = IApiResponse<IAdminUserDetail>;
 export type IAdminDeleteResponse = IApiResponse<null>;
+

@@ -7,11 +7,13 @@ import {
     Eye,
     Shield,
     Trash2,
+    UserX,
+    UserCheck,
     ChevronLeft,
     ChevronRight,
     Edit3,
 } from "lucide-react";
-import { IAdminUser, UserRole } from "@/app/types/admin.types";
+import { IAdminUser } from "@/app/types/admin.types";
 
 interface UsersTableProps {
     users: IAdminUser[];
@@ -24,6 +26,7 @@ interface UsersTableProps {
     onPageChange: (page: number) => void;
     onViewDetails: (user: IAdminUser) => void;
     onChangeRole: (user: IAdminUser) => void;
+    onToggleStatus: (user: IAdminUser) => void;
     onDelete: (user: IAdminUser) => void;
 }
 
@@ -38,33 +41,40 @@ export default function UsersTable({
     onPageChange,
     onViewDetails,
     onChangeRole,
+    onToggleStatus,
     onDelete,
 }: UsersTableProps) {
     const getRoleBadge = (role: IAdminUser["role"]) => {
         switch (role) {
             case "ADMIN":
-                return "bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/30";
+                return "bg-[#a855f7]/15 text-[#c084fc] border-[#a855f7]/30";
             case "AGENT":
-                return "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30";
+                return "bg-[#0284c7]/15 text-[#38bdf8] border-[#0284c7]/30";
             default:
                 return "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30";
         }
     };
 
-    const getStatusBadge = (user: IAdminUser) => {
-        if (user.status === "SUSPENDED") {
-            return "bg-[#ff6b6b]/15 text-[#ff6b6b] border-[#ff6b6b]/40";
-        }
-        if (!user.emailVerified) {
-            return "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/40";
-        }
-        return "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/40";
+    const isUserBlocked = (user: IAdminUser): boolean => {
+        return Boolean(user.isBlocked || user.status === "SUSPENDED");
     };
 
-    const getStatusLabel = (user: IAdminUser) => {
-        if (user.status === "SUSPENDED") return "Suspended";
-        if (!user.emailVerified) return "Pending Verification";
-        return "Active";
+    const formatDateTime = (dateStr?: string | null): string => {
+        if (!dateStr) return "Never";
+        try {
+            const date = new Date(dateStr);
+            return isNaN(date.getTime())
+                ? "Never"
+                : date.toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                  });
+        } catch {
+            return "Never";
+        }
     };
 
     return (
@@ -75,8 +85,9 @@ export default function UsersTable({
                         <tr className="border-b border-[#1a4a4a] bg-[#0a1a1a]/50 text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider">
                             <th className="py-3.5 px-4">User</th>
                             <th className="py-3.5 px-4">Role</th>
-                            <th className="py-3.5 px-4">Verification</th>
-                            <th className="py-3.5 px-4">Joined Date</th>
+                            <th className="py-3.5 px-4">Status</th>
+                            <th className="py-3.5 px-4">Email Verified</th>
+                            <th className="py-3.5 px-4">Last Login</th>
                             <th className="py-3.5 px-4 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -97,23 +108,26 @@ export default function UsersTable({
                                         <div className="w-16 h-5 rounded-full bg-[#1a4a4a]/30" />
                                     </td>
                                     <td className="py-3.5 px-4">
+                                        <div className="w-16 h-5 rounded-full bg-[#1a4a4a]/30" />
+                                    </td>
+                                    <td className="py-3.5 px-4">
                                         <div className="w-20 h-5 rounded-full bg-[#1a4a4a]/30" />
                                     </td>
                                     <td className="py-3.5 px-4">
                                         <div className="w-24 h-3.5 rounded-sm bg-[#1a4a4a]/30" />
                                     </td>
                                     <td className="py-3.5 px-4 text-right">
-                                        <div className="w-24 h-7 rounded-lg bg-[#1a4a4a]/30 ml-auto" />
+                                        <div className="w-28 h-7 rounded-lg bg-[#1a4a4a]/30 ml-auto" />
                                     </td>
                                 </tr>
                             ))
                         ) : users.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="py-12 text-center">
+                                <td colSpan={6} className="py-12 text-center">
                                     <Users size={36} className="mx-auto text-[#3a6b66] mb-2" />
                                     <p className="text-xs font-bold text-[#e0faf5]">No users found</p>
                                     <p className="text-[11px] text-[#7ecfc4]/70 mt-0.5">
-                                        Try adjusting your search query or role filter.
+                                        Try adjusting your search query, role, or status filter.
                                     </p>
                                 </td>
                             </tr>
@@ -126,7 +140,8 @@ export default function UsersTable({
                                     .toUpperCase()
                                     .slice(0, 2);
 
-                                const isSelf = currentAdminId ? u.id === currentAdminId : false;
+                                const isSelf = currentAdminId ? u.id.trim() === currentAdminId.trim() : false;
+                                const blocked = isUserBlocked(u);
 
                                 return (
                                     <tr
@@ -145,7 +160,7 @@ export default function UsersTable({
                                                             {u.name}
                                                         </span>
                                                         {isSelf && (
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-sm bg-[#00c9a7]/20 text-[#00e5c0]">
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-sm bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30">
                                                                 You
                                                             </span>
                                                         )}
@@ -161,36 +176,61 @@ export default function UsersTable({
                                         <td className="py-3 px-4">
                                             <button
                                                 type="button"
-                                                onClick={() => onChangeRole(u)}
+                                                onClick={() => !isSelf && onChangeRole(u)}
+                                                disabled={isSelf}
                                                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getRoleBadge(
                                                     u.role
-                                                )} hover:opacity-80 transition-opacity flex items-center gap-1 cursor-pointer`}
-                                                title="Click to change role"
+                                                )} ${
+                                                    isSelf
+                                                        ? "cursor-default opacity-80"
+                                                        : "hover:opacity-80 transition-opacity cursor-pointer"
+                                                } flex items-center gap-1`}
+                                                title={isSelf ? "Cannot change your own role" : "Click to change role"}
                                             >
                                                 <span>{u.role}</span>
-                                                <Edit3 size={10} />
+                                                {!isSelf && <Edit3 size={10} />}
                                             </button>
                                         </td>
 
-                                        {/* Status / Verification */}
+                                        {/* Status Badge */}
+                                        <td className="py-3 px-4">
+                                            {blocked ? (
+                                                <span
+                                                    className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/30 inline-flex items-center gap-1 cursor-help"
+                                                    title={u.blockedReason ? `Suspended: ${u.blockedReason}` : "Account Suspended"}
+                                                >
+                                                    <UserX size={10} />
+                                                    <span>SUSPENDED</span>
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30 inline-flex items-center gap-1">
+                                                    <CheckCircle2 size={10} />
+                                                    <span>ACTIVE</span>
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {/* Email Verified */}
                                         <td className="py-3 px-4">
                                             <span
-                                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(
-                                                    u
-                                                )} inline-flex items-center gap-1`}
+                                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                                    u.emailVerified
+                                                        ? "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/40"
+                                                        : "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/40"
+                                                } inline-flex items-center gap-1`}
                                             >
                                                 {u.emailVerified ? (
                                                     <CheckCircle2 size={11} />
                                                 ) : (
                                                     <AlertCircle size={11} />
                                                 )}
-                                                <span>{getStatusLabel(u)}</span>
+                                                <span>{u.emailVerified ? "Verified" : "Unverified"}</span>
                                             </span>
                                         </td>
 
-                                        {/* Joined Date */}
+                                        {/* Last Login Date / Time */}
                                         <td className="py-3 px-4 text-[#7ecfc4]">
-                                            {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                                            {formatDateTime(u.lastLoginAt || u.createdAt)}
                                         </td>
 
                                         {/* Action Buttons */}
@@ -201,7 +241,7 @@ export default function UsersTable({
                                                     type="button"
                                                     onClick={() => onViewDetails(u)}
                                                     className="p-1.5 rounded-lg bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/40 transition-colors cursor-pointer"
-                                                    title="View user details"
+                                                    title="View full profile & shipments"
                                                 >
                                                     <Eye size={13} />
                                                 </button>
@@ -210,10 +250,38 @@ export default function UsersTable({
                                                 <button
                                                     type="button"
                                                     onClick={() => onChangeRole(u)}
-                                                    className="p-1.5 rounded-lg bg-[#0a1a1a] border border-[#1a4a4a] text-[#f59e0b] hover:border-[#f59e0b]/40 hover:bg-[#f59e0b]/10 transition-colors cursor-pointer"
-                                                    title="Change role"
+                                                    disabled={isSelf}
+                                                    className={`p-1.5 rounded-lg border transition-colors ${
+                                                        isSelf
+                                                            ? "opacity-30 cursor-not-allowed text-[#7ecfc4] border-[#1a4a4a] bg-[#0a1a1a]"
+                                                            : "bg-[#0a1a1a] border-[#1a4a4a] text-[#f59e0b] hover:border-[#f59e0b]/40 hover:bg-[#f59e0b]/10 cursor-pointer"
+                                                    }`}
+                                                    title={isSelf ? "Cannot change own role" : "Change user role"}
                                                 >
                                                     <Shield size={13} />
+                                                </button>
+
+                                                {/* Suspend / Reactivate Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onToggleStatus(u)}
+                                                    disabled={isSelf}
+                                                    className={`p-1.5 rounded-lg border transition-colors ${
+                                                        isSelf
+                                                            ? "opacity-30 cursor-not-allowed text-[#7ecfc4] border-[#1a4a4a] bg-[#0a1a1a]"
+                                                            : blocked
+                                                            ? "bg-[#0a1a1a] border-[#00c9a7]/30 text-[#00e5c0] hover:bg-[#00c9a7]/10 cursor-pointer"
+                                                            : "bg-[#0a1a1a] border-[#e11d48]/30 text-[#f43f5e] hover:bg-[#e11d48]/10 cursor-pointer"
+                                                    }`}
+                                                    title={
+                                                        isSelf
+                                                            ? "Cannot suspend own account"
+                                                            : blocked
+                                                            ? "Reactivate user account"
+                                                            : "Suspend / block user"
+                                                    }
+                                                >
+                                                    {blocked ? <UserCheck size={13} /> : <UserX size={13} />}
                                                 </button>
 
                                                 {/* Delete Button */}
@@ -223,10 +291,10 @@ export default function UsersTable({
                                                     disabled={isSelf}
                                                     className={`p-1.5 rounded-lg border transition-colors ${
                                                         isSelf
-                                                            ? "opacity-30 cursor-not-allowed text-[#7ecfc4] border-[#1a4a4a]"
-                                                            : "text-[#ff6b6b] border-[#ff6b6b]/30 hover:bg-[#ff6b6b]/10 cursor-pointer"
+                                                            ? "opacity-30 cursor-not-allowed text-[#7ecfc4] border-[#1a4a4a] bg-[#0a1a1a]"
+                                                            : "bg-[#0a1a1a] text-[#ff6b6b] border-[#ff6b6b]/30 hover:bg-[#ff6b6b]/10 cursor-pointer"
                                                     }`}
-                                                    title={isSelf ? "Cannot delete own account" : "Delete user"}
+                                                    title={isSelf ? "Cannot delete own account" : "Delete user permanently"}
                                                 >
                                                     <Trash2 size={13} />
                                                 </button>
@@ -242,7 +310,7 @@ export default function UsersTable({
 
             {/* Pagination Controls */}
             {!loading && totalCount > 0 && (
-                <div className="p-3.5 border-t border-[#1a4a4a] bg-[#0a1a1a]/30 flex items-center justify-between text-xs text-[#7ecfc4]">
+                <div className="p-3.5 border-t border-[#1a4a4a] bg-[#0a1a1a]/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#7ecfc4]">
                     <span>
                         Showing {(currentPage - 1) * pageSize + 1} to{" "}
                         {Math.min(currentPage * pageSize, totalCount)} of {totalCount} users
@@ -254,6 +322,7 @@ export default function UsersTable({
                             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                             disabled={currentPage === 1}
                             className="p-1.5 rounded-lg border border-[#1a4a4a] hover:bg-[#112a2a] disabled:opacity-40 disabled:pointer-events-none text-[#e0faf5] transition-colors cursor-pointer"
+                            title="Previous page"
                         >
                             <ChevronLeft size={14} />
                         </button>
@@ -265,6 +334,7 @@ export default function UsersTable({
                             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                             disabled={currentPage === totalPages}
                             className="p-1.5 rounded-lg border border-[#1a4a4a] hover:bg-[#112a2a] disabled:opacity-40 disabled:pointer-events-none text-[#e0faf5] transition-colors cursor-pointer"
+                            title="Next page"
                         >
                             <ChevronRight size={14} />
                         </button>

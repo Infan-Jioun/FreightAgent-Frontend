@@ -29,10 +29,10 @@ export default function UsersStatsCards({ users }: UsersStatsCardsProps) {
                 </span>
             </div>
 
-            {/* Freigeht Agents */}
+            {/* Freight Agents */}
             <div className="p-4 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-sm">
                 <div className="flex items-center justify-between text-[#7ecfc4] mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider">Freigeht Agents</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Freight Agents</span>
                     <Truck size={16} className="text-[#f59e0b]" />
                 </div>
                 <p className="text-xl sm:text-2xl font-black text-[#e0faf5]">{agentCount}</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { User, CheckCircle2, MapPin, Save, LocateFixed } from "lucide-react";
+import { User, CheckCircle2, MapPin, Save, LocateFixed, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { parsePhoneCountry } from "@/app/constants/countries";
 
@@ -13,6 +13,8 @@ interface ProfileDetailsFormProps {
     setAddress: (val: string) => void;
     isSaving: boolean;
     isLocating: boolean;
+    isProfileRateLimited?: boolean;
+    profileRateLimitMsg?: string;
     onSave: (e: React.FormEvent) => Promise<void>;
     onDetectLocation: () => Promise<void>;
     onOpenPhoneModal: () => void;
@@ -27,6 +29,8 @@ export default function ProfileDetailsForm({
     setAddress,
     isSaving,
     isLocating,
+    isProfileRateLimited = false,
+    profileRateLimitMsg = "",
     onSave,
     onDetectLocation,
     onOpenPhoneModal,
@@ -188,13 +192,36 @@ export default function ProfileDetailsForm({
                 </div>
             </div>
 
+            {/* Rate Limit Warning Banner if 429 Daily Limit Reached */}
+            {isProfileRateLimited && (
+                <div className="p-3.5 rounded-2xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 flex items-start gap-3 text-xs text-[#ff6b6b]">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5 text-[#ff6b6b]" />
+                    <div className="flex flex-col gap-0.5">
+                        <span className="font-bold">Daily Profile Update Limit Reached (3/3)</span>
+                        <span className="text-[11px] text-[#ff6b6b]/90 leading-relaxed">
+                            {profileRateLimitMsg ||
+                                "You have reached the maximum daily limit (3/3) for profile updates. Please try again tomorrow."}
+                        </span>
+                    </div>
+                </div>
+            )}
+
             {/* Submit Button */}
-            <div className="pt-3 flex justify-end">
+            <div className="pt-2 flex items-center justify-between">
+                {isProfileRateLimited ? (
+                    <span className="text-[11px] text-[#ff6b6b] font-semibold">
+                        Daily update quota exhausted (3 of 3)
+                    </span>
+                ) : (
+                    <span />
+                )}
+
                 <Button
                     type="submit"
                     variant="gradient"
                     shape="box"
                     size="default"
+                    disabled={isSaving || isProfileRateLimited}
                     isLoading={isSaving}
                     loadingText="Saving Details..."
                     leftIcon={<Save size={15} />}

@@ -1,7 +1,7 @@
 import api from "../lib/api";
 import { API } from "../constants/api";
 import { IApiResponse } from "../types/auth.types";
-import { getErrorMessage } from "../errorHelper/appError";
+import { AppError } from "../errorHelper/appError";
 import {
     IUserProfile,
     IUpdateProfilePayload,
@@ -19,7 +19,7 @@ export const userService = {
             }
             return res.data.data;
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to fetch user profile"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -38,8 +38,6 @@ export const userService = {
                 }
                 formData.append("image", imageFile);
 
-                // Note: Do not set explicit "Content-Type": "multipart/form-data" header.
-                // Axios and the browser will automatically compute the correct boundary parameter.
                 const res = await api.patch<IApiResponse<IUserProfile>>(
                     API.USER.UPDATE_PROFILE,
                     formData
@@ -50,7 +48,7 @@ export const userService = {
                 return res.data.data;
             }
 
-            // Omit empty fields so backend Zod .optional() passes without length errors
+            // Omit empty fields so backend validation passes cleanly
             const cleanBody: Record<string, unknown> = {};
             if (payload.name?.trim()) {
                 cleanBody.name = payload.name.trim();
@@ -68,7 +66,7 @@ export const userService = {
             }
             return res.data.data;
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to update profile"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -77,8 +75,6 @@ export const userService = {
             const formData = new FormData();
             formData.append("image", file);
 
-            // Note: Do not set explicit "Content-Type": "multipart/form-data" header.
-            // Axios and the browser will automatically compute the correct boundary parameter.
             const res = await api.post<IApiResponse<{ image: string }>>(
                 API.USER.UPLOAD_AVATAR,
                 formData
@@ -88,7 +84,7 @@ export const userService = {
             }
             return res.data.data;
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to upload avatar"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -102,7 +98,7 @@ export const userService = {
             );
             return { message: res.data.message || "Verification code sent to your email" };
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to send phone verification code"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -122,7 +118,7 @@ export const userService = {
             }
             return res.data.data;
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to verify phone number"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -136,7 +132,7 @@ export const userService = {
                 breakdown: { total: 0, mobile: 0, tablet: 0, desktop: 0 },
             };
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to load active sessions"));
+            throw AppError.fromAxios(err);
         }
     },
 
@@ -147,7 +143,7 @@ export const userService = {
             );
             return { message: res.data.message || "Session revoked successfully" };
         } catch (err: unknown) {
-            throw new Error(getErrorMessage(err, "Failed to revoke session"));
+            throw AppError.fromAxios(err);
         }
     },
 };

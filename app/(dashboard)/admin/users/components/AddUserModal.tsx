@@ -52,6 +52,7 @@ export default function AddUserModal({
                     className="w-full max-w-md rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] p-6 shadow-2xl shadow-black relative"
                 >
                     <button
+                        type="button"
                         onClick={onClose}
                         className="absolute top-5 right-5 text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer"
                         title="Close modal"
@@ -80,7 +81,7 @@ export default function AddUserModal({
                                 value={form.name}
                                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                                 placeholder="e.g. Sarah Jenkins"
-                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-none focus:border-[#00c9a7]"
+                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
                             />
                         </div>
 
@@ -94,7 +95,20 @@ export default function AddUserModal({
                                 value={form.email}
                                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                                 placeholder="sarah@freightagent.com"
-                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-none focus:border-[#00c9a7]"
+                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-[11px] font-bold text-[#7ecfc4] block mb-1">
+                                Phone Number (optional)
+                            </label>
+                            <input
+                                type="tel"
+                                value={form.phone || ""}
+                                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                                placeholder="+1 234 567 8900"
+                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
                             />
                         </div>
 
@@ -107,7 +121,7 @@ export default function AddUserModal({
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                                 placeholder="Defaults to TempPass123!@"
-                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-none focus:border-[#00c9a7]"
+                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
                             />
                         </div>
 
@@ -116,12 +130,12 @@ export default function AddUserModal({
                             <select
                                 value={form.role}
                                 onChange={(e) =>
-                                    setForm({ ...form, role: e.target.value as any })
+                                    setForm({ ...form, role: e.target.value as UserRole })
                                 }
-                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-none focus:border-[#00c9a7] cursor-pointer"
+                                className="w-full px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden focus:border-[#00c9a7] cursor-pointer"
                             >
                                 <option value="CUSTOMER">Customer (Shipper)</option>
-                                <option value="AGENT">Freigeht Agent (Carrier)</option>
+                                <option value="AGENT">Freight Agent (Carrier)</option>
                                 <option value="ADMIN">Platform Administrator</option>
                             </select>
                         </div>
@@ -137,7 +151,7 @@ export default function AddUserModal({
                             <button
                                 type="submit"
                                 disabled={creating}
-                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold hover:opacity-95 transition-opacity flex items-center gap-1.5 disabled:opacity-50 shadow-md shadow-[#00c9a7]/20 cursor-pointer"
+                                className="px-4 py-2 rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold hover:opacity-95 transition-opacity flex items-center gap-1.5 disabled:opacity-50 shadow-md shadow-[#00c9a7]/20 cursor-pointer"
                             >
                                 {creating ? (
                                     <>

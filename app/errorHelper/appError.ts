@@ -1,24 +1,51 @@
-// app/errorHelper/appError.ts
 
 export class AppError extends Error {
     public statusCode: number;
+    public retryAfter?: number;
+    public limit?: number;
+    public used?: number;
 
-    constructor(statusCode: number, message: string) {
+    constructor(
+        statusCode: number,
+        message: string,
+        meta?: { retryAfter?: number; limit?: number; used?: number }
+    ) {
         super(message);
         this.statusCode = statusCode;
+        this.retryAfter = meta?.retryAfter;
+        this.limit = meta?.limit;
+        this.used = meta?.used;
         this.name = "AppError";
     }
 
     static fromAxios(err: unknown): AppError {
         let statusCode = 500;
+        let retryAfter: number | undefined;
+        let limit: number | undefined;
+        let used: number | undefined;
+
         if (typeof err === "object" && err !== null && "response" in err) {
-            const resStatus = (err as { response?: { status?: number } }).response?.status;
-            if (typeof resStatus === "number") {
-                statusCode = resStatus;
+            const res = (err as { response?: { status?: number; data?: unknown } }).response;
+            if (typeof res?.status === "number") {
+                statusCode = res.status;
+            }
+            if (typeof res?.data === "object" && res?.data !== null) {
+                const dataObj = res.data as Record<string, unknown>;
+                const meta = dataObj.data as Record<string, unknown> | undefined;
+                if (meta && typeof meta === "object") {
+                    if (typeof meta.retryAfter === "number") retryAfter = meta.retryAfter;
+                    if (typeof meta.limit === "number") limit = meta.limit;
+                    if (typeof meta.used === "number") used = meta.used;
+                }
             }
         }
-        const message = getErrorMessage(err, "Something went wrong");
-        return new AppError(statusCode, message);
+        const message = getErrorMessage(
+            err,
+            statusCode === 429
+                ? "Daily request limit reached. You can only perform this action 3 times per day. Please try again tomorrow."
+                : "Something went wrong"
+        );
+        return new AppError(statusCode, message, { retryAfter, limit, used });
     }
 
     get isUnauthorized() {
@@ -31,6 +58,10 @@ export class AppError extends Error {
 
     get isNotFound() {
         return this.statusCode === 404;
+    }
+
+    get isRateLimited() {
+        return this.statusCode === 429;
     }
 }
 

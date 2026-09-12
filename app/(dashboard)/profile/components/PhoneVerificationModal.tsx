@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Mail, X, ArrowRight, KeyRound, CheckCircle2, ChevronDown } from "lucide-react";
+import { Phone, Mail, X, ArrowRight, KeyRound, CheckCircle2, ChevronDown, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ICountry, COUNTRIES } from "@/app/constants/countries";
 
@@ -19,6 +19,8 @@ interface PhoneVerificationModalProps {
     countdown: number;
     isSendingOtp: boolean;
     isVerifyingOtp: boolean;
+    isPhoneRateLimited?: boolean;
+    phoneRateLimitMsg?: string;
     userEmail?: string;
     onClose: () => void;
     onSendOtp: (e?: React.FormEvent) => Promise<void>;
@@ -39,6 +41,8 @@ export default function PhoneVerificationModal({
     countdown,
     isSendingOtp,
     isVerifyingOtp,
+    isPhoneRateLimited = false,
+    phoneRateLimitMsg = "",
     userEmail,
     onClose,
     onSendOtp,
@@ -83,6 +87,20 @@ export default function PhoneVerificationModal({
                                 </p>
                             </div>
                         </div>
+
+                        {/* Rate Limit Warning Banner */}
+                        {isPhoneRateLimited && (
+                            <div className="p-3.5 rounded-2xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 flex items-start gap-2.5 text-xs text-[#ff6b6b]">
+                                <AlertCircle size={16} className="shrink-0 mt-0.5 text-[#ff6b6b]" />
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-bold">Daily Verification Limit Reached (3/3)</span>
+                                    <span className="text-[11px] text-[#ff6b6b]/90 leading-relaxed">
+                                        {phoneRateLimitMsg ||
+                                            "You have reached the maximum daily limit (3/3) for phone verifications. Please try again tomorrow."}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Step 1: Input Phone & Request OTP to Email */}
                         {phoneStep === "input" ? (
@@ -154,6 +172,7 @@ export default function PhoneVerificationModal({
                                         variant="gradient"
                                         shape="box"
                                         size="default"
+                                        disabled={isSendingOtp || isPhoneRateLimited}
                                         isLoading={isSendingOtp}
                                         loadingText="Sending Code..."
                                         rightIcon={<ArrowRight size={14} />}
@@ -212,8 +231,8 @@ export default function PhoneVerificationModal({
                                             <button
                                                 type="button"
                                                 onClick={() => onSendOtp()}
-                                                disabled={isSendingOtp}
-                                                className="text-[#00c9a7] hover:underline font-semibold cursor-pointer"
+                                                disabled={isSendingOtp || isPhoneRateLimited}
+                                                className="text-[#00c9a7] hover:underline font-semibold cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                                             >
                                                 Resend Code
                                             </button>
@@ -237,6 +256,7 @@ export default function PhoneVerificationModal({
                                         variant="teal"
                                         shape="box"
                                         size="default"
+                                        disabled={isVerifyingOtp || isPhoneRateLimited}
                                         isLoading={isVerifyingOtp}
                                         loadingText="Verifying..."
                                         leftIcon={<CheckCircle2 size={15} />}
