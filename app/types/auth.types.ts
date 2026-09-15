@@ -17,6 +17,22 @@ export interface IRegisterInput {
     name: string;
     email: string;
     password: string;
+    phone?: string;
+    assignedArea?: string;
+    corridors?: string[];
+}
+
+export interface IRegisterAgentPayload extends IRegisterInput {
+    assignedArea?: string;
+    corridors?: string[];
+}
+
+export interface IAgentRegisterResponse {
+    success: boolean;
+    message: string;
+    data: {
+        user: IUser;
+    } | null;
 }
 
 export interface ILoginInput {

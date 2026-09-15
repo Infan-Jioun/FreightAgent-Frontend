@@ -1,56 +1,32 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/app/store/authStore";
-import { AnimatePresence, motion } from "framer-motion";
-import CustomerDashboard from "@/components/ui/dashboard/roles/CustomerDashboard";
-import AgentDashboard from "@/components/ui/dashboard/roles/AgentDashboard";
-import AdminDashboard from "@/components/ui/dashboard/roles/AdminDashboard";
+import { ROUTES } from "@/app/constants/routes";
+import { Loader2 } from "lucide-react";
 
-export default function Dashboard() {
+export default function DashboardRootPage() {
     const { user } = useAuthStore();
-    // Strictly derive dashboard based on authenticated user's assigned role
-    const currentRole = user?.role || "CUSTOMER";
+    const router = useRouter();
+
+    useEffect(() => {
+        const role = user?.role;
+        if (role === "ADMIN") {
+            router.replace(ROUTES.DASHBOARD_ADMIN);
+        } else if (role === "AGENT") {
+            router.replace(ROUTES.DASHBOARD_AGENT);
+        } else {
+            router.replace(ROUTES.DASHBOARD_CUSTOMER);
+        }
+    }, [user, router]);
 
     return (
-        <div className="space-y-4">
-            {/* Dynamic Animated Dashboard strictly rendered according to user role */}
-            <AnimatePresence mode="wait">
-                {currentRole === "ADMIN" && (
-                    <motion.div
-                        key="admin-dashboard"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                    >
-                        <AdminDashboard />
-                    </motion.div>
-                )}
-
-                {currentRole === "AGENT" && (
-                    <motion.div
-                        key="agent-dashboard"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                    >
-                        <AgentDashboard />
-                    </motion.div>
-                )}
-
-                {currentRole === "CUSTOMER" && (
-                    <motion.div
-                        key="customer-dashboard"
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -12 }}
-                        transition={{ duration: 0.35, ease: "easeOut" }}
-                    >
-                        <CustomerDashboard />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 text-[#00c9a7] animate-spin" />
+            <p className="text-xs font-semibold text-[#7ecfc4]">
+                Redirecting to your workspace...
+            </p>
         </div>
     );
 }

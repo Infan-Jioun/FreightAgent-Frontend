@@ -3,6 +3,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { envConfig } from "../config/env";
 import status from "http-status";
 import { clearClientCookies } from "./cookie";
+import { toast } from "sonner";
 
 const api = axios.create({
     baseURL: envConfig.NEXT_PUBLIC_API_URL,
@@ -45,6 +46,7 @@ const PUBLIC_PATHS = [
     "/forgot-password",
     "/reset-password",
     "/verify-email",
+    "/tracking",
 ];
 
 function isPublicPath(pathname: string): boolean {
@@ -58,6 +60,18 @@ api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
         const originalRequest = error.config as RetryConfig | undefined;
+
+        // Rate Limit Handling (HTTP 429)
+        if (error.response?.status === status.TOO_MANY_REQUESTS || error.response?.status === 429) {
+            const data = error.response.data as Record<string, unknown> | undefined;
+            const message =
+                (typeof data?.message === "string" && data.message) ||
+                "Rate limit exceeded. Please slow down and try again shortly.";
+            if (typeof window !== "undefined") {
+                toast.error(message, { id: "rate-limit-toast" });
+            }
+        }
+
 
         if (
             error.response?.status === status.UNAUTHORIZED &&

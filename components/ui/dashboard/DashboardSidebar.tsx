@@ -32,6 +32,13 @@ interface SidebarProps {
     onCloseMobile: () => void;
 }
 
+const ROOT_DASHBOARD_ROUTES: readonly string[] = [
+    ROUTES.DASHBOARD,
+    ROUTES.DASHBOARD_CUSTOMER,
+    ROUTES.DASHBOARD_AGENT,
+    ROUTES.DASHBOARD_ADMIN,
+];
+
 export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
@@ -45,32 +52,47 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
         switch (role) {
             case "ADMIN":
                 return [
-                    { label: "Overview", href: ROUTES.DASHBOARD, icon: Home },
-                    { label: "User Management", href: ROUTES.ADMIN_USERS, icon: Users },
-                    { label: "All Shipments", href: ROUTES.ADMIN_SHIPMENTS, icon: Package },
-                    { label: "Freigeht Tracking", href: "/tracking", icon: MapPin },
+                    { label: "Overview", href: ROUTES.DASHBOARD_ADMIN, icon: Home },
+                    { label: "All Shipments", href: ROUTES.DASHBOARD_ADMIN_SHIPMENTS, icon: Package },
+                    { label: "User Management", href: ROUTES.DASHBOARD_ADMIN_USERS, icon: Users },
+                    { label: "Freight Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },
                     { label: "Profile", href: ROUTES.PROFILE, icon: User },
                 ];
             case "AGENT":
                 return [
-                    { label: "Dispatch Hub", href: ROUTES.DASHBOARD, icon: Home },
-                    { label: "Active Deliveries", href: ROUTES.SHIPMENTS, icon: Truck },
-                    { label: "Route Map", href: "/tracking", icon: MapPin },
+                    { label: "Dispatch Hub", href: ROUTES.DASHBOARD_AGENT, icon: Home },
+                    { label: "Assigned Shipments", href: ROUTES.DASHBOARD_AGENT_SHIPMENTS, icon: Truck },
+                    { label: "Freight Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },
                     { label: "Profile", href: ROUTES.PROFILE, icon: User },
                 ];
             case "CUSTOMER":
             default:
                 return [
-                    { label: "Dashboard", href: ROUTES.DASHBOARD, icon: Home },
-                    { label: "My Shipments", href: ROUTES.SHIPMENTS, icon: Package },
-                    { label: "Create Shipment", href: ROUTES.SHIPMENT_CREATE, icon: PlusCircle },
-                    { label: "Live Tracking", href: "/tracking", icon: MapPin },
+                    { label: "Dashboard", href: ROUTES.DASHBOARD_CUSTOMER, icon: Home },
+                    { label: "My Shipments", href: ROUTES.DASHBOARD_CUSTOMER_SHIPMENTS, icon: Package },
+                    { label: "Book Shipment", href: ROUTES.DASHBOARD_CUSTOMER_SHIPMENTS_NEW, icon: PlusCircle },
+                    { label: "Live Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },
                     { label: "Profile", href: ROUTES.PROFILE, icon: User },
                 ];
         }
     };
 
     const navItems = getNavItems();
+    const hasExactMatch = navItems.some((item) => item.href === pathname);
+
+    const isItemActive = (itemHref: string): boolean => {
+        if (pathname === itemHref) return true;
+        if (hasExactMatch) return false;
+        if (ROOT_DASHBOARD_ROUTES.includes(itemHref)) return false;
+        if (!pathname.startsWith(`${itemHref}/`)) return false;
+
+        return !navItems.some(
+            (other) =>
+                other.href !== itemHref &&
+                other.href.length > itemHref.length &&
+                pathname.startsWith(`${other.href}/`)
+        );
+    };
 
     const handleLogout = async () => {
         try {
@@ -123,7 +145,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                     onClick={onCloseMobile}
                     className="flex items-center gap-3 px-2 py-1.5 rounded-2xl hover:opacity-90 transition-opacity"
                 >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20 flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-lg shadow-[#00c9a7]/20 shrink-0">
                         <Anchor size={20} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -154,9 +176,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                     </p>
                     {navItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive =
-                            pathname === item.href ||
-                            (item.href !== ROUTES.DASHBOARD && pathname.startsWith(item.href));
+                        const isActive = isItemActive(item.href);
 
                         return (
                             <Link
@@ -165,7 +185,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                                 onClick={onCloseMobile}
                                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${isActive
                                     ? "bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/50 shadow-sm shadow-[#00c9a7]/10"
-                                    : "text-[#7ecfc4]/80 hover:text-[#e0faf5] hover:bg-[#112a2a]"
+                                    : "border border-transparent text-[#7ecfc4]/80 hover:text-[#e0faf5] hover:bg-[#112a2a]"
                                     }`}
                             >
                                 <Icon
@@ -206,7 +226,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
     return (
         <>
             {/* Desktop Sidebar (w-64 showing icon + route name on large screens) */}
-            <div className="hidden lg:block w-64 flex-shrink-0 bg-[#0d1f1f] border-r border-[#1a4a4a] z-30 h-screen sticky top-0">
+            <div className="hidden lg:block w-64 shrink-0 bg-[#0d1f1f] border-r border-[#1a4a4a] z-30 h-screen sticky top-0">
                 {sidebarContent}
             </div>
 

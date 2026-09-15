@@ -249,10 +249,32 @@ export default function LoginForm() {
         window.location.href = `${envConfig.NEXT_PUBLIC_API_URL}/auth/google`;
     };
 
-    // Safely pull the URL right when the animation ends — no stale state bugs!
+    // Safely pull the URL right when the animation ends — role-based redirect!
     const handleSuccessAnimationComplete = () => {
-        const callbackUrl = searchParams.get("callbackUrl") || ROUTES.DASHBOARD;
-        router.push(callbackUrl);
+        const currentUser = useAuthStore.getState().user;
+        const role = currentUser?.role;
+
+        let roleDashboard = "/dashboard/customer";
+        switch (role) {
+            case "ADMIN":
+                roleDashboard = "/admin/shipments";
+                break;
+            case "AGENT":
+                roleDashboard = "/dashboard/agent";
+                break;
+            case "CUSTOMER":
+            default:
+                roleDashboard = "/dashboard/customer";
+                break;
+        }
+
+        const callbackUrl = searchParams.get("callbackUrl");
+        const targetUrl =
+            callbackUrl && callbackUrl !== "/dashboard" && callbackUrl !== "/dashboard/"
+                ? callbackUrl
+                : roleDashboard;
+
+        router.push(targetUrl);
     };
 
     return (

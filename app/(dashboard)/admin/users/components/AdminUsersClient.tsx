@@ -94,7 +94,7 @@ export default function AdminUsersClient({ initialUsers = [] }: AdminUsersClient
     }, [fetchUsers]);
 
     // ── Role Update Mutation ────────────────────────────────────────────
-    const handleSaveRole = async (newRole: UserRole) => {
+    const handleSaveRole = async (newRole: UserRole, assignedArea?: string) => {
         if (!editingUserForRole?.id) return;
 
         if (editingUserForRole.id === currentAdmin?.id) {
@@ -107,20 +107,30 @@ export default function AdminUsersClient({ initialUsers = [] }: AdminUsersClient
         try {
             const updatedUser = await adminService.updateUserRole(
                 editingUserForRole.id,
-                newRole
+                { role: newRole, assignedArea }
             );
 
             setUsersList((prev) =>
-                prev.map((u) => (u.id === updatedUser.id ? { ...u, role: updatedUser.role } : u))
+                prev.map((u) =>
+                    u.id === updatedUser.id
+                        ? { ...u, role: updatedUser.role, assignedArea: assignedArea || u.assignedArea }
+                        : u
+                )
             );
 
             if (selectedUserForDetails?.id === updatedUser.id) {
                 setSelectedUserForDetails((prev) =>
-                    prev ? { ...prev, role: updatedUser.role } : prev
+                    prev
+                        ? { ...prev, role: updatedUser.role, assignedArea: assignedArea || prev.assignedArea }
+                        : prev
                 );
             }
 
-            toast.success(`Role updated to ${newRole} for ${editingUserForRole.name}`);
+            toast.success(
+                assignedArea
+                    ? `Role updated to ${newRole} (Area: ${assignedArea}) for ${editingUserForRole.name}`
+                    : `Role updated to ${newRole} for ${editingUserForRole.name}`
+            );
             setEditingUserForRole(null);
         } catch (err: unknown) {
             toast.error(getErrorMessage(err, "Failed to update user role"));

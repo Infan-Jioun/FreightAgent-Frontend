@@ -12,7 +12,7 @@ interface UpdateRoleModalProps {
     updating?: boolean;
     currentAdminId?: string;
     onClose: () => void;
-    onSaveRole: (role: UserRole) => void;
+    onSaveRole: (role: UserRole, assignedArea?: string) => void;
 }
 
 const ROLE_OPTIONS = [
@@ -42,18 +42,19 @@ export default function UpdateRoleModal({
     onSaveRole,
 }: UpdateRoleModalProps) {
     const [selectedRole, setSelectedRole] = useState<UserRole>("CUSTOMER");
+    const [assignedArea, setAssignedArea] = useState("");
 
     useEffect(() => {
         if (user) {
-            // Default selection to another role if possible
             setSelectedRole(user.role);
+            setAssignedArea(user.assignedArea || "");
         }
     }, [user]);
 
     if (!isOpen || !user) return null;
 
     const isSelf = currentAdminId ? user.id.trim() === currentAdminId.trim() : false;
-    const isSameRole = selectedRole === user.role;
+    const isSameRole = selectedRole === user.role && (selectedRole !== "AGENT" || assignedArea === (user.assignedArea || ""));
 
     const handleConfirm = () => {
         if (isSelf) {
@@ -62,12 +63,19 @@ export default function UpdateRoleModal({
             return;
         }
 
-        if (isSameRole) {
-            toast.info("Please select a different role to update.");
+        if (selectedRole === "AGENT" && !assignedArea.trim()) {
+            toast.error("Assigned area is required", {
+                description: "When designating an Agent, please specify their assigned city or hub area.",
+            });
             return;
         }
 
-        onSaveRole(selectedRole);
+        if (isSameRole) {
+            toast.info("Please select a different role or update the assigned area.");
+            return;
+        }
+
+        onSaveRole(selectedRole, selectedRole === "AGENT" ? assignedArea.trim() : undefined);
     };
 
     return (
@@ -161,6 +169,27 @@ export default function UpdateRoleModal({
                             );
                         })}
                     </div>
+
+                    {/* Assigned Area Input (Required for AGENT role) */}
+                    {selectedRole === "AGENT" && (
+                        <div className="mb-6 p-4 rounded-2xl bg-[#0a1a1a] border border-[#00c9a7]/40 space-y-2">
+                            <label className="text-xs font-bold text-[#00e5c0] flex items-center justify-between">
+                                <span>Assigned Carrier Area / City <span className="text-[#f43f5e]">*</span></span>
+                                <span className="text-[10px] text-[#7ecfc4]/80">Required for Agents</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={assignedArea}
+                                onChange={(e) => setAssignedArea(e.target.value)}
+                                placeholder="e.g. Dhaka Central, Chittagong Port, Sylhet..."
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-[#0d1f1f] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/40 focus:outline-hidden focus:border-[#00c9a7] focus:ring-3 focus:ring-[#00c9a7]/20 transition-all"
+                                required
+                            />
+                            <p className="text-[11px] text-[#7ecfc4]/70">
+                                This agent will receive dispatches and carrier pickups routed to this city or hub.
+                            </p>
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-end gap-2.5">
                         <button

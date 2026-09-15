@@ -16,6 +16,20 @@ export const registerSchema = z.object({
     password: passwordSchema,
 });
 
+export const registerAgentSchema = z.object({
+    name: z
+        .string()
+        .min(2, "Name must be at least 2 characters")
+        .max(50, "Name too long"),
+    email: z.string().email("Invalid email address"),
+    password: passwordSchema,
+    phone: z.string().optional(),
+    assignedArea: z.string().optional(),
+    corridors: z.array(z.string()).min(1, "Please select at least one operational corridor or port"),
+});
+
+export type RegisterAgentInput = z.infer<typeof registerAgentSchema>;
+
 export const loginSchema = z.object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(1, "Password is required"),

@@ -1,0 +1,446 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import {
+    Truck,
+    Search,
+    RefreshCw,
+    Calendar,
+    Loader2,
+    Filter,
+    ArrowRight,
+    User,
+    CheckSquare,
+    X,
+    ChevronLeft,
+    ChevronRight,
+} from "lucide-react";
+import { agentService } from "@/app/services/agent.service";
+import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
+import { IPaginationMeta } from "@/app/types/admin.types";
+import { PaymentSocketPayload } from "@/app/types/socket.types";
+import { StatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toast } from "sonner";
+import { AppError } from "@/app/errorHelper/appError";
+import { useDebounce } from "@/app/hooks/useDebounce";
+import { useSocketEvent, useSocketContext } from "@/app/hooks/useSocket";
+import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
+
+const AGENT_STATUS_FILTERS: { label: string; value: ShipmentStatus | "ALL" }[] = [
+    { label: "All Assigned", value: "ALL" },
+    { label: "Assigned", value: "ASSIGNED" },
+    { label: "Accepted", value: "ACCEPTED" },
+    { label: "Picked Up", value: "PICKED_UP" },
+    { label: "In Transit", value: "IN_TRANSIT" },
+    { label: "Delivered", value: "DELIVERED" },
+];
+
+export default function AgentShipmentsPage() {
+    const { isConnected } = useSocketContext();
+    const [shipments, setShipments] = useState<IShipment[]>([]);
+    const [meta, setMeta] = useState<IPaginationMeta | undefined>();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "ALL">("ALL");
+    const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearch = useDebounce(searchTerm, 400);
+    const [page, setPage] = useState(1);
+    const limit = 10;
+    const totalPages = Math.max(
+        1,
+        meta?.totalPage ?? meta?.totalPages ?? (meta?.total ? Math.ceil(meta.total / limit) : 1)
+    );
+
+    // Accept Shipment Modal State
+    const [acceptModalShipment, setAcceptModalShipment] = useState<IShipment | null>(null);
+    const [acceptLocation, setAcceptLocation] = useState("");
+    const [acceptNote, setAcceptNote] = useState("");
+    const [isAccepting, setIsAccepting] = useState(false);
+
+    // Socket.IO hook: auto-add new shipment to the list without refresh
+    useSocketEvent("shipment_assigned", (data: unknown) => {
+        const record = data as { trackingId?: string };
+        toast.success(`Consignment #${record?.trackingId || ""} assigned to your terminal!`);
+        void fetchAssigned(true);
+    });
+
+    useSocketEvent("shipment_status_updated", () => {
+        void fetchAssigned(true);
+    });
+
+    usePaymentSocket(() => {
+        void fetchAssigned(true);
+    });
+
+    const fetchAssigned = useCallback(async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
+        else setRefreshing(true);
+
+        try {
+            const res = await agentService.getAssignedShipments({
+                page,
+                limit,
+                status: statusFilter === "ALL" ? undefined : statusFilter,
+                search: debouncedSearch.trim() || undefined,
+            });
+            setShipments(res.shipments);
+            setMeta(res.meta);
+        } catch (err: unknown) {
+            const appErr = AppError.fromAxios(err);
+            toast.error(appErr.message || "Failed to load assigned shipments");
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, [page, statusFilter, debouncedSearch]);
+
+    useEffect(() => {
+        fetchAssigned();
+    }, [fetchAssigned]);
+
+    // Reset to page 1 on filter or search change
+    const handleStatusFilterChange = (val: ShipmentStatus | "ALL") => {
+        setStatusFilter(val);
+        setPage(1);
+    };
+
+    const handleSearchChange = (val: string) => {
+        setSearchTerm(val);
+        setPage(1);
+    };
+
+    // Handle Accept Shipment Submit (PATCH /api/v1/agent/shipments/:id/accept)
+    const handleAcceptSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!acceptModalShipment) return;
+
+        setIsAccepting(true);
+        try {
+            const updated = await agentService.acceptShipment(acceptModalShipment.id, {
+                location: acceptLocation.trim() || undefined,
+                note: acceptNote.trim() || undefined,
+            });
+
+            toast.success(`Shipment #${acceptModalShipment.trackingId} Accepted!`);
+            setShipments((prev) =>
+                prev.map((s) => (s.id === updated.id ? { ...s, ...updated, status: "ACCEPTED" } : s))
+            );
+            setAcceptModalShipment(null);
+            setAcceptLocation("");
+            setAcceptNote("");
+        } catch (err: unknown) {
+            const appErr = AppError.fromAxios(err);
+            toast.error(appErr.message || "Failed to accept shipment");
+        } finally {
+            setIsAccepting(false);
+        }
+    };
+
+    return (
+        <div className="space-y-6 pb-12">
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#f59e0b]/15 text-[#f59e0b] border border-[#f59e0b]/30">
+                            Carrier Terminal
+                        </span>
+                        {/* Live Socket Status Pill */}
+                        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#0a1a1a] border border-[#1a4a4a] text-[11px] font-semibold text-[#7ecfc4]">
+                            <span
+                                className={`w-2 h-2 rounded-full ${
+                                    isConnected ? "bg-emerald-400 animate-pulse" : "bg-neutral-500"
+                                }`}
+                            />
+                            <span>{isConnected ? "Live Socket Active" : "Reconnecting..."}</span>
+                        </div>
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-black text-[#e0faf5] mt-1 tracking-tight">
+                        Assigned Freight Deliveries
+                    </h1>
+                    <p className="text-xs text-[#7ecfc4] mt-0.5">
+                        Consignments dispatched to your carrier terminal. Review cargo, accept consignments, and update checkpoints.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => fetchAssigned(true)}
+                    disabled={loading || refreshing}
+                    className="p-2.5 rounded-xl border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors cursor-pointer disabled:opacity-50"
+                    title="Refresh assigned consignments"
+                >
+                    <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+                </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="p-4 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-md">
+                <div className="relative flex-1 max-w-md">
+                    <Search
+                        size={15}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7ecfc4]/70"
+                    />
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        placeholder="Search tracking ID, customer, city..."
+                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/50 focus:outline-hidden focus:border-[#00c9a7] focus:ring-3 focus:ring-[#00c9a7]/20 transition-all"
+                    />
+                </div>
+
+                {/* Status Filter Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+                    <span className="text-[11px] font-bold text-[#7ecfc4] uppercase mr-1 flex items-center gap-1 shrink-0">
+                        <Filter size={12} />
+                        Filter:
+                    </span>
+                    {AGENT_STATUS_FILTERS.map((tab) => {
+                        const active = statusFilter === tab.value;
+                        return (
+                            <button
+                                key={tab.value}
+                                type="button"
+                                onClick={() => handleStatusFilterChange(tab.value)}
+                                className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                                    active
+                                        ? "bg-[#00c9a7] text-[#0a0f0f] shadow-xs"
+                                        : "bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7]/40"
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Assigned Deliveries Table */}
+            <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden">
+                {loading ? (
+                    <div className="p-16 flex flex-col items-center justify-center gap-2.5">
+                        <Loader2 className="w-7 h-7 text-[#00c9a7] animate-spin" />
+                        <span className="text-xs font-semibold text-[#7ecfc4]">
+                            Loading assigned freight from carrier network...
+                        </span>
+                    </div>
+                ) : shipments.length === 0 ? (
+                    <div className="p-16 text-center">
+                        <Truck className="w-12 h-12 mx-auto text-[#7ecfc4]/40 mb-3" />
+                        <h3 className="text-sm font-bold text-[#e0faf5]">No assigned shipments found</h3>
+                        <p className="text-xs text-[#7ecfc4] mt-1 max-w-sm mx-auto mb-4">
+                            {searchTerm || statusFilter !== "ALL"
+                                ? "No shipments matched your search criteria."
+                                : "You do not have any shipments assigned currently. Incoming dispatches will appear here automatically."}
+                        </p>
+                        {(statusFilter !== "ALL" || searchTerm) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setStatusFilter("ALL");
+                                    setSearchTerm("");
+                                    setPage(1);
+                                }}
+                                className="px-4 py-2 rounded-xl border border-[#1a4a4a] bg-[#0a1a1a] text-xs font-bold text-[#00e5c0] hover:bg-[#112a2a] transition-colors cursor-pointer"
+                            >
+                                Reset Filter
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Tracking ID</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Origin</TableHead>
+                                    <TableHead>Destination</TableHead>
+                                    <TableHead>Weight</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Payment</TableHead>
+                                    <TableHead>Booking Date</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {shipments.map((s) => (
+                                    <TableRow key={s.id}>
+                                        <TableCell className="font-mono font-bold text-[#00e5c0]">
+                                            {s.trackingId}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5 text-xs">
+                                                <User size={12} className="text-[#7ecfc4]/70 shrink-0" />
+                                                <span className="text-[#e0faf5] font-medium">
+                                                    {s.user?.name || "Merchant"}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs font-medium text-[#e0faf5]">
+                                            {s.origin}
+                                        </TableCell>
+                                        <TableCell className="text-xs font-medium text-[#e0faf5]">
+                                            {s.destination}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-[#7ecfc4]">
+                                            {s.weight} kg
+                                        </TableCell>
+                                        <TableCell>
+                                            <StatusBadge status={s.status} />
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                <PaymentStatusBadge status={s.paymentStatus} />
+                                                {(!s.paymentStatus || s.paymentStatus === "UNPAID") && (
+                                                    <span className="text-[10px] text-amber-300 font-semibold">
+                                                        Unpaid Cargo
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-xs text-[#7ecfc4]">
+                                            <div className="flex items-center gap-1">
+                                                <Calendar size={12} className="text-[#7ecfc4]/70" />
+                                                {new Date(s.createdAt).toLocaleDateString()}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="inline-flex items-center gap-1.5">
+                                                {/* Accept Button for ASSIGNED status */}
+                                                {s.status === "ASSIGNED" && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setAcceptModalShipment(s);
+                                                            setAcceptLocation(s.origin || "");
+                                                            setAcceptNote("");
+                                                        }}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                                        title="Accept Consignment"
+                                                    >
+                                                        <CheckSquare size={12} />
+                                                        <span>Accept</span>
+                                                    </button>
+                                                )}
+
+                                                <Link
+                                                    href={`/dashboard/agent/shipments/${s.id}`}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#00c9a7]/15 text-xs font-bold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all shadow-xs"
+                                                >
+                                                    <span>Manage / Update</span>
+                                                    <ArrowRight size={12} />
+                                                </Link>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+
+                        {/* Pagination Footer */}
+                        {meta && totalPages > 1 && (
+                            <div className="p-4 border-t border-[#1a4a4a] flex items-center justify-between text-xs text-[#7ecfc4]">
+                                <span>
+                                    Page {meta.page ?? page} of {totalPages} ({meta.total ?? 0} total)
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page <= 1}
+                                        className="p-1.5 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-[#7ecfc4] hover:text-[#e0faf5] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronLeft size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={page >= totalPages}
+                                        className="p-1.5 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-[#7ecfc4] hover:text-[#e0faf5] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                                    >
+                                        <ChevronRight size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* ACCEPT SHIPMENT MODAL */}
+            {acceptModalShipment && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
+                    <div className="w-full max-w-md bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4">
+                        <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
+                            <div>
+                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
+                                    Carrier Acceptance
+                                </span>
+                                <h3 className="text-base font-extrabold text-[#e0faf5]">
+                                    Accept Consignment #{acceptModalShipment.trackingId}
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => setAcceptModalShipment(null)}
+                                className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors"
+                            >
+                                <X size={15} />
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-[#7ecfc4]">
+                            Confirming acceptance changes consignment status from <strong className="text-amber-400">ASSIGNED</strong> to <strong className="text-emerald-400">ACCEPTED</strong>.
+                        </p>
+
+                        <form onSubmit={handleAcceptSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-xs font-semibold text-[#7ecfc4] block mb-1">
+                                    Current Terminal / Location (Optional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={acceptLocation}
+                                    onChange={(e) => setAcceptLocation(e.target.value)}
+                                    placeholder="e.g. Chattogram Port / Hub Warehouse"
+                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold text-[#7ecfc4] block mb-1">
+                                    Acceptance Note (Optional)
+                                </label>
+                                <textarea
+                                    rows={2}
+                                    value={acceptNote}
+                                    onChange={(e) => setAcceptNote(e.target.value)}
+                                    placeholder="e.g. Received by agent, ready for pickup"
+                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] resize-none"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1a4a4a]">
+                                <button
+                                    type="button"
+                                    onClick={() => setAcceptModalShipment(null)}
+                                    className="px-4 py-2 rounded-xl bg-[#112a2a] text-xs font-bold text-[#7ecfc4] hover:text-[#e0faf5] transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isAccepting}
+                                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-xs font-bold text-[#0a0f0f] transition-colors flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isAccepting && <Loader2 size={13} className="animate-spin" />}
+                                    <span>{isAccepting ? "Accepting..." : "Confirm Acceptance"}</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

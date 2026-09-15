@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
     Truck,
@@ -15,8 +15,14 @@ import {
     ArrowUpRight,
     QrCode,
     ChevronRight,
+    Loader2,
+    RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { shipmentService } from "@/app/services/shipment.service";
+import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
+import { AppError } from "@/app/errorHelper/appError";
+import { useSocketEvent } from "@/app/hooks/useSocket";
 
 interface DeliveryTask {
     id: string;
@@ -27,69 +33,116 @@ interface DeliveryTask {
     timeWindow: string;
     packageType: string;
     weight: string;
-    status: "OUT_FOR_DELIVERY" | "PICKUP_PENDING" | "DELIVERED" | "ATTEMPTED";
+    status: ShipmentStatus;
 }
 
-const INITIAL_AGENT_TASKS: DeliveryTask[] = [
+const FALLBACK_TASKS: DeliveryTask[] = [
     {
-        id: "1",
+        id: "demo-1",
         trackingCode: "#26277887-ID-YK",
         customerName: "Sarah Jenkins",
         phone: "+1 (555) 234-5678",
         address: "6391 Elgin St, Celina, Delaware 10299",
         timeWindow: "09:00 AM - 11:30 AM",
-        packageType: "Fragile Electronics",
-        weight: "4.2 lbs",
+        packageType: "Fragile Cargo",
+        weight: "4.2 kg",
         status: "OUT_FOR_DELIVERY",
     },
     {
-        id: "2",
+        id: "demo-2",
         trackingCode: "#26277890-ID-DE",
         customerName: "Robert Fox",
         phone: "+1 (555) 876-5432",
         address: "8502 Preston Rd, Inglewood, Maine 98380",
         timeWindow: "12:00 PM - 02:00 PM",
         packageType: "Priority Express",
-        weight: "1.8 lbs",
-        status: "PICKUP_PENDING",
+        weight: "1.8 kg",
+        status: "PICKED_UP",
     },
     {
-        id: "3",
+        id: "demo-3",
         trackingCode: "#26277894-ID-NJ",
         customerName: "Eleanor Pena",
         phone: "+1 (555) 432-1098",
         address: "1901 Thornridge Cir, Shiloh, Hawaii 81063",
         timeWindow: "02:30 PM - 04:30 PM",
-        packageType: "Standard Document",
-        weight: "0.5 lbs",
-        status: "OUT_FOR_DELIVERY",
-    },
-    {
-        id: "4",
-        trackingCode: "#26277882-ID-PA",
-        customerName: "Cameron Williamson",
-        phone: "+1 (555) 901-2345",
-        address: "4140 Parker Rd, Allentown, PA 18104",
-        timeWindow: "08:15 AM",
-        packageType: "Heavy Freight",
-        weight: "42.0 lbs",
-        status: "DELIVERED",
+        packageType: "Commercial Cargo",
+        weight: "12.5 kg",
+        status: "IN_TRANSIT",
     },
 ];
 
 export default function AgentDashboard() {
-    const [tasks, setTasks] = useState<DeliveryTask[]>(INITIAL_AGENT_TASKS);
-    const [selectedTaskId, setSelectedTaskId] = useState<string>("1");
+    const [tasks, setTasks] = useState<DeliveryTask[]>(FALLBACK_TASKS);
+    const [selectedTaskId, setSelectedTaskId] = useState<string>("demo-1");
     const [isOnDuty, setIsOnDuty] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-    const activeTask = tasks.find((t) => t.id === selectedTaskId) || tasks[0];
+    // Fetch live consignments for the agent's dispatch queue
+    const fetchDispatches = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await shipmentService.getAllShipments();
+            if (res.shipments && res.shipments.length > 0) {
+                const mapped: DeliveryTask[] = res.shipments.map((s) => ({
+                    id: s.id,
+                    trackingCode: s.trackingId,
+                    customerName: s.user?.name || "Consignment Recipient",
+                    phone: s.user?.phone || "+1 (555) 019-2831",
+                    address: s.destination,
+                    timeWindow: s.estimatedDate ? new Date(s.estimatedDate).toLocaleDateString() : "Next Available",
+                    packageType: s.description || "Freight Consignment",
+                    weight: `${s.weight} kg`,
+                    status: s.status,
+                }));
+                setTasks(mapped);
+                setSelectedTaskId(mapped[0].id);
+            }
+        } catch {
+            // Keep fallback tasks on connection error
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-    const handleUpdateStatus = (taskId: string, newStatus: DeliveryTask["status"]) => {
-        setTasks((prev) =>
-            prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
-        );
-        toast.success(`Task status updated to ${newStatus.replace(/_/g, " ")}`);
+    useEffect(() => {
+        fetchDispatches();
+    }, [fetchDispatches]);
+
+    useSocketEvent("shipment_assigned", () => {
+        void fetchDispatches();
+    });
+
+    useSocketEvent("shipment_status_updated", () => {
+        void fetchDispatches();
+    });
+
+    const activeTask = tasks.find((t) => t.id === selectedTaskId) || tasks[0] || FALLBACK_TASKS[0];
+
+    // Status update via real shipmentService (PATCH /shipment/:id/status)
+    const handleUpdateStatus = async (taskId: string, newStatus: ShipmentStatus) => {
+        setUpdatingId(taskId);
+        try {
+            await shipmentService.updateStatus(taskId, {
+                status: newStatus,
+                location: activeTask.address,
+                note: `Field Agent marked as ${newStatus.replace(/_/g, " ")}`,
+            });
+            setTasks((prev) =>
+                prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+            );
+            toast.success(`Consignment marked as ${newStatus.replace(/_/g, " ")}`);
+        } catch (err: unknown) {
+            const error = AppError.fromAxios(err);
+            toast.error(error.message || "Failed to update status");
+        } finally {
+            setUpdatingId(null);
+        }
     };
+
+    const activeDropsCount = tasks.filter((t) => t.status !== "DELIVERED" && t.status !== "CANCELLED").length;
+    const completedTodayCount = tasks.filter((t) => t.status === "DELIVERED").length;
 
     return (
         <motion.div
@@ -102,13 +155,13 @@ export default function AgentDashboard() {
             {/* Top Shift Status Banner */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-lg shadow-black/20">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] flex items-center justify-center text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 shrink-0">
                         <Truck size={24} strokeWidth={2.2} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2.5">
                             <h2 className="text-lg font-bold text-[#e0faf5]">
-                                Agent Operations Hub
+                                Agent Dispatch Operations Hub
                             </h2>
                             <span
                                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1.5 ${
@@ -146,10 +199,12 @@ export default function AgentDashboard() {
                         {isOnDuty ? "Go Off Duty" : "Start Active Shift"}
                     </button>
                     <button
-                        onClick={() => toast.info("Syncing latest dispatches...")}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95"
+                        onClick={fetchDispatches}
+                        disabled={loading}
+                        className="px-4 py-2 rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-95 flex items-center gap-1.5 disabled:opacity-50"
                     >
-                        Sync Dispatches
+                        <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+                        <span>Sync Dispatches</span>
                     </button>
                 </div>
             </div>
@@ -157,7 +212,7 @@ export default function AgentDashboard() {
             {/* 4 Agent Operational KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Metric 1 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00c9a7]/40 transition-all">
+                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#00c9a7]/40 transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-[#7ecfc4]">Active Drops</span>
                         <div className="w-8 h-8 rounded-lg bg-[#00c9a7]/15 text-[#00c9a7] flex items-center justify-center">
@@ -165,44 +220,44 @@ export default function AgentDashboard() {
                         </div>
                     </div>
                     <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">14</span>
-                        <span className="text-xs font-semibold text-[#00e5c0]">+3 scheduled</span>
+                        <span className="text-2xl font-extrabold text-[#e0faf5]">{activeDropsCount}</span>
+                        <span className="text-xs font-semibold text-[#00e5c0]">En Route</span>
                     </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">4 express drops next</p>
+                    <p className="text-[11px] text-[#3a6b66] mt-1">Pending destination delivery</p>
                 </div>
 
                 {/* Metric 2 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00b4d8]/40 transition-all">
+                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#00b4d8]/40 transition-all">
                     <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Pending Pickups</span>
+                        <span className="text-xs font-medium text-[#7ecfc4]">Completed Today</span>
                         <div className="w-8 h-8 rounded-lg bg-[#00b4d8]/15 text-[#00b4d8] flex items-center justify-center">
-                            <Clock size={16} />
+                            <PackageCheck size={16} />
                         </div>
                     </div>
                     <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">6</span>
-                        <span className="text-xs font-semibold text-[#00b4d8]">Hub staging</span>
+                        <span className="text-2xl font-extrabold text-[#e0faf5]">{completedTodayCount}</span>
+                        <span className="text-xs font-semibold text-[#00b4d8]">Signed</span>
                     </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">2 urgent pickups ready</p>
+                    <p className="text-[11px] text-[#3a6b66] mt-1">Confirmed handovers</p>
                 </div>
 
                 {/* Metric 3 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00e5c0]/40 transition-all">
+                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#00e5c0]/40 transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-[#7ecfc4]">Success Rate</span>
                         <div className="w-8 h-8 rounded-lg bg-[#00e5c0]/15 text-[#00e5c0] flex items-center justify-center">
-                            <PackageCheck size={16} />
+                            <Clock size={16} />
                         </div>
                     </div>
                     <div className="mt-3 flex items-baseline gap-2">
                         <span className="text-2xl font-extrabold text-[#e0faf5]">99.2%</span>
                         <span className="text-xs font-semibold text-[#00e5c0]">4.98 ★</span>
                     </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">118 on-time this week</p>
+                    <p className="text-[11px] text-[#3a6b66] mt-1">Optimal corridor delivery</p>
                 </div>
 
                 {/* Metric 4 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#f59e0b]/40 transition-all">
+                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#f59e0b]/40 transition-all">
                     <div className="flex items-center justify-between">
                         <span className="text-xs font-medium text-[#7ecfc4]">Today&apos;s Earnings</span>
                         <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/15 text-[#f59e0b] flex items-center justify-center">
@@ -228,12 +283,12 @@ export default function AgentDashboard() {
                                 {tasks.length} Active
                             </span>
                         </h3>
-                        <span className="text-xs text-[#7ecfc4]">Order by ETA</span>
+                        <span className="text-xs text-[#7ecfc4]">Central Hub Queue</span>
                     </div>
 
                     <div className="space-y-3">
                         {tasks.map((task) => {
-                            const isSelected = task.id === selectedTaskId;
+                            const isSelected = task.id === activeTask.id;
 
                             return (
                                 <div
@@ -272,11 +327,11 @@ export default function AgentDashboard() {
                                         <div>
                                             <p className="text-xs font-bold text-[#e0faf5]">{task.customerName}</p>
                                             <p className="text-[11px] text-[#7ecfc4] mt-0.5 flex items-center gap-1">
-                                                <MapPin size={12} className="text-[#00c9a7] flex-shrink-0" />
+                                                <MapPin size={12} className="text-[#00c9a7] shrink-0" />
                                                 <span className="truncate">{task.address}</span>
                                             </p>
                                         </div>
-                                        <div className="text-right flex-shrink-0">
+                                        <div className="text-right shrink-0">
                                             <p className="text-[11px] text-[#3a6b66] font-medium">Window</p>
                                             <p className="text-xs font-semibold text-[#e0faf5]">{task.timeWindow}</p>
                                         </div>
@@ -288,13 +343,18 @@ export default function AgentDashboard() {
                                         <div className="flex items-center gap-2">
                                             {task.status !== "DELIVERED" ? (
                                                 <button
+                                                    disabled={updatingId === task.id}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleUpdateStatus(task.id, "DELIVERED");
                                                     }}
-                                                    className="px-3 py-1 rounded-lg bg-[#00c9a7]/20 hover:bg-[#00c9a7]/30 text-[#00e5c0] border border-[#00c9a7]/40 text-[11px] font-bold flex items-center gap-1.5 transition-colors"
+                                                    className="px-3 py-1 rounded-lg bg-[#00c9a7]/20 hover:bg-[#00c9a7]/30 text-[#00e5c0] border border-[#00c9a7]/40 text-[11px] font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
                                                 >
-                                                    <CheckCircle2 size={13} />
+                                                    {updatingId === task.id ? (
+                                                        <Loader2 size={12} className="animate-spin" />
+                                                    ) : (
+                                                        <CheckCircle2 size={12} />
+                                                    )}
                                                     <span>Mark Delivered</span>
                                                 </button>
                                             ) : (
@@ -317,10 +377,10 @@ export default function AgentDashboard() {
                         <div className="flex items-center justify-between pb-3 border-b border-[#1a4a4a]">
                             <span className="text-xs font-bold text-[#00e5c0] uppercase tracking-wider flex items-center gap-1.5">
                                 <Navigation size={14} />
-                                Next Stop Drop-off
+                                Selected Drop-off Focus
                             </span>
                             <span className="text-[11px] font-bold text-[#e0faf5] bg-[#0a1a1a] px-2.5 py-1 rounded-lg border border-[#1a4a4a]">
-                                ETA: 12 Mins
+                                Status: {activeTask.status.replace(/_/g, " ")}
                             </span>
                         </div>
 
@@ -334,7 +394,7 @@ export default function AgentDashboard() {
                         <div className="grid grid-cols-2 gap-2.5 pt-2">
                             <button
                                 onClick={() => toast.info(`Navigating to ${activeTask.address}...`)}
-                                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-90"
+                                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-90"
                             >
                                 <Navigation size={14} />
                                 <span>Start GPS</span>
@@ -359,15 +419,15 @@ export default function AgentDashboard() {
                     </div>
 
                     {/* Today's Route Metrics Card */}
-                    <div className="p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-sm space-y-3">
+                    <div className="p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xs space-y-3">
                         <h4 className="text-xs font-bold text-[#e0faf5] flex items-center justify-between">
-                            <span>Route Efficiency</span>
-                            <span className="text-[#00e5c0]">78% Completed</span>
+                            <span>Route Corridor Status</span>
+                            <span className="text-[#00e5c0]">Active Shift</span>
                         </h4>
 
                         {/* Progress Bar */}
                         <div className="w-full h-2.5 rounded-full bg-[#0a1a1a] border border-[#1a4a4a] overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] rounded-full w-[78%] shadow-sm shadow-[#00c9a7]" />
+                            <div className="h-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] rounded-full w-[78%] shadow-xs shadow-[#00c9a7]" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
@@ -377,7 +437,7 @@ export default function AgentDashboard() {
                             </div>
                             <div className="p-3 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]">
                                 <span className="text-[10px] text-[#3a6b66]">Stops Remaining</span>
-                                <p className="font-bold text-[#e0faf5] mt-0.5">4 drops left</p>
+                                <p className="font-bold text-[#e0faf5] mt-0.5">{activeDropsCount} drops left</p>
                             </div>
                         </div>
                     </div>

@@ -14,6 +14,7 @@ export interface IPaginationMeta {
     limit?: number;
     total?: number;
     totalPage?: number;
+    totalPages?: number;
     count?: number;
 }
 
@@ -41,6 +42,7 @@ export interface IAdminUser {
     lastLoginAt?: string | null;
     phone?: string | null;
     address?: string | null;
+    assignedArea?: string | null;
     shipmentsCount?: number;
     createdAt?: string;
     updatedAt?: string;
@@ -72,10 +74,12 @@ export interface ICreateUserPayload {
 export interface IUpdateUserRolePayload {
     id?: string;
     role: UserRole;
+    assignedArea?: string;
 }
 
 export interface IRoleUpdatePayload {
     role: UserRole;
+    assignedArea?: string;
 }
 
 export interface IUserStatusUpdatePayload {

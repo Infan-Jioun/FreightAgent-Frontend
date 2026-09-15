@@ -11,6 +11,7 @@ import {
     IAdminUsersResult,
     IApiResponse,
 } from "../types/admin.types";
+import { IRoadAgent, IShipment, IAssignAgentPayload } from "../types/shipment.types";
 import { AppError } from "../errorHelper/appError";
 
 export * from "../types/admin.types";
@@ -131,6 +132,55 @@ export const adminService = {
                     : API.AUTH.REGISTER;
             const res = await api.post<IApiResponse<IAdminUser>>(endpoint, payload);
             return res.data.data;
+        } catch (err: unknown) {
+            throw AppError.fromAxios(err);
+        }
+    },
+
+    /**
+     * Fetch available road agents, optionally filtered by area (origin)
+     * Endpoint: GET /api/v1/admin/agents?area={area}&isAvailable=true
+     */
+    getAvailableAgents: async (params?: {
+        area?: string;
+        isAvailable?: boolean;
+    }): Promise<IRoadAgent[]> => {
+        try {
+            const res = await api.get<IApiResponse<IRoadAgent[]>>(API.ADMIN.GET_AGENTS, {
+                params,
+            });
+            const rawData = res.data?.data as unknown;
+            if (Array.isArray(rawData)) {
+                return rawData;
+            }
+            if (rawData && typeof rawData === "object" && "agents" in rawData) {
+                const agents = (rawData as { agents: unknown }).agents;
+                if (Array.isArray(agents)) return agents as IRoadAgent[];
+            }
+            return [];
+        } catch (err: unknown) {
+            throw AppError.fromAxios(err);
+        }
+    },
+
+    /**
+     * Assign road agent to a shipment
+     * Endpoint: PATCH /api/v1/admin/shipments/:id/assign
+     */
+    assignAgentToShipment: async (
+        shipmentId: string,
+        payload: IAssignAgentPayload
+    ): Promise<IShipment> => {
+        try {
+            const res = await api.patch<IApiResponse<IShipment>>(
+                API.ADMIN.ASSIGN_SHIPMENT(shipmentId),
+                payload
+            );
+            const rawData = res.data?.data as unknown;
+            if (rawData && typeof rawData === "object" && "shipment" in rawData) {
+                return (rawData as { shipment: IShipment }).shipment;
+            }
+            return rawData as IShipment;
         } catch (err: unknown) {
             throw AppError.fromAxios(err);
         }

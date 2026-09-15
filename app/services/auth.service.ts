@@ -2,6 +2,7 @@
 import { API } from "../constants/api";
 import {
     IRegisterInput,
+    IRegisterAgentPayload,
     ILoginInput,
     IVerifyOtpInput,
     IForgotPasswordInput,
@@ -55,7 +56,7 @@ export const authService = {
         }
     },
 
-    registerAgent: async (payload: IRegisterInput) => {
+    registerAgent: async (payload: IRegisterAgentPayload) => {
         const res = await api.post<IApiResponse<{ user: IUser }>>(
             API.AUTH.REGISTER_AGENT,
             payload
@@ -146,7 +147,7 @@ export const authService = {
         });
         return res.data;
     },
-    createAgent: async (payload: IRegisterInput) => {
+    createAgent: async (payload: IRegisterAgentPayload) => {
         const res = await api.post<IApiResponse<{ user: IUser }>>(
             API.AUTH.REGISTER_AGENT,
             payload

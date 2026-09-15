@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
 import DashboardSidebar from "@/components/ui/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/ui/dashboard/DashboardHeader";
 import { AppError } from "../errorHelper/appError";
 import { toast } from "sonner";
+
+import { SocketProvider } from "@/app/providers/SocketProvider";
 
 export default function DashboardLayout({
     children,
@@ -16,6 +18,12 @@ export default function DashboardLayout({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [checking, setChecking] = useState(true);
     const router = useRouter();
+    const pathname = usePathname();
+    const isPublicTracking =
+        pathname === "/tracking" ||
+        pathname.startsWith("/tracking/") ||
+        pathname === "/dashboard/customer/tracking" ||
+        pathname.startsWith("/dashboard/customer/tracking");
     const { setUser, clearUser } = useAuthStore();
 
     useEffect(() => {
@@ -42,14 +50,20 @@ export default function DashboardLayout({
 
                 setUser(user);
 
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (cancelled) return;
+
+                // Allow public access to tracking page without forcing login redirect
+                if (isPublicTracking) {
+                    clearUser();
+                    return;
+                }
 
                 const appError = AppError.fromAxios(err);
 
                 if (appError.isUnauthorized) {
                     clearUser();
-                    router.replace("/login");
+                    router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
                     return;
                 }
 
@@ -59,7 +73,7 @@ export default function DashboardLayout({
                 }
 
                 clearUser();
-                router.replace("/login");
+                router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
 
             } finally {
                 if (!cancelled) {
@@ -75,7 +89,8 @@ export default function DashboardLayout({
         };
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [pathname]);
+
 
     if (checking) {
         return (
@@ -93,22 +108,24 @@ export default function DashboardLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-[#0a0f0f] font-sans antialiased text-[#e0faf5] selection:bg-[#00c9a7]/20 selection:text-[#00e5c0]">
-            {/* Left Sidebar (Desktop w-64 showing icon + route name, mobile drawer) */}
-            <DashboardSidebar
-                mobileOpen={mobileMenuOpen}
-                onCloseMobile={() => setMobileMenuOpen(false)}
-            />
-
-            {/* Right Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0">
-                <DashboardHeader
-                    onOpenMobileMenu={() => setMobileMenuOpen(true)}
+        <SocketProvider>
+            <div className="flex min-h-screen bg-[#0a0f0f] font-sans antialiased text-[#e0faf5] selection:bg-[#00c9a7]/20 selection:text-[#00e5c0]">
+                {/* Left Sidebar (Desktop w-64 showing icon + route name, mobile drawer) */}
+                <DashboardSidebar
+                    mobileOpen={mobileMenuOpen}
+                    onCloseMobile={() => setMobileMenuOpen(false)}
                 />
-                <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-[1600px] w-full mx-auto">
-                    {children}
-                </main>
+
+                {/* Right Main Content Area */}
+                <div className="flex-1 flex flex-col min-w-0">
+                    <DashboardHeader
+                        onOpenMobileMenu={() => setMobileMenuOpen(true)}
+                    />
+                    <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-[1600px] w-full mx-auto">
+                        {children}
+                    </main>
+                </div>
             </div>
-        </div>
+        </SocketProvider>
     );
 }

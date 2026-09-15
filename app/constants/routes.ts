@@ -15,17 +15,35 @@ export const ROUTES = {
     FORGOT_PASSWORD: "/forgot-password",
     RESET_PASSWORD: "/reset-password",
 
-    // Dashboard
+    // Dashboard Root
     DASHBOARD: "/dashboard",
-    SHIPMENTS: "/shipments",
-    SHIPMENT_CREATE: "/shipments/create",
-    SHIPMENT_DETAIL: (id: string) => `/shipments/${id}`,
-    TRACKING: (trackingId: string) => `/tracking/${trackingId}`,
+
+    // Customer Portal Routes
+    DASHBOARD_CUSTOMER: "/dashboard/customer",
+    DASHBOARD_CUSTOMER_SHIPMENTS: "/dashboard/customer/shipments",
+    DASHBOARD_CUSTOMER_SHIPMENTS_NEW: "/dashboard/customer/shipments/new",
+    DASHBOARD_CUSTOMER_TRACKING: "/dashboard/customer/tracking",
+
+    // Agent Portal Routes
+    DASHBOARD_AGENT: "/dashboard/agent",
+    DASHBOARD_AGENT_SHIPMENTS: "/dashboard/agent/shipments",
+    DASHBOARD_AGENT_SHIPMENT_DETAIL: (id: string) => `/dashboard/agent/shipments/${id}`,
+
+    // Admin Portal Routes
+    DASHBOARD_ADMIN: "/dashboard/admin",
+    DASHBOARD_ADMIN_SHIPMENTS: "/dashboard/admin/shipments",
+    DASHBOARD_ADMIN_USERS: "/dashboard/admin/users",
+
+    // General Dashboard / Account
+    SHIPMENTS: "/dashboard/customer/shipments",
+    SHIPMENT_CREATE: "/dashboard/customer/shipments/new",
+    SHIPMENT_DETAIL: (id: string) => `/dashboard/agent/shipments/${id}`,
+    TRACKING: (trackingId: string) => `/dashboard/customer/tracking?trackingId=${encodeURIComponent(trackingId)}`,
     PROFILE: "/profile",
     SETTINGS: "/settings",
 
-    // Admin
-    ADMIN_USERS: "/admin/users",
+    // Admin Legacy Aliases
+    ADMIN_USERS: "/dashboard/admin/users",
     ADMIN_USER_DETAIL: (id: string) => `/admin/users/${id}`,
-    ADMIN_SHIPMENTS: "/admin/shipments",
+    ADMIN_SHIPMENTS: "/dashboard/admin/shipments",
 } as const;
