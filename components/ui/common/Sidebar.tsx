@@ -6,6 +6,7 @@ import {
     Anchor, LayoutDashboard, Package, PackagePlus,
     Search, User, Settings, Users, ChevronLeft, LogOut,
     Loader2,
+    MapIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -40,6 +41,7 @@ const ADMIN_LINKS = [
     { label: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
     { label: "All Shipments", href: ROUTES.SHIPMENTS, icon: Package },
     { label: "Users", href: ROUTES.ADMIN_USERS, icon: Users },
+    { label: "Locations", href: ROUTES.DASHBOARD_ADMIN_LOCATIONS, icon: MapIcon },
     { label: "Profile", href: ROUTES.PROFILE, icon: User },
     { label: "Settings", href: ROUTES.SETTINGS, icon: Settings },
 ];

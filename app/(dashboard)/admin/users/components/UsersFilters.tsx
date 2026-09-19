@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Filter, X } from "lucide-react";
+import { Filter } from "lucide-react";
 import { UserRole } from "@/app/types/admin.types";
+import { SearchBar } from "@/components/ui/SearchBar";
+import { FilterSelect } from "@/components/ui/FilterSelect";
 
 interface UsersFiltersProps {
     searchQuery: string;
@@ -22,7 +23,17 @@ const ROLE_TABS = [
     { key: "CUSTOMER", label: "Customers" },
 ] as const;
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
+const STATUS_OPTIONS = [
+    { label: "All Statuses", value: "ALL" },
+    { label: "Active Only", value: "ACTIVE" },
+    { label: "Suspended Only", value: "SUSPENDED" },
+];
+
+const PAGE_SIZE_OPTIONS = [
+    { label: "10 / page", value: 10 },
+    { label: "20 / page", value: 20 },
+    { label: "50 / page", value: 50 },
+];
 
 export default function UsersFilters({
     searchQuery,
@@ -34,29 +45,10 @@ export default function UsersFilters({
     pageSize,
     onPageSizeChange,
 }: UsersFiltersProps) {
-    const [localSearch, setLocalSearch] = useState(searchQuery);
-
-    // Synchronize local input if prop is cleared externally
-    useEffect(() => {
-        setLocalSearch(searchQuery);
-    }, [searchQuery]);
-
-    // Debounced search (350ms)
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            if (localSearch !== searchQuery) {
-                onSearchChange(localSearch);
-            }
-        }, 350);
-
-        return () => clearTimeout(handler);
-    }, [localSearch, searchQuery, onSearchChange]);
-
     const hasActiveFilters =
         Boolean(searchQuery) || roleFilter !== "ALL" || statusFilter !== "ALL";
 
     const handleClearFilters = () => {
-        setLocalSearch("");
         onSearchChange("");
         onRoleFilterChange("ALL");
         onStatusFilterChange("ALL");
@@ -82,69 +74,32 @@ export default function UsersFilters({
                 ))}
             </div>
 
-            {/* Right: Search, Status Dropdown, Page Size & Clear Filter */}
+            {/* Right: Reusable SearchBar, FilterSelect & Reset */}
             <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-start lg:justify-end">
-                {/* Search Input with Clear Button */}
-                <div className="relative flex-1 sm:w-64 min-w-[200px]">
-                    <Search
-                        size={15}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#3a6b66] pointer-events-none"
-                    />
-                    <input
-                        type="text"
-                        value={localSearch}
-                        onChange={(e) => setLocalSearch(e.target.value)}
-                        placeholder="Search name, email, or ID..."
-                        className="w-full pl-9 pr-8 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:border-[#00c9a7] focus:outline-hidden transition-colors"
-                    />
-                    {localSearch && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setLocalSearch("");
-                                onSearchChange("");
-                            }}
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#7ecfc4] hover:text-[#e0faf5] cursor-pointer"
-                            title="Clear search"
-                        >
-                            <X size={13} />
-                        </button>
-                    )}
-                </div>
+                {/* Reusable SearchBar */}
+                <SearchBar
+                    value={searchQuery}
+                    onChange={onSearchChange}
+                    placeholder="Search name, email, or ID..."
+                />
 
-                {/* Status Filter */}
-                <div className="flex items-center gap-1.5">
-                    <select
-                        value={statusFilter}
-                        onChange={(e) =>
-                            onStatusFilterChange(
-                                e.target.value as "ALL" | "ACTIVE" | "SUSPENDED"
-                            )
-                        }
-                        className="px-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:border-[#00c9a7] focus:outline-hidden cursor-pointer"
-                        title="Filter by account status"
-                    >
-                        <option value="ALL">All Statuses</option>
-                        <option value="ACTIVE">Active Only</option>
-                        <option value="SUSPENDED">Suspended Only</option>
-                    </select>
-                </div>
+                {/* Reusable FilterSelect for Status */}
+                <FilterSelect
+                    value={statusFilter}
+                    onChange={(val) => onStatusFilterChange(val as "ALL" | "ACTIVE" | "SUSPENDED")}
+                    options={STATUS_OPTIONS}
+                    title="Filter by account status"
+                />
 
-                {/* Page Size Selector */}
+                {/* Reusable FilterSelect for Page Size */}
                 <div className="flex items-center gap-1.5">
                     <span className="text-[11px] text-[#7ecfc4]/70 hidden sm:inline">Show:</span>
-                    <select
+                    <FilterSelect
                         value={pageSize}
-                        onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                        className="px-2.5 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] focus:border-[#00c9a7] focus:outline-hidden cursor-pointer"
+                        onChange={(val) => onPageSizeChange(Number(val))}
+                        options={PAGE_SIZE_OPTIONS}
                         title="Users per page"
-                    >
-                        {PAGE_SIZE_OPTIONS.map((size) => (
-                            <option key={size} value={size}>
-                                {size} / page
-                            </option>
-                        ))}
-                    </select>
+                    />
                 </div>
 
                 {/* Clear All Filters Button */}

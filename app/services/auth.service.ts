@@ -184,4 +184,100 @@ export const authService = {
             throw AppError.fromAxios(err);
         }
     },
+
+    checkPhoneAvailability: async (
+        phone: string
+    ): Promise<{ available: boolean; message?: string }> => {
+        const cleanPhone = phone.trim();
+        try {
+            // Check Redis/user data via backend endpoint
+            const res = await api.post<IApiResponse<{ available?: boolean; exists?: boolean; inUse?: boolean }>>(
+                API.AUTH.CHECK_PHONE,
+                { phone: cleanPhone }
+            );
+            const data = res.data?.data;
+            let isAvailable = true;
+            if (data?.available !== undefined) {
+                isAvailable = Boolean(data.available);
+            } else if (data?.exists !== undefined) {
+                isAvailable = !data.exists;
+            } else if (data?.inUse !== undefined) {
+                isAvailable = !data.inUse;
+            }
+            return {
+                available: isAvailable,
+                message: res.data?.message,
+            };
+        } catch (err: unknown) {
+            const errObj = err as {
+                response?: {
+                    status?: number;
+                    data?: { message?: string; available?: boolean; exists?: boolean };
+                };
+            };
+            const status = errObj?.response?.status;
+            const resData = errObj?.response?.data;
+            const msg = resData?.message?.toLowerCase() || "";
+
+            // If 404 (route not found on /auth/check-phone), try fallback to /user/check-phone
+            if (status === 404) {
+                try {
+                    const fallbackRes = await api.post<IApiResponse<{ available?: boolean; exists?: boolean }>>(
+                        "/user/check-phone",
+                        { phone: cleanPhone }
+                    );
+                    const fbData = fallbackRes.data?.data;
+                    const isAvailable = fbData?.available ?? (fbData?.exists !== undefined ? !fbData.exists : true);
+                    return {
+                        available: isAvailable,
+                        message: fallbackRes.data?.message,
+                    };
+                } catch (fbErr: unknown) {
+                    const fbErrObj = fbErr as {
+                        response?: {
+                            status?: number;
+                            data?: { message?: string; available?: boolean; exists?: boolean };
+                        };
+                    };
+                    const fbMsg = fbErrObj?.response?.data?.message?.toLowerCase() || "";
+                    if (
+                        fbErrObj?.response?.status === 409 ||
+                        fbMsg.includes("already") ||
+                        fbMsg.includes("exist") ||
+                        fbMsg.includes("in use") ||
+                        fbMsg.includes("registered") ||
+                        fbMsg.includes("taken")
+                    ) {
+                        return {
+                            available: false,
+                            message: fbErrObj?.response?.data?.message || "This mobile number is already registered in Redis user records.",
+                        };
+                    }
+                }
+            }
+
+            // Detect if backend returned conflict / already registered in Redis user data
+            if (
+                status === 409 ||
+                resData?.available === false ||
+                resData?.exists === true ||
+                msg.includes("already") ||
+                msg.includes("exist") ||
+                msg.includes("in use") ||
+                msg.includes("registered") ||
+                msg.includes("redis") ||
+                msg.includes("taken")
+            ) {
+                return {
+                    available: false,
+                    message: resData?.message || "This mobile number is already registered in Redis user records.",
+                };
+            }
+
+            return {
+                available: true,
+                message: resData?.message,
+            };
+        }
+    },
 };

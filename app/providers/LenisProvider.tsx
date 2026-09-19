@@ -17,6 +17,10 @@ export default function LenisProvider({
             orientation: "vertical",
             smoothWheel: true,
             touchMultiplier: 1.2,
+            allowNestedScroll: true,
+            prevent: (node) =>
+                node.hasAttribute?.("data-lenis-prevent") ||
+                node.closest?.("[data-lenis-prevent]") !== null,
         });
 
         lenisRef.current = lenis;

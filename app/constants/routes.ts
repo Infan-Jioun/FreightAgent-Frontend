@@ -33,6 +33,7 @@ export const ROUTES = {
     DASHBOARD_ADMIN: "/dashboard/admin",
     DASHBOARD_ADMIN_SHIPMENTS: "/dashboard/admin/shipments",
     DASHBOARD_ADMIN_USERS: "/dashboard/admin/users",
+    DASHBOARD_ADMIN_LOCATIONS: "/dashboard/admin/locations",
 
     // General Dashboard / Account
     SHIPMENTS: "/dashboard/customer/shipments",

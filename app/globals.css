@@ -96,6 +96,32 @@ body {
   background: var(--accent-primary);
 }
 
+/* Custom High-Visibility Scrollbar for Modals & Grids */
+.custom-modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #00c9a7 rgba(10, 26, 26, 0.9);
+}
+
+.custom-modal-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-modal-scrollbar::-webkit-scrollbar-track {
+  background: rgba(10, 26, 26, 0.9);
+  border-radius: 9999px;
+}
+
+.custom-modal-scrollbar::-webkit-scrollbar-thumb {
+  background: #00c9a7;
+  border-radius: 9999px;
+  border: 2px solid rgba(10, 26, 26, 0.9);
+}
+
+.custom-modal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00e5c0;
+}
+
 /* Selection */
 ::selection {
   background: rgba(0, 229, 192, 0.2);

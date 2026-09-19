@@ -18,6 +18,7 @@ export const API = {
         GET_ME: "/auth/me",
         CHANGE_PASSWORD_OTP: "/auth/change-password/send-otp",
         CHANGE_PASSWORD: "/auth/change-password",
+        CHECK_PHONE: "/auth/check-phone",
     },
     USER: {
         ME: "/user/me",
@@ -62,7 +63,20 @@ export const API = {
         GET_AGENTS: "/admin/agents",
         ASSIGN_SHIPMENT: (id: string) => `/admin/shipments/${id}/assign`,
     },
-
+    // Location
+ 
+    LOCATION: {
+        SEARCH: "/locations/search",
+        GET_BY_CODE: (code: string) => `/locations/code/${code}`,
+        GET_BY_ID: (id: string) => `/locations/${id}`,
+        GET_ALL: "/locations",
+        CREATE: "/locations",
+        UPDATE: (id: string) => `/locations/${id}`,
+        BLOCK: (id: string) => `/locations/${id}/block`,
+        UNBLOCK: (id: string) => `/locations/${id}/unblock`,
+        DELETE: (id: string) => `/locations/${id}`,
+        RESTORE: (id: string) => `/locations/${id}/restore`,
+    },
     // Payment
     PAYMENT: {
         CREATE_INTENT: "/payment/create-intent",

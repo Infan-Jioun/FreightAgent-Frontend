@@ -18,6 +18,7 @@ import {
     PlusCircle,
     Shield,
     CheckCircle2,
+    Archive,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                     { label: "User Management", href: ROUTES.DASHBOARD_ADMIN_USERS, icon: Users },
                     { label: "Freight Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },
                     { label: "Profile", href: ROUTES.PROFILE, icon: User },
+                    { label: "Locations", href: ROUTES.DASHBOARD_ADMIN_LOCATIONS, icon: Archive },
                 ];
             case "AGENT":
                 return [
