@@ -17,15 +17,15 @@ const PUBLIC_ROUTES = [
   "/reset-password",
   "/verify-email",
   "/tracking",
+  "/google",
+  "/google/success",
 ];
 const AUTH_ROUTES = [
-  "/login",
   "/register",
   "/register-agent",
   "/register/agent",
   "/forgot-password",
   "/reset-password",
-  "/verify-email",
 ];
 
 // ── JWT Decode (without external library — Edge Runtime safe) ───────
@@ -101,6 +101,46 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Google OAuth callback landing: allow through and auto-seed cookie if token present in URL
+  if (pathname === "/google/success" || pathname.startsWith("/google/")) {
+    const response = NextResponse.next();
+    const queryToken =
+      request.nextUrl.searchParams.get("token") ||
+      request.nextUrl.searchParams.get("accessToken") ||
+      request.nextUrl.searchParams.get("t");
+    const queryRefreshToken =
+      request.nextUrl.searchParams.get("refreshToken") ||
+      request.nextUrl.searchParams.get("refresh_token");
+
+    if (queryToken) {
+      const isHttps = request.nextUrl.protocol === "https:";
+      response.cookies.set("accessToken", queryToken, {
+        path: "/",
+        maxAge: 24 * 60 * 60,
+        sameSite: "lax",
+        secure: isHttps,
+      });
+      response.cookies.set("freightagent.accessToken", queryToken, {
+        path: "/",
+        maxAge: 24 * 60 * 60,
+        sameSite: "lax",
+        secure: isHttps,
+      });
+    }
+
+    if (queryRefreshToken) {
+      const isHttps = request.nextUrl.protocol === "https:";
+      response.cookies.set("refreshToken", queryRefreshToken, {
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60,
+        sameSite: "lax",
+        secure: isHttps,
+      });
+    }
+
+    return addSecurityHeaders(response);
+  }
+
   // Token extraction
   const token =
     request.cookies.get("accessToken")?.value ||
@@ -131,6 +171,7 @@ export function middleware(request: NextRequest) {
     if (isPublicRoute) {
       const response = NextResponse.next();
       response.cookies.delete("accessToken");
+      response.cookies.delete("freightagent.accessToken");
       response.cookies.delete("refreshToken");
       response.cookies.delete("better-auth.session_token");
       return addSecurityHeaders(response);
@@ -140,6 +181,7 @@ export function middleware(request: NextRequest) {
     loginUrl.searchParams.set("callbackUrl", pathname);
     const response = NextResponse.redirect(loginUrl);
     response.cookies.delete("accessToken");
+    response.cookies.delete("freightagent.accessToken");
     response.cookies.delete("refreshToken");
     response.cookies.delete("better-auth.session_token");
     return addSecurityHeaders(response);
@@ -147,7 +189,17 @@ export function middleware(request: NextRequest) {
 
   const role = getRole(payload) || "CUSTOMER";
 
-  // ── Case 3: Logged in — trying to access auth pages ────────────
+  // If visiting /login after email verification, clear any existing session cookies
+  if (pathname === "/login" && request.nextUrl.searchParams.get("verified") === "true") {
+    const response = NextResponse.next();
+    response.cookies.delete("accessToken");
+    response.cookies.delete("freightagent.accessToken");
+    response.cookies.delete("refreshToken");
+    response.cookies.delete("better-auth.session_token");
+    return addSecurityHeaders(response);
+  }
+
+  // ── Case 3: Logged in — trying to access register/reset pages ────────────
   if (isAuthRoute) {
     return NextResponse.redirect(new URL(getRoleDashboard(role), request.url));
   }

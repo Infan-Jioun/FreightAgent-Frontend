@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Icon } from "./Icons";
 
+import { useLocationStore } from "@/app/store/locationStore";
+
 interface LocationOption {
     id: string;
     name: string;
@@ -17,7 +19,7 @@ interface LocationSelectProps {
     label: string;
     value: string;           // selected location id
     onChange: (id: string, location: LocationOption) => void;
-    onSearch: (q: string) => Promise<LocationOption[]>;
+    onSearch?: (q: string) => Promise<LocationOption[]>;
     placeholder?: string;
     required?: boolean;
     half?: boolean;
@@ -34,6 +36,7 @@ export function LocationSelect({
     label, value, onChange, onSearch,
     placeholder = "Search location…", required, half, selectedLocation,
 }: LocationSelectProps) {
+    const { searchLocations } = useLocationStore();
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<LocationOption[]>([]);
     const [open, setOpen] = useState(false);
@@ -59,7 +62,7 @@ export function LocationSelect({
         if (q.trim().length < 2) { setResults([]); setOpen(false); return; }
         setLoading(true);
         try {
-            const res = await onSearch(q);
+            const res = onSearch ? await onSearch(q) : await searchLocations(q);
             setResults(res);
             setOpen(true);
             setHighlighted(-1);
@@ -68,7 +71,7 @@ export function LocationSelect({
         } finally {
             setLoading(false);
         }
-    }, [onSearch]);
+    }, [onSearch, searchLocations]);
 
     const handleInput = (v: string) => {
         setQuery(v);

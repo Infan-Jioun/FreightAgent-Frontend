@@ -7,7 +7,7 @@ import type {
     ILocation, ILocationQuery, ICreateLocationPayload,
     IUpdateLocationPayload, IBlockLocationPayload,
 } from "../../../../../types/location.types";
-import { locationService } from "@/app/services/location.service";
+import { useLocationStore } from "@/app/store/locationStore";
 
 import { Icon } from "./Icons";
 import { Badge, typeBadgeColor } from "./Badge";
@@ -216,10 +216,22 @@ function SuggestInput({
 
 // ═════════════════════════════════════════════════════════
 export default function LocationsPageClient() {
-    const [locations, setLocations] = useState<ILocation[]>([]);
-    const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPage: 1 });
-    const [loading, setLoading] = useState(true);
-    const [query, setQuery] = useState<ILocationQuery>({ page: 1, limit: 20, sortBy: "createdAt", sortOrder: "desc", isDeleted: false });
+    const {
+        locations,
+        meta,
+        isLoading: loading,
+        query,
+        isSubmitting: submitting,
+        fetchLocations,
+        createLocation,
+        updateLocation,
+        blockLocation,
+        unblockLocation,
+        deleteLocation,
+        restoreLocation,
+        setQuery,
+    } = useLocationStore();
+
     const [searchInput, setSearchInput] = useState("");
     const [showDeleted, setShowDeleted] = useState(false);
     const toastCounter = useRef(0);
@@ -228,7 +240,6 @@ export default function LocationsPageClient() {
     const [selected, setSelected] = useState<ILocation | null>(null);
     const [form, setForm] = useState<FormState>(emptyForm);
     const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
-    const [submitting, setSubmitting] = useState(false);
     const [toasts, setToasts] = useState<ToastItem[]>([]);
 
     // ── Toast helpers ──────────────────────────────────────
@@ -241,32 +252,21 @@ export default function LocationsPageClient() {
         setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 
-    // ── Fetch ──────────────────────────────────────────────
-    const fetchLocations = useCallback(async (q: ILocationQuery) => {
-        setLoading(true);
-        try {
-            const res = await locationService.getAll(q);
-            setLocations(res.data);
-            setMeta(res.meta);
-        } catch (e: unknown) {
-            addToast((e as Error).message || "Failed to load locations", "error");
-        } finally {
-            setLoading(false);
-        }
-    }, [addToast]);
-
-    useEffect(() => { fetchLocations(query); }, [query, fetchLocations]);
+    // Initial load & query sync
+    useEffect(() => {
+        fetchLocations();
+    }, [fetchLocations, query]);
 
     // ── Search handler (Debounced via SearchBar) ───────────
     const handleSearch = (v: string) => {
         setSearchInput(v);
-        setQuery(prev => ({ ...prev, search: v || undefined, page: 1 }));
+        setQuery({ search: v || undefined, page: 1 });
     };
 
     const toggleDeleted = () => {
         const next = !showDeleted;
         setShowDeleted(next);
-        setQuery(prev => ({ ...prev, isDeleted: next, page: 1 }));
+        setQuery({ isDeleted: next, page: 1 });
     };
 
     // ── Auto-detect ────────────────────────────────────────
@@ -324,84 +324,96 @@ export default function LocationsPageClient() {
     const openRestore = (loc: ILocation) => { setSelected(loc); setModal("restore"); };
     const closeModal = () => { setModal(null); setSelected(null); setForm(emptyForm); setAutoFilledFields(new Set()); };
 
-    // ── Submissions ────────────────────────────────────────
+    // ── Submissions via useLocationStore ──────────────────
     const handleCreate = async () => {
-        setSubmitting(true);
-        try {
-            const payload: ICreateLocationPayload = {
-                name: form.name, code: form.code, country: form.country,
-                countryCode: form.countryCode, city: form.city, region: form.region,
-                latitude: parseFloat(form.latitude), longitude: parseFloat(form.longitude),
-                type: form.type as ICreateLocationPayload["type"],
-            };
-            await locationService.create(payload);
+        const payload: ICreateLocationPayload = {
+            name: form.name, code: form.code, country: form.country,
+            countryCode: form.countryCode, city: form.city, region: form.region,
+            latitude: parseFloat(form.latitude), longitude: parseFloat(form.longitude),
+            type: form.type as ICreateLocationPayload["type"],
+        };
+        const created = await createLocation(payload);
+        if (created) {
             addToast("Location created successfully", "success");
-            closeModal(); fetchLocations(query);
-        } catch (e: unknown) { addToast((e as Error).message || "Create failed", "error"); }
-        finally { setSubmitting(false); }
+            closeModal();
+        } else {
+            const err = useLocationStore.getState().error;
+            addToast(err || "Create failed", "error");
+        }
     };
 
     const handleUpdate = async () => {
         if (!selected) return;
-        setSubmitting(true);
-        try {
-            const payload: IUpdateLocationPayload = {};
-            if (form.name !== selected.name) payload.name = form.name;
-            if (form.country !== selected.country) payload.country = form.country;
-            if (form.countryCode !== selected.countryCode) payload.countryCode = form.countryCode;
-            if (form.city !== selected.city) payload.city = form.city;
-            if (form.region !== selected.region) payload.region = form.region;
-            if (form.latitude !== String(selected.latitude ?? "")) payload.latitude = parseFloat(form.latitude);
-            if (form.longitude !== String(selected.longitude ?? "")) payload.longitude = parseFloat(form.longitude);
-            if (form.type !== selected.type) payload.type = form.type as IUpdateLocationPayload["type"];
-            await locationService.update(selected.id, payload);
+        const payload: IUpdateLocationPayload = {};
+        if (form.name !== selected.name) payload.name = form.name;
+        if (form.country !== selected.country) payload.country = form.country;
+        if (form.countryCode !== selected.countryCode) payload.countryCode = form.countryCode;
+        if (form.city !== selected.city) payload.city = form.city;
+        if (form.region !== selected.region) payload.region = form.region;
+        if (form.latitude !== String(selected.latitude ?? "")) payload.latitude = parseFloat(form.latitude);
+        if (form.longitude !== String(selected.longitude ?? "")) payload.longitude = parseFloat(form.longitude);
+        if (form.type !== selected.type) payload.type = form.type as IUpdateLocationPayload["type"];
+
+        const updated = await updateLocation(selected.id, payload);
+        if (updated) {
             addToast("Location updated", "success");
-            closeModal(); fetchLocations(query);
-        } catch (e: unknown) { addToast((e as Error).message || "Update failed", "error"); }
-        finally { setSubmitting(false); }
+            closeModal();
+        } else {
+            const err = useLocationStore.getState().error;
+            addToast(err || "Update failed", "error");
+        }
     };
 
     const handleBlock = async () => {
         if (!selected) return;
-        setSubmitting(true);
-        try {
-            if (selected.isBlocked) {
-                await locationService.unblock(selected.id);
+        if (selected.isBlocked) {
+            const unblocked = await unblockLocation(selected.id);
+            if (unblocked) {
                 addToast("Location unblocked", "success");
+                closeModal();
             } else {
-                const payload: IBlockLocationPayload = {};
-                if (form.blockedReason) payload.blockedReason = form.blockedReason;
-                await locationService.block(selected.id, payload);
-                addToast("Location blocked", "success");
+                const err = useLocationStore.getState().error;
+                addToast(err || "Action failed", "error");
             }
-            closeModal(); fetchLocations(query);
-        } catch (e: unknown) { addToast((e as Error).message || "Action failed", "error"); }
-        finally { setSubmitting(false); }
+        } else {
+            const payload: IBlockLocationPayload = {};
+            if (form.blockedReason) payload.blockedReason = form.blockedReason;
+            const blocked = await blockLocation(selected.id, payload);
+            if (blocked) {
+                addToast("Location blocked", "success");
+                closeModal();
+            } else {
+                const err = useLocationStore.getState().error;
+                addToast(err || "Action failed", "error");
+            }
+        }
     };
 
     const handleDelete = async () => {
         if (!selected) return;
-        setSubmitting(true);
-        try {
-            await locationService.softDelete(selected.id);
+        const success = await deleteLocation(selected.id);
+        if (success) {
             addToast("Location deleted", "success");
-            closeModal(); fetchLocations(query);
-        } catch (e: unknown) { addToast((e as Error).message || "Delete failed", "error"); }
-        finally { setSubmitting(false); }
+            closeModal();
+        } else {
+            const err = useLocationStore.getState().error;
+            addToast(err || "Delete failed", "error");
+        }
     };
 
     const handleRestore = async () => {
         if (!selected) return;
-        setSubmitting(true);
-        try {
-            await locationService.restore(selected.id);
+        const restored = await restoreLocation(selected.id);
+        if (restored) {
             addToast("Location restored", "success");
-            closeModal(); fetchLocations(query);
-        } catch (e: unknown) { addToast((e as Error).message || "Restore failed", "error"); }
-        finally { setSubmitting(false); }
+            closeModal();
+        } else {
+            const err = useLocationStore.getState().error;
+            addToast(err || "Restore failed", "error");
+        }
     };
 
-    const goPage = (p: number) => setQuery(prev => ({ ...prev, page: p }));
+    const goPage = (p: number) => setQuery({ page: p });
 
     // ─────────────────────────────────────────────────────
     return (
@@ -482,7 +494,7 @@ export default function LocationsPageClient() {
 
                     {/* Locations Count Badge */}
                     <span className="text-[11px] font-bold text-[#7ecfc4] px-2.5 py-1 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]">
-                        {meta.total} locations
+                        {meta?.total ?? 0} locations
                     </span>
                 </div>
             </div>
@@ -632,10 +644,10 @@ export default function LocationsPageClient() {
 
                 {/* ── Reusable PaginationBar ── */}
                 <PaginationBar
-                    currentPage={meta.page}
-                    totalPages={meta.totalPage}
-                    totalCount={meta.total}
-                    pageSize={meta.limit}
+                    currentPage={meta?.page ?? 1}
+                    totalPages={meta?.totalPage ?? 1}
+                    totalCount={meta?.total ?? 0}
+                    pageSize={meta?.limit ?? 20}
                     itemName="locations"
                     onPageChange={goPage}
                 />

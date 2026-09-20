@@ -22,7 +22,9 @@ import {
 } from "framer-motion";
 import { ROUTES } from "@/app/constants/routes";
 import { authService } from "@/app/services/auth.service";
+import { clearClientCookies } from "@/app/lib/cookie";
 import { useAuthStore } from "@/app/store/authStore";
+import api from "@/app/lib/api";
 
 /* ------------------------------------------------------------------ */
 /*  Right-side cinematic freight network visualization                */
@@ -250,7 +252,6 @@ function FreightNetwork({
 
 export default function VerifyEmailPage() {
     const router = useRouter();
-    const { setUser } = useAuthStore();
 
     const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
     const [loading, setLoading] = useState(false);
@@ -278,14 +279,17 @@ export default function VerifyEmailPage() {
         typeof window !== "undefined"
             ? sessionStorage.getItem("verify_email") || ""
             : "";
+    const [persistedEmail, setPersistedEmail] = useState<string>(email);
 
     // ✅ Email না থাকলে login এ পাঠাও
     useEffect(() => {
         if (!email) {
             router.replace(ROUTES.LOGIN);
+        } else {
+            setPersistedEmail(email);
         }
         inputRefs.current[0]?.focus();
-    }, []);
+    }, [email, router]);
 
     // Countdown
     useEffect(() => {
@@ -296,6 +300,30 @@ export default function VerifyEmailPage() {
             setCanResend(true);
         }
     }, [countdown]);
+
+    // Automatically redirect to Login after successful verification
+    useEffect(() => {
+        if (!verified) return;
+
+        const targetEmail = persistedEmail || email;
+        const targetUrl = targetEmail
+            ? `${ROUTES.LOGIN}?verified=true&email=${encodeURIComponent(targetEmail)}`
+            : `${ROUTES.LOGIN}?verified=true`;
+
+        const timer = setTimeout(() => {
+            clearClientCookies();
+            try {
+                localStorage.removeItem("auth-storage");
+                useAuthStore.getState().clearUser();
+                delete api.defaults.headers.common["Authorization"];
+            } catch {
+                // Ignore
+            }
+            window.location.href = targetUrl;
+        }, 2200);
+
+        return () => clearTimeout(timer);
+    }, [verified, router, persistedEmail, email]);
 
     // shake animation whenever a new error appears
     useEffect(() => {
@@ -357,17 +385,29 @@ export default function VerifyEmailPage() {
 
         try {
             // ✅ API call
-            const res = await authService.verifyOtp({ email, otp: code });
+            await authService.verifyOtp({ email, otp: code });
 
-            if (res.data?.user) {
-                setUser(res.data.user);
+            // ✅ Clear any tokens, storage, and cookies so user is forced to log in
+            clearClientCookies();
+            try {
+                localStorage.removeItem("auth-storage");
+                useAuthStore.getState().clearUser();
+                delete api.defaults.headers.common["Authorization"];
+            } catch {
+                // Ignore storage clearance errors
             }
 
-            // ✅ sessionStorage clear করো
+            const destinationEmail = persistedEmail || email;
             sessionStorage.removeItem("verify_email");
 
-            setVerified(true);
-            toast.success("Email verified successfully!");
+            toast.success("Email verified successfully! Please log in to your account.");
+
+            const targetUrl = destinationEmail
+                ? `${ROUTES.LOGIN}?verified=true&email=${encodeURIComponent(destinationEmail)}`
+                : `${ROUTES.LOGIN}?verified=true`;
+
+            // Immediately redirect directly to the login page
+            window.location.href = targetUrl;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             const message = err?.response?.data?.message || "Invalid or expired OTP";
@@ -455,10 +495,10 @@ export default function VerifyEmailPage() {
                             ✓ Email Verified
                         </span>
                         <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-                            You&apos;re all set
+                            Email Verified!
                         </h2>
                         <p className="text-sm mb-2" style={{ color: "var(--text-muted)" }}>
-                            Your FreightAgent account is ready.
+                            Your email has been verified. Please log in to continue.
                         </p>
                         <p className="text-xs mb-8 break-all" style={{ color: "var(--text-muted)" }}>
                             {email}
@@ -467,11 +507,25 @@ export default function VerifyEmailPage() {
                         <motion.button
                             whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
                             whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
-                            onClick={() => router.push(ROUTES.DASHBOARD)}
-                            className="w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                            onClick={() => {
+                                clearClientCookies();
+                                try {
+                                    localStorage.removeItem("auth-storage");
+                                    useAuthStore.getState().clearUser();
+                                    delete api.defaults.headers.common["Authorization"];
+                                } catch {
+                                    // Ignore
+                                }
+                                const targetEmail = persistedEmail || email;
+                                const targetUrl = targetEmail
+                                    ? `${ROUTES.LOGIN}?verified=true&email=${encodeURIComponent(targetEmail)}`
+                                    : `${ROUTES.LOGIN}?verified=true`;
+                                window.location.href = targetUrl;
+                            }}
+                            className="w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 cursor-pointer"
                             style={{ background: "var(--gradient-brand)", color: "#0a0f0f" }}
                         >
-                            Go to Dashboard →
+                            Go to Login Page →
                         </motion.button>
                     </div>
 

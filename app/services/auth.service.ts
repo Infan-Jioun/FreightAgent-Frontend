@@ -5,6 +5,7 @@ import {
     IRegisterAgentPayload,
     ILoginInput,
     IVerifyOtpInput,
+    IVerifyOtpResponseData,
     IForgotPasswordInput,
     IResetPasswordInput,
     IChangePasswordInput,
@@ -110,8 +111,10 @@ export const authService = {
         return { success: true, message: "Logged out successfully" };
     },
 
-    verifyOtp: async (payload: IVerifyOtpInput) => {
-        const res = await api.post<IApiResponse<{ user: IUser }>>(
+    verifyOtp: async (
+        payload: IVerifyOtpInput
+    ): Promise<IApiResponse<IVerifyOtpResponseData>> => {
+        const res = await api.post<IApiResponse<IVerifyOtpResponseData>>(
             API.AUTH.VERIFY_OTP,
             payload
         );
@@ -186,98 +189,118 @@ export const authService = {
     },
 
     checkPhoneAvailability: async (
-        phone: string
+        phone: string,
+        altPhone?: string
     ): Promise<{ available: boolean; message?: string }> => {
         const cleanPhone = phone.trim();
-        try {
-            // Check Redis/user data via backend endpoint
-            const res = await api.post<IApiResponse<{ available?: boolean; exists?: boolean; inUse?: boolean }>>(
-                API.AUTH.CHECK_PHONE,
-                { phone: cleanPhone }
-            );
-            const data = res.data?.data;
-            let isAvailable = true;
-            if (data?.available !== undefined) {
-                isAvailable = Boolean(data.available);
-            } else if (data?.exists !== undefined) {
-                isAvailable = !data.exists;
-            } else if (data?.inUse !== undefined) {
-                isAvailable = !data.inUse;
-            }
-            return {
-                available: isAvailable,
-                message: res.data?.message,
-            };
-        } catch (err: unknown) {
-            const errObj = err as {
-                response?: {
-                    status?: number;
-                    data?: { message?: string; available?: boolean; exists?: boolean };
-                };
-            };
-            const status = errObj?.response?.status;
-            const resData = errObj?.response?.data;
-            const msg = resData?.message?.toLowerCase() || "";
+        const cleanAlt = altPhone?.trim();
 
-            // If 404 (route not found on /auth/check-phone), try fallback to /user/check-phone
-            if (status === 404) {
-                try {
-                    const fallbackRes = await api.post<IApiResponse<{ available?: boolean; exists?: boolean }>>(
-                        "/user/check-phone",
-                        { phone: cleanPhone }
-                    );
-                    const fbData = fallbackRes.data?.data;
-                    const isAvailable = fbData?.available ?? (fbData?.exists !== undefined ? !fbData.exists : true);
+        const checkSingle = async (targetPhone: string): Promise<{ available: boolean; message?: string }> => {
+            try {
+                // 1. Primary: POST /auth/check-phone
+                const res = await api.post<IApiResponse<{ available?: boolean; exists?: boolean; inUse?: boolean }>>(
+                    API.AUTH.CHECK_PHONE,
+                    { phone: targetPhone }
+                );
+                const data = res.data?.data;
+                let isAvailable = true;
+                if (data?.available !== undefined) {
+                    isAvailable = Boolean(data.available);
+                } else if (data?.exists !== undefined) {
+                    isAvailable = !data.exists;
+                } else if (data?.inUse !== undefined) {
+                    isAvailable = !data.inUse;
+                }
+                return {
+                    available: isAvailable,
+                    message: res.data?.message,
+                };
+            } catch (err: unknown) {
+                const errObj = err as {
+                    response?: {
+                        status?: number;
+                        data?: { message?: string; available?: boolean; exists?: boolean; inUse?: boolean };
+                    };
+                };
+                const status = errObj?.response?.status;
+                const resData = errObj?.response?.data;
+                const msg = (resData?.message || "").toLowerCase();
+
+                // Detect database conflict / already registered status
+                if (
+                    status === 409 ||
+                    resData?.available === false ||
+                    resData?.exists === true ||
+                    resData?.inUse === true ||
+                    msg.includes("already") ||
+                    msg.includes("exist") ||
+                    msg.includes("in use") ||
+                    msg.includes("registered") ||
+                    msg.includes("taken")
+                ) {
                     return {
-                        available: isAvailable,
-                        message: fallbackRes.data?.message,
+                        available: false,
+                        message: resData?.message || "This phone number is already registered in database user records.",
                     };
-                } catch (fbErr: unknown) {
-                    const fbErrObj = fbErr as {
-                        response?: {
-                            status?: number;
-                            data?: { message?: string; available?: boolean; exists?: boolean };
-                        };
-                    };
-                    const fbMsg = fbErrObj?.response?.data?.message?.toLowerCase() || "";
-                    if (
-                        fbErrObj?.response?.status === 409 ||
-                        fbMsg.includes("already") ||
-                        fbMsg.includes("exist") ||
-                        fbMsg.includes("in use") ||
-                        fbMsg.includes("registered") ||
-                        fbMsg.includes("taken")
-                    ) {
+                }
+
+                // 2. Secondary fallback: GET /auth/check-phone?phone=...
+                if (status === 404 || status === 405) {
+                    try {
+                        const getRes = await api.get<IApiResponse<{ available?: boolean; exists?: boolean }>>(
+                            `${API.AUTH.CHECK_PHONE}?phone=${encodeURIComponent(targetPhone)}`
+                        );
+                        const getData = getRes.data?.data;
+                        const isAvailable = getData?.available ?? (getData?.exists !== undefined ? !getData.exists : true);
                         return {
-                            available: false,
-                            message: fbErrObj?.response?.data?.message || "This mobile number is already registered in Redis user records.",
+                            available: isAvailable,
+                            message: getRes.data?.message,
                         };
+                    } catch (getErr: unknown) {
+                        const getErrObj = getErr as {
+                            response?: {
+                                status?: number;
+                                data?: { message?: string; available?: boolean; exists?: boolean };
+                            };
+                        };
+                        const getStatus = getErrObj?.response?.status;
+                        const getMsg = (getErrObj?.response?.data?.message || "").toLowerCase();
+                        if (
+                            getStatus === 409 ||
+                            getMsg.includes("already") ||
+                            getMsg.includes("exist") ||
+                            getMsg.includes("in use") ||
+                            getMsg.includes("registered") ||
+                            getMsg.includes("taken")
+                        ) {
+                            return {
+                                available: false,
+                                message: getErrObj?.response?.data?.message || "This phone number is already registered in database records.",
+                            };
+                        }
                     }
                 }
-            }
 
-            // Detect if backend returned conflict / already registered in Redis user data
-            if (
-                status === 409 ||
-                resData?.available === false ||
-                resData?.exists === true ||
-                msg.includes("already") ||
-                msg.includes("exist") ||
-                msg.includes("in use") ||
-                msg.includes("registered") ||
-                msg.includes("redis") ||
-                msg.includes("taken")
-            ) {
                 return {
-                    available: false,
-                    message: resData?.message || "This mobile number is already registered in Redis user records.",
+                    available: true,
+                    message: resData?.message,
                 };
             }
+        };
 
-            return {
-                available: true,
-                message: resData?.message,
-            };
+        const primaryResult = await checkSingle(cleanPhone);
+        if (!primaryResult.available) {
+            return primaryResult;
         }
+
+        // If primary check passed but an alternate national number was provided (e.g. 01610240096 vs +8801610240096), check altPhone too
+        if (cleanAlt && cleanAlt !== cleanPhone) {
+            const altResult = await checkSingle(cleanAlt);
+            if (!altResult.available) {
+                return altResult;
+            }
+        }
+
+        return primaryResult;
     },
 };

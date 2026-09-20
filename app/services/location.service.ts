@@ -83,10 +83,12 @@ export const locationService = {
     },
 
     // ── 2. Get All (paginated + filtered) ─────────────────
-    getAll: async (query: ILocationQuery = {}): Promise<ILocationListResponse> => {
+    getAll: async (query: ILocationQuery = {}, bypassCache = false): Promise<ILocationListResponse> => {
         const key = `list:${JSON.stringify(query)}`;
-        const cached = cache.get<ILocationListResponse>(key);
-        if (cached) return cached;
+        if (!bypassCache) {
+            const cached = cache.get<ILocationListResponse>(key);
+            if (cached) return cached;
+        }
 
         try {
             const params = new URLSearchParams();
@@ -96,9 +98,9 @@ export const locationService = {
                 }
             });
 
-            const res = await api.get<ILocationListResponse>(
-                `${API.LOCATION.GET_ALL}?${params.toString()}`
-            );
+            const qs = params.toString();
+            const url = qs ? `${API.LOCATION.GET_ALL}?${qs}` : API.LOCATION.GET_ALL;
+            const res = await api.get<ILocationListResponse>(url);
             cache.set(key, res.data);
             return res.data;
         } catch (err: unknown) {
@@ -107,12 +109,14 @@ export const locationService = {
     },
 
     // ── 3. Search (autocomplete) ───────────────────────────
-    search: async (q: string, limit = 10): Promise<ILocationOption[]> => {
+    search: async (q: string, limit = 10, bypassCache = false): Promise<ILocationOption[]> => {
         if (!q || q.trim().length < 2) return [];
 
         const key = `search:${q.trim().toLowerCase()}:${limit}`;
-        const cached = cache.get<ILocationOption[]>(key);
-        if (cached) return cached;
+        if (!bypassCache) {
+            const cached = cache.get<ILocationOption[]>(key);
+            if (cached) return cached;
+        }
 
         try {
             const res = await api.get<ILocationSearchResponse>(
@@ -233,5 +237,10 @@ export const locationService = {
         } catch (err: unknown) {
             throw AppError.fromAxios(err);
         }
+    },
+
+    // ── 11. Invalidate Cache ──────────────────────────────
+    invalidateCache: (): void => {
+        cache.invalidateLists();
     },
 };

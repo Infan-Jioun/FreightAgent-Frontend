@@ -27,6 +27,23 @@ export default function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
     const searchParams = useSearchParams();
 
+    const {
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors, isSubmitting },
+    } = useForm<LoginInput>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: searchParams.get("email") || "",
+            password: "",
+        },
+    });
+
+    const email = watch("email", "");
+    const password = watch("password", "");
+
     // Check for error parameters in URL (e.g. from Google OAuth)
     const [isGoogleLimit, setIsGoogleLimit] = useState(false);
     const [googleEmail, setGoogleEmail] = useState<string | null>(null);
@@ -35,6 +52,17 @@ export default function LoginForm() {
         const error = searchParams.get("error") || "";
         const message = searchParams.get("message") || "";
         const emailParam = searchParams.get("email");
+        const verifiedParam = searchParams.get("verified");
+
+        if (emailParam) {
+            setValue("email", emailParam);
+        }
+
+        if (verifiedParam === "true") {
+            toast.success("Email verified successfully! Please enter your password to log in.", {
+                id: "verified-login-toast",
+            });
+        }
 
         const combined = `${error} ${message}`.toLowerCase();
 
@@ -67,7 +95,7 @@ export default function LoginForm() {
             }
             window.history.replaceState({}, "", "/login");
         }
-    }, [searchParams]);
+    }, [searchParams, setValue]);
 
     // ── success-beat state ──
     const [showSuccess, setShowSuccess] = useState(false);
@@ -84,18 +112,6 @@ export default function LoginForm() {
         formatted: retryFormatted,
         start: startCountdown,
     } = useCountdown("login");
-
-    const {
-        register,
-        handleSubmit,
-        watch,
-        formState: { errors, isSubmitting },
-    } = useForm<LoginInput>({
-        resolver: zodResolver(loginSchema),
-    });
-
-    const email = watch("email", "");
-    const password = watch("password", "");
 
     // Normalizes any thrown value into a readable message + status,
     // so a non-axios error (network failure, thrown string, etc.) can

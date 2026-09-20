@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -19,28 +19,80 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { shipmentService } from "@/app/services/shipment.service";
+import { useLocationStore } from "@/app/store/locationStore";
+import { LocationSelect } from "@/components/ui/LocationSelect";
+import type { ILocation, ILocationListResponse } from "@/app/types/location.types";
 import { ROUTES } from "@/app/constants/routes";
 import { AppError } from "@/app/errorHelper/appError";
+import api from "@/app/lib/api";
+import { API } from "@/app/constants/api";
 
-const createShipmentSchema = z.object({
-    origin: z.string().min(2, "Origin location is required (min 2 characters)"),
-    destination: z.string().min(2, "Destination location is required (min 2 characters)"),
-    weight: z
-        .number({ error: "Weight must be a valid number" })
-        .positive("Weight must be greater than 0 kg"),
-    description: z.string().optional(),
-    estimatedDate: z.string().optional(),
-});
+const createShipmentSchema = z
+    .object({
+        origin: z.string().min(2, "Origin location is required"),
+        destination: z.string().min(2, "Destination location is required"),
+        weight: z
+            .number({ error: "Weight must be a valid number" })
+            .positive("Weight must be greater than 0 kg"),
+        description: z.string().optional(),
+        estimatedDate: z.string().optional(),
+    })
+    .refine((data) => data.origin !== data.destination, {
+        message: "Origin and destination cannot be the same location",
+        path: ["destination"],
+    });
 
 type CreateShipmentFormValues = z.infer<typeof createShipmentSchema>;
 
 export default function NewShipmentPage() {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
+    const { fetchLocations, locations: storeLocations, isLoading: loadingLocations } = useLocationStore();
+    const [locations, setLocations] = useState<ILocation[]>([]);
+
+    useEffect(() => {
+        let isCancelled = false;
+        const loadLocations = async () => {
+            try {
+                const res = await fetchLocations({
+                    page: 1,
+                    limit: 500,
+                    isDeleted: false,
+                    sortBy: "name",
+                    sortOrder: "asc",
+                }, true);
+
+                if (isCancelled) return;
+                const rawList = res?.data ?? storeLocations;
+                const activeList = rawList.filter((l) => !l.isBlocked && !l.isDeleted);
+                if (activeList.length > 0) {
+                    const uniqueMap = new Map<string, ILocation>();
+                    activeList.forEach((loc) => {
+                        const key = (loc.code || loc.id || "").toUpperCase();
+                        if (key && !uniqueMap.has(key)) {
+                            uniqueMap.set(key, loc);
+                        }
+                    });
+                    const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+                    setLocations(uniqueList);
+                }
+            } catch (err) {
+                console.error("Failed to fetch locations from store:", err);
+            }
+        };
+
+        loadLocations();
+        return () => {
+            isCancelled = true;
+        };
+    }, [fetchLocations]);
 
     const {
         register,
         handleSubmit,
+        watch,
+        setValue,
+        trigger,
         formState: { errors },
     } = useForm<CreateShipmentFormValues>({
         resolver: zodResolver(createShipmentSchema),
@@ -52,6 +104,16 @@ export default function NewShipmentPage() {
             estimatedDate: "",
         },
     });
+
+    const watchOrigin = watch("origin");
+    const watchDestination = watch("destination");
+
+    const handleSwapLocations = () => {
+        if (!watchOrigin && !watchDestination) return;
+        const temp = watchOrigin;
+        setValue("origin", watchDestination, { shouldValidate: true });
+        setValue("destination", temp, { shouldValidate: true });
+    };
 
     const onSubmit = async (data: CreateShipmentFormValues) => {
         setSubmitting(true);
@@ -113,48 +175,76 @@ export default function NewShipmentPage() {
             {/* Booking Form Card */}
             <div className="p-6 sm:p-8 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    {/* Origin & Destination Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Origin */}
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-[#e0faf5] flex items-center gap-1.5">
-                                <MapPin size={13} className="text-[#00c9a7]" />
-                                Origin City / Facility <span className="text-[#f43f5e]">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                {...register("origin")}
-                                placeholder="e.g. Dhaka Port, Bangladesh"
-                                className={`w-full px-4 py-2.5 rounded-xl bg-[#0a1a1a] border text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/40 focus:outline-hidden focus:ring-3 transition-all ${
-                                    errors.origin
-                                        ? "border-[#e11d48] focus:border-[#e11d48] focus:ring-[#e11d48]/20"
-                                        : "border-[#1a4a4a] focus:border-[#00c9a7] focus:ring-[#00c9a7]/20"
-                                }`}
-                            />
-                            {errors.origin && (
-                                <p className="text-[11px] text-[#f43f5e] font-medium">{errors.origin.message}</p>
+                    {/* Origin & Destination Section */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-[#e0faf5] uppercase tracking-wider">
+                                Shipping Route & Facilities
+                            </span>
+                            {(watchOrigin || watchDestination) && (
+                                <button
+                                    type="button"
+                                    onClick={handleSwapLocations}
+                                    className="text-[11px] font-semibold text-[#00c9a7] hover:text-[#00e5c0] hover:underline flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                    <span>Swap Route</span>
+                                </button>
                             )}
                         </div>
 
-                        {/* Destination */}
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-[#e0faf5] flex items-center gap-1.5">
-                                <MapPin size={13} className="text-orange-400" />
-                                Destination City / Facility <span className="text-[#f43f5e]">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                {...register("destination")}
-                                placeholder="e.g. Chittagong Depot, Bangladesh"
-                                className={`w-full px-4 py-2.5 rounded-xl bg-[#0a1a1a] border text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/40 focus:outline-hidden focus:ring-3 transition-all ${
-                                    errors.destination
-                                        ? "border-[#e11d48] focus:border-[#e11d48] focus:ring-[#e11d48]/20"
-                                        : "border-[#1a4a4a] focus:border-[#00c9a7] focus:ring-[#00c9a7]/20"
-                                }`}
-                            />
-                            {errors.destination && (
-                                <p className="text-[11px] text-[#f43f5e] font-medium">{errors.destination.message}</p>
-                            )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Origin */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-[#e0faf5] flex items-center gap-1.5">
+                                    <MapPin size={13} className="text-[#00c9a7]" />
+                                    Origin Port / Facility <span className="text-[#f43f5e]">*</span>
+                                </label>
+                                <LocationSelect
+                                    name="origin"
+                                    value={watchOrigin}
+                                    onChange={(val) => setValue("origin", val, { shouldValidate: true })}
+                                    onBlur={() => trigger("origin")}
+                                    locations={locations}
+                                    loading={loadingLocations}
+                                    placeholder="Search & select origin facility..."
+                                    error={errors.origin?.message}
+                                    className={
+                                        errors.origin
+                                            ? "border-[#e11d48] focus:border-[#e11d48] focus:ring-[#e11d48]/20"
+                                            : "border-[#1a4a4a] focus:border-[#00c9a7] focus:ring-[#00c9a7]/20"
+                                    }
+                                />
+                                {errors.origin && (
+                                    <p className="text-[11px] text-[#f43f5e] font-medium">{errors.origin.message}</p>
+                                )}
+                            </div>
+
+                            {/* Destination */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-[#e0faf5] flex items-center gap-1.5">
+                                    <MapPin size={13} className="text-orange-400" />
+                                    Destination Port / Facility <span className="text-[#f43f5e]">*</span>
+                                </label>
+                                <LocationSelect
+                                    name="destination"
+                                    value={watchDestination}
+                                    onChange={(val) => setValue("destination", val, { shouldValidate: true })}
+                                    onBlur={() => trigger("destination")}
+                                    locations={locations}
+                                    loading={loadingLocations}
+                                    placeholder="Search & select destination facility..."
+                                    excludeValue={watchOrigin}
+                                    error={errors.destination?.message}
+                                    className={
+                                        errors.destination
+                                            ? "border-[#e11d48] focus:border-[#e11d48] focus:ring-[#e11d48]/20"
+                                            : "border-[#1a4a4a] focus:border-[#00c9a7] focus:ring-[#00c9a7]/20"
+                                    }
+                                />
+                                {errors.destination && (
+                                    <p className="text-[11px] text-[#f43f5e] font-medium">{errors.destination.message}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -171,11 +261,10 @@ export default function NewShipmentPage() {
                                 step="any"
                                 {...register("weight", { valueAsNumber: true })}
                                 placeholder="e.g. 25.5"
-                                className={`w-full px-4 py-2.5 rounded-xl bg-[#0a1a1a] border text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/40 focus:outline-hidden focus:ring-3 transition-all ${
-                                    errors.weight
+                                className={`w-full px-4 py-2.5 rounded-xl bg-[#0a1a1a] border text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/40 focus:outline-hidden focus:ring-3 transition-all ${errors.weight
                                         ? "border-[#e11d48] focus:border-[#e11d48] focus:ring-[#e11d48]/20"
                                         : "border-[#1a4a4a] focus:border-[#00c9a7] focus:ring-[#00c9a7]/20"
-                                }`}
+                                    }`}
                             />
                             {errors.weight && (
                                 <p className="text-[11px] text-[#f43f5e] font-medium">{errors.weight.message}</p>

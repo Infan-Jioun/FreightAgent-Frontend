@@ -1,2 +1,2 @@
 // app/(auth)/register/agent/page.tsx
-export { default } from "../../register-agent/page";
+export { default, metadata } from "../../register-agent/page";

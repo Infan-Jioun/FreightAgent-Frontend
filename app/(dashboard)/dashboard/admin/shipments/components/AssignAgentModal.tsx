@@ -191,7 +191,7 @@ export function AssignAgentModal({
                             value={assignNote}
                             onChange={(e) => setAssignNote(e.target.value)}
                             placeholder="e.g. Assigned for Mirpur route delivery; handle with fragile package care."
-                            className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] resize-none transition-colors"
+                            className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs placeholder:text-[#3a6b66] focus:outline-hidden resize-none transition-colors"
                         />
                     </div>
 
@@ -206,7 +206,7 @@ export function AssignAgentModal({
                         <button
                             type="submit"
                             disabled={isAssigning || !selectedAgentId || availableAgents.length === 0}
-                            className="px-4 py-2 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-xs font-bold text-[#0a0f0f] transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                            className="px-4 py-2 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-xs font-bold text-[#0a0f0f] transition-colors flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {isAssigning && <Loader2 size={13} className="animate-spin" />}
                             <span>{isAssigning ? "Assigning Agent..." : "Confirm Assignment"}</span>

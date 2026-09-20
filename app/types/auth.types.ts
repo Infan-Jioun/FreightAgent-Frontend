@@ -22,7 +22,8 @@ export interface IRegisterInput {
     corridors?: string[];
 }
 
-export interface IRegisterAgentPayload extends IRegisterInput {
+export interface IRegisterAgentPayload extends Omit<IRegisterInput, "phone"> {
+    phone: string;
     assignedArea?: string;
     corridors?: string[];
 }
@@ -44,6 +45,13 @@ export interface ILoginInput {
 export interface IVerifyOtpInput {
     email: string;
     otp: string;
+}
+
+export interface IVerifyOtpResponseData {
+    user: IUser;
+    accessToken?: string;
+    refreshToken?: string;
+    token?: string;
 }
 
 export interface IForgotPasswordInput {

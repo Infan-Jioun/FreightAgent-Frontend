@@ -8,6 +8,7 @@ export type LocationType =
 
 // ─── Core Location ────────────────────────────────────────
 export interface ILocation {
+    [x: string]: any;
     id: string;
     name: string;
     code: string;

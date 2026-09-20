@@ -23,7 +23,10 @@ export const registerAgentSchema = z.object({
         .max(50, "Name too long"),
     email: z.string().email("Invalid email address"),
     password: passwordSchema,
-    phone: z.string().optional(),
+    phone: z
+        .string()
+        .min(7, "Phone number is required (min 7 digits)")
+        .max(20, "Phone number cannot exceed 20 digits"),
     assignedArea: z.string().optional(),
     corridors: z.array(z.string()).min(1, "Please select at least one operational corridor or port"),
 });
