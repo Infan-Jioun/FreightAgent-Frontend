@@ -1,15 +1,16 @@
 // app/(auth)/google/success/GoogleSuccessContent.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/app/services/auth.service";
 import { useAuthStore } from "@/app/store/authStore";
+import { useLocationStore } from "@/app/store/locationStore";
 import { toast } from "sonner";
 import api from "@/app/lib/api";
 import { API } from "@/app/constants/api";
-import { MAJOR_PORTS, type PortOption } from "@/app/constants/destinations";
 import type { IUser } from "@/app/types/auth.types";
+import type { ILocation } from "@/app/types/location.types";
 import {
     Compass,
     Search,
@@ -20,6 +21,19 @@ import {
     ArrowRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+/** Derive a flag emoji from an ISO 3166-1 alpha-2 country code */
+function countryFlag(countryCode: string): string {
+    const code = (countryCode || "").toUpperCase().trim();
+    if (code.length !== 2) return "🚢";
+    try {
+        return String.fromCodePoint(
+            ...code.split("").map((c) => 0x1f1e0 - 65 + c.charCodeAt(0))
+        );
+    } catch {
+        return "🚢";
+    }
+}
 
 const REGION_FILTERS = [
     "All",
@@ -34,6 +48,7 @@ export default function GoogleSuccessContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { setUser } = useAuthStore();
+    const { fetchLocations, locations: storeLocations, isLoading: locationsLoading } = useLocationStore();
 
     // Agent corridor configuration modal state
     const [showAgentCorridorModal, setShowAgentCorridorModal] = useState(false);
@@ -44,6 +59,37 @@ export default function GoogleSuccessContent() {
 
     // Failure / Error state
     const [authFailed, setAuthFailed] = useState<string | null>(null);
+
+    // Load locations from store when the agent corridor modal is shown
+    const loadLocations = useCallback(async () => {
+        try {
+            const res = await fetchLocations({ page: 1, limit: 200 }, true);
+            if (res?.meta?.total && res.meta.total > 200) {
+                await fetchLocations({ page: 1, limit: Math.min(res.meta.total, 500) }, true);
+            }
+        } catch {
+            // Soft fail — UI shows empty state gracefully
+        }
+    }, [fetchLocations]);
+
+    useEffect(() => {
+        if (showAgentCorridorModal) {
+            loadLocations();
+        }
+    }, [showAgentCorridorModal, loadLocations]);
+
+    // Derive the active, deduplicated location list from the store
+    const locations = useMemo<ILocation[]>(() => {
+        const raw = Array.isArray(storeLocations) ? storeLocations : [];
+        const active = raw.filter((l) => l && l.isBlocked !== true && l.isDeleted !== true);
+        const seen = new Set<string>();
+        return active.filter((l) => {
+            const key = l.code?.toUpperCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    }, [storeLocations]);
 
     useEffect(() => {
         let cancelled = false;
@@ -316,30 +362,34 @@ export default function GoogleSuccessContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Filter seaports for Agent Corridor Modal
+    // Filter locations for Agent Corridor Modal
     const filteredPorts = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
-        return MAJOR_PORTS.filter((port: PortOption) => {
+        return locations.filter((loc: ILocation) => {
+            const locRegion = (loc.region || "").toLowerCase();
+            const locCountry = (loc.country || "").toLowerCase();
             const matchesRegion =
                 regionFilter === "All" ||
-                port.region.toLowerCase() === regionFilter.toLowerCase() ||
-                (regionFilter === "Bangladesh" && port.country === "Bangladesh");
+                locRegion === regionFilter.toLowerCase() ||
+                locRegion.includes(regionFilter.toLowerCase()) ||
+                (regionFilter === "Bangladesh" && locCountry === "bangladesh");
 
             const matchesSearch =
                 !query ||
-                port.name.toLowerCase().includes(query) ||
-                port.code.toLowerCase().includes(query) ||
-                port.country.toLowerCase().includes(query) ||
-                port.region.toLowerCase().includes(query);
+                loc.name.toLowerCase().includes(query) ||
+                loc.code.toLowerCase().includes(query) ||
+                locCountry.includes(query) ||
+                locRegion.includes(query) ||
+                (loc.city || "").toLowerCase().includes(query);
 
             return matchesRegion && matchesSearch;
         });
-    }, [regionFilter, searchQuery]);
+    }, [locations, regionFilter, searchQuery]);
 
     const isAllFilteredSelected = useMemo(() => {
         return (
             filteredPorts.length > 0 &&
-            filteredPorts.every((p) => selectedCorridors.includes(p.code))
+            filteredPorts.every((loc) => selectedCorridors.includes(loc.code))
         );
     }, [filteredPorts, selectedCorridors]);
 
@@ -372,17 +422,17 @@ export default function GoogleSuccessContent() {
 
     const handleConfirmCorridorsAndAccess = async () => {
         if (selectedCorridors.length === 0) {
-            toast.error("Please select at least one operational seaport corridor before accessing the dashboard.");
+            toast.error("Please select at least one operational location corridor before accessing the dashboard.");
             return;
         }
 
         setIsSavingCorridors(true);
         try {
-            const selectedPortNames = selectedCorridors.map((code) => {
-                const port = MAJOR_PORTS.find((p) => p.code === code);
-                return port ? `${port.name} (${port.code})` : code;
+            const selectedNames = selectedCorridors.map((code) => {
+                const loc = locations.find((l) => l.code === code);
+                return loc ? `${loc.name} (${loc.code})` : code;
             });
-            const areaString = selectedPortNames.join(", ");
+            const areaString = selectedNames.join(", ");
 
             // Update user profile with operational area
             try {
@@ -548,15 +598,16 @@ export default function GoogleSuccessContent() {
                                 Selected ({selectedCorridors.length}):
                             </span>
                             {selectedCorridors.map((code) => {
-                                const p = MAJOR_PORTS.find((item) => item.code === code);
+                                const loc = locations.find((l) => l.code === code);
+                                const flag = loc ? countryFlag(loc.countryCode) : "🚢";
                                 return (
                                     <span
                                         key={code}
                                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-teal-500/20 text-teal-200 border border-teal-500/40"
                                     >
-                                        <span className="text-xs select-none">{p?.flag || "⚓"}</span>
+                                        <span className="text-xs select-none">{flag}</span>
                                         <span className="font-mono text-[10px] text-teal-300 font-bold">{code}</span>
-                                        <span>{p ? p.name.replace("Port of ", "") : code}</span>
+                                        <span>{loc ? loc.name : code}</span>
                                         <button
                                             type="button"
                                             onClick={() => removeCorridor(code)}
@@ -579,7 +630,12 @@ export default function GoogleSuccessContent() {
 
                     {/* Seaports Grid (Fixed container height with high-visibility custom draggable scrollbar) */}
                     <div className="h-[340px] overflow-y-auto pr-2 custom-modal-scrollbar">
-                        {filteredPorts.length === 0 ? (
+                        {locationsLoading ? (
+                            <div className="h-full flex flex-col items-center justify-center gap-3 text-center">
+                                <Loader2 size={24} className="animate-spin text-teal-400" />
+                                <p className="text-xs text-gray-400">Loading shipping hubs...</p>
+                            </div>
+                        ) : filteredPorts.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center p-6 rounded-xl border border-gray-800/60 bg-black/20">
                                 <Search size={28} className="text-gray-600 mb-2" />
                                 <p className="text-xs text-gray-300 font-medium">
@@ -598,13 +654,14 @@ export default function GoogleSuccessContent() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                {filteredPorts.map((port: PortOption) => {
-                                    const isSelected = selectedCorridors.includes(port.code);
+                                {filteredPorts.map((loc: ILocation) => {
+                                    const isSelected = selectedCorridors.includes(loc.code);
+                                    const flag = countryFlag(loc.countryCode);
                                     return (
                                         <button
-                                            key={port.code}
+                                            key={loc.code}
                                             type="button"
-                                            onClick={() => toggleCorridor(port.code)}
+                                            onClick={() => toggleCorridor(loc.code)}
                                             className={`group relative flex items-center justify-between p-3 rounded-xl border text-left transition-all cursor-pointer ${
                                                 isSelected
                                                     ? "bg-teal-500/15 border-teal-400 text-teal-100 shadow-xs shadow-teal-500/15"
@@ -615,22 +672,22 @@ export default function GoogleSuccessContent() {
                                                 <span
                                                     className="text-xl shrink-0 select-none leading-none p-1 rounded-lg bg-black/40 border border-gray-800"
                                                     role="img"
-                                                    aria-label={port.country}
+                                                    aria-label={loc.country}
                                                 >
-                                                    {port.flag}
+                                                    {flag}
                                                 </span>
                                                 <div className="flex flex-col min-w-0">
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-xs font-bold text-gray-100 truncate group-hover:text-white">
-                                                            {port.name}
+                                                            {loc.name}
                                                         </span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-0.5">
                                                         <span className="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded bg-black/60 text-teal-300 border border-teal-500/30">
-                                                            {port.code}
+                                                            {loc.code}
                                                         </span>
                                                         <span className="text-[11px] text-gray-400 truncate">
-                                                            {port.country} · {port.region}
+                                                            {loc.city ? `${loc.city}, ` : ""}{loc.country} · {loc.region}
                                                         </span>
                                                     </div>
                                                 </div>
