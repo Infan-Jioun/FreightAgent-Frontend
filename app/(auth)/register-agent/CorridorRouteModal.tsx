@@ -52,31 +52,65 @@ export function CorridorRouteModal({
     maxRoutes = 10,
     isPendingGoogleAuth = false,
     onApplyGoogleAuth,
+    onRefreshLocations,
 }: CorridorRouteModalProps) {
     // Current route building state
     const [activeTarget, setActiveTarget] = useState<"origin" | "destination">("origin");
     const [stagedOrigin, setStagedOrigin] = useState<ILocation | null>(null);
     const [stagedDestination, setStagedDestination] = useState<ILocation | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [typeFilter, setTypeFilter] = useState<"ALL" | "SEA_PORT" | "AIR_PORT" | "INLAND_PORT">("ALL");
 
-    // Filter available locations by user search
+    // Auto-fetch locations when modal opens if locations list is empty
+    React.useEffect(() => {
+        if (isOpen && (!locations || locations.length === 0)) {
+            onRefreshLocations?.();
+        }
+    }, [isOpen, locations, onRefreshLocations]);
+
+    // Counts per facility category
+    const categoryCounts = useMemo(() => {
+        let sea = 0;
+        let air = 0;
+        let inland = 0;
+        (locations || []).forEach((loc) => {
+            if (loc.type === "AIR_PORT") air++;
+            else if (loc.type === "INLAND_PORT" || loc.type === "ROAD_HUB" || loc.type === "RAIL_TERMINAL") inland++;
+            else sea++;
+        });
+        return { all: (locations || []).length, sea, air, inland };
+    }, [locations]);
+
+    // Filter available locations by user search and facility type
     const filteredLocations = useMemo(() => {
         if (!locations || locations.length === 0) return [];
         const q = searchQuery.trim().toLowerCase();
-        if (!q) return locations;
         return locations.filter((loc) => {
+            if (typeFilter === "SEA_PORT" && loc.type !== "SEA_PORT") return false;
+            if (typeFilter === "AIR_PORT" && loc.type !== "AIR_PORT") return false;
+            if (
+                typeFilter === "INLAND_PORT" &&
+                loc.type !== "INLAND_PORT" &&
+                loc.type !== "ROAD_HUB" &&
+                loc.type !== "RAIL_TERMINAL"
+            ) {
+                return false;
+            }
+            if (!q) return true;
             const name = (loc.name || "").toLowerCase();
             const code = (loc.code || "").toLowerCase();
             const city = (loc.city || "").toLowerCase();
             const country = (loc.country || "").toLowerCase();
+            const region = (loc.region || "").toLowerCase();
             return (
                 name.includes(q) ||
                 code.includes(q) ||
                 city.includes(q) ||
-                country.includes(q)
+                country.includes(q) ||
+                region.includes(q)
             );
         });
-    }, [locations, searchQuery]);
+    }, [locations, searchQuery, typeFilter]);
 
     if (!isOpen) return null;
 
@@ -286,43 +320,127 @@ export function CorridorRouteModal({
 
                 {/* 3. Search & Location Hubs Catalog (Expands to fill exact height, NEVER shrinks on search) */}
                 <div className="p-3.5 flex-1 min-h-0 flex flex-col overflow-hidden">
-                    {/* Search Bar (Fixed Height) */}
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#112a2a] border border-[#1a4a4a] mb-2.5 shrink-0">
-                        <Search size={14} className="text-[#7ecfc4] shrink-0" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={`Search ${locations.length} hubs (e.g. Chittagong, Singapore, Dubai, Rotterdam)...`}
-                            className="flex-1 bg-transparent text-xs outline-hidden text-gray-100 placeholder:text-gray-500"
-                        />
-                        {searchQuery && (
-                            <button
-                                type="button"
-                                onClick={() => setSearchQuery("")}
-                                className="text-gray-400 hover:text-white cursor-pointer"
-                            >
-                                <X size={13} />
-                            </button>
-                        )}
+                    {/* Search & Filter Bar */}
+                    <div className="flex flex-col gap-2 mb-2.5 shrink-0">
+                        {/* Search Input */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#112a2a] border border-[#1a4a4a]">
+                            <Search size={14} className="text-[#7ecfc4] shrink-0" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder={`Search ${locations.length > 0 ? `${locations.length} hubs` : "trade hubs"} (e.g. Chittagong, Singapore, Dubai, Rotterdam)...`}
+                                className="flex-1 bg-transparent text-xs outline-hidden text-gray-100 placeholder:text-gray-500"
+                            />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery("")}
+                                    className="text-gray-400 hover:text-white cursor-pointer"
+                                >
+                                    <X size={13} />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Facility Quick Filter Tabs & Counter */}
+                        <div className="flex items-center justify-between gap-1.5 overflow-x-auto pb-0.5 custom-modal-scrollbar">
+                            <div className="flex items-center gap-1.5 text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setTypeFilter("ALL")}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                                        typeFilter === "ALL"
+                                            ? "bg-[#00c9a7] text-[#0a1818] font-bold shadow-xs"
+                                            : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
+                                    }`}
+                                >
+                                    All ({categoryCounts.all})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTypeFilter("SEA_PORT")}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        typeFilter === "SEA_PORT"
+                                            ? "bg-[#00c9a7] text-[#0a1818] font-bold shadow-xs"
+                                            : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
+                                    }`}
+                                >
+                                    <Ship size={11} />
+                                    <span>Seaports ({categoryCounts.sea})</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTypeFilter("AIR_PORT")}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        typeFilter === "AIR_PORT"
+                                            ? "bg-[#00b4d8] text-[#0a1818] font-bold shadow-xs"
+                                            : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
+                                    }`}
+                                >
+                                    <Plane size={11} />
+                                    <span>Airports ({categoryCounts.air})</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setTypeFilter("INLAND_PORT")}
+                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                        typeFilter === "INLAND_PORT"
+                                            ? "bg-[#f59e0b] text-[#0a1818] font-bold shadow-xs"
+                                            : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
+                                    }`}
+                                >
+                                    <Warehouse size={11} />
+                                    <span>Inland ({categoryCounts.inland})</span>
+                                </button>
+                            </div>
+
+                            <span className="text-[10px] font-mono text-[#7ecfc4]/70 shrink-0 hidden sm:inline-block">
+                                {filteredLocations.length} hubs visible
+                            </span>
+                        </div>
                     </div>
 
                     {/* Locations Grid - Scrollable area that maintains exact locked height */}
                     <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1.5 custom-modal-scrollbar">
-                        {loadingLocations ? (
-                            <div className="h-full flex items-center justify-center text-xs text-[#7ecfc4]">
-                                Loading shipping hubs...
+                        {/* High-fidelity Skeleton Loader when loading or waiting for hubs */}
+                        {loadingLocations || (locations.length === 0 && !searchQuery) ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {Array.from({ length: 8 }).map((_, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="p-2.5 rounded-xl border border-[#1a4a4a]/50 bg-[#0c1a1a]/90 flex items-center justify-between gap-2 animate-pulse"
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                            <div className="w-7 h-7 rounded-lg bg-[#1a4a4a]/60 shrink-0" />
+                                            <div className="space-y-1.5 flex-1 min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-12 h-3.5 rounded-sm bg-[#1a4a4a]/80" />
+                                                    <div className="w-16 h-3 rounded-sm bg-[#1a4a4a]/40" />
+                                                </div>
+                                                <div className="w-28 h-3 rounded-sm bg-[#1a4a4a]/30" />
+                                            </div>
+                                        </div>
+                                        <div className="w-16 h-5.5 rounded-md bg-[#1a4a4a]/50 shrink-0" />
+                                    </div>
+                                ))}
                             </div>
                         ) : filteredLocations.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-xs text-gray-400 py-12">
+                            <div className="h-full flex flex-col items-center justify-center text-xs text-gray-400 py-10 text-center">
                                 <Search size={22} className="text-gray-600 mb-2" />
-                                <p>No hubs match &quot;{searchQuery}&quot;.</p>
+                                <p className="font-semibold text-gray-200">No hubs match your search or filter</p>
+                                <p className="text-[11px] text-gray-500 mt-1 max-w-xs">
+                                    {searchQuery ? `No hubs match "${searchQuery}".` : "Try selecting a different facility category filter."}
+                                </p>
                                 <button
                                     type="button"
-                                    onClick={() => setSearchQuery("")}
-                                    className="mt-2 text-[#00e5c0] underline text-xs cursor-pointer"
+                                    onClick={() => {
+                                        setSearchQuery("");
+                                        setTypeFilter("ALL");
+                                    }}
+                                    className="mt-3 px-3.5 py-1.5 rounded-lg bg-[#112a2a] hover:bg-[#1a4a4a] text-[#00e5c0] border border-[#1a4a4a] text-xs font-semibold cursor-pointer transition-colors"
                                 >
-                                    Clear search
+                                    Reset Filters
                                 </button>
                             </div>
                         ) : (

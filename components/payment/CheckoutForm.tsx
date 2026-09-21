@@ -8,6 +8,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { Loader2, ShieldCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
+import { paymentService } from "@/app/services/payment.service";
 
 interface CheckoutFormProps {
     shipmentId: string;
@@ -18,6 +19,7 @@ interface CheckoutFormProps {
 }
 
 export function CheckoutForm({
+    shipmentId,
     trackingId,
     amountUSD,
     onSuccess,
@@ -52,9 +54,20 @@ export function CheckoutForm({
                 setErrorMessage(message);
                 toast.error(message);
             } else if (paymentIntent && paymentIntent.status === "succeeded") {
+                // Call verification endpoint to immediately set status = PAID and generate invoiceUrl
+                try {
+                    await paymentService.verifyPaymentStatus(shipmentId);
+                } catch {
+                    // Fallback log if webhook handles it asynchronously
+                }
                 toast.success(`Payment of $${amountUSD.toFixed(2)} USD completed successfully!`);
                 onSuccess();
             } else if (paymentIntent && paymentIntent.status === "processing") {
+                try {
+                    await paymentService.verifyPaymentStatus(shipmentId);
+                } catch {
+                    // Ignore background processing error
+                }
                 toast.info("Payment is currently processing. Your invoice will update shortly.");
                 onSuccess();
             } else {

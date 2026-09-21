@@ -19,6 +19,8 @@ import {
     Shield,
     CheckCircle2,
     Archive,
+    Wallet,
+    Landmark,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -55,15 +57,17 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                 return [
                     { label: "Overview", href: ROUTES.DASHBOARD_ADMIN, icon: Home },
                     { label: "All Shipments", href: ROUTES.DASHBOARD_ADMIN_SHIPMENTS, icon: Package },
+                    { label: "Financial Analytics", href: ROUTES.DASHBOARD_ADMIN_FINANCES, icon: Landmark },
                     { label: "User Management", href: ROUTES.DASHBOARD_ADMIN_USERS, icon: Users },
                     { label: "Freight Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },
-                    { label: "Profile", href: ROUTES.PROFILE, icon: User },
                     { label: "Locations", href: ROUTES.DASHBOARD_ADMIN_LOCATIONS, icon: Archive },
+                    { label: "Profile", href: ROUTES.PROFILE, icon: User },
                 ];
             case "AGENT":
                 return [
                     { label: "Dispatch Hub", href: ROUTES.DASHBOARD_AGENT, icon: Home },
                     { label: "Assigned Shipments", href: ROUTES.DASHBOARD_AGENT_SHIPMENTS, icon: Truck },
+                    { label: "Earnings & Wallet", href: ROUTES.DASHBOARD_AGENT_EARNINGS, icon: Wallet },
                     { label: "Freight Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },
                     { label: "Profile", href: ROUTES.PROFILE, icon: User },
                 ];

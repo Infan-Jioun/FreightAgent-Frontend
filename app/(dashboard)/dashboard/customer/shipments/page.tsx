@@ -13,6 +13,8 @@ import {
     UserCheck,
     Phone,
     CreditCard,
+    Eye,
+    FileText,
 } from "lucide-react";
 import { shipmentService } from "@/app/services/shipment.service";
 import { paymentService } from "@/app/services/payment.service";
@@ -27,6 +29,7 @@ import { AppError } from "@/app/errorHelper/appError";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { useSocketEvent } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
+import { CustomerShipmentDetailsModal } from "./components/CustomerShipmentDetailsModal";
 
 const STATUS_FILTERS: { label: string; value: ShipmentStatus | "ALL" }[] = [
     { label: "All Statuses", value: "ALL" },
@@ -46,6 +49,9 @@ export default function CustomerShipmentsPage() {
     const [statusFilter, setStatusFilter] = useState<ShipmentStatus | "ALL">("ALL");
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 400);
+
+    // Consignment Details Modal State
+    const [detailsModalShipment, setDetailsModalShipment] = useState<IShipment | null>(null);
 
     // Stripe Payment Modal State
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -228,107 +234,122 @@ export default function CustomerShipmentsPage() {
                 ) : (
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>Tracking ID</TableHead>
-                                <TableHead>Origin</TableHead>
-                                <TableHead>Destination</TableHead>
-                                <TableHead>Assigned Road Agent</TableHead>
-                                <TableHead>Weight</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Payment</TableHead>
-                                <TableHead>Booking Date</TableHead>
-                                <TableHead className="text-right">Action</TableHead>
+                            <TableRow className="border-b border-[#1a4a4a] bg-[#0a1a1a]/50 text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider">
+                                <TableHead className="py-3.5 px-4">Tracking Waybill</TableHead>
+                                <TableHead className="py-3.5 px-4">Route Corridor</TableHead>
+                                <TableHead className="py-3.5 px-4">Status</TableHead>
+                                <TableHead className="py-3.5 px-4">Payment</TableHead>
+                                <TableHead className="py-3.5 px-4 text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
-                        <TableBody>
+                        <TableBody className="divide-y divide-[#1a4a4a]/40">
                             {shipments.map((s) => (
-                                <TableRow key={s.id}>
-                                    <TableCell className="font-mono font-bold text-[#00e5c0]">
-                                        {s.trackingId}
-                                    </TableCell>
-                                    <TableCell className="text-xs font-medium text-[#e0faf5]">
-                                        {s.origin}
-                                    </TableCell>
-                                    <TableCell className="text-xs font-medium text-[#e0faf5]">
-                                        {s.destination}
-                                    </TableCell>
-                                    <TableCell>
-                                        {s.assignedAgent ? (
-                                            <div className="min-w-0 max-w-[200px] p-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] space-y-0.5">
-                                                <span className="font-bold text-[#e0faf5] flex items-center gap-1.5 text-xs truncate">
-                                                    <UserCheck size={12} className="text-[#00c9a7] shrink-0" />
-                                                    <span className="truncate">{s.assignedAgent.name}</span>
-                                                </span>
-                                                {s.assignedAgent.phone && (
-                                                    <a
-                                                        href={`tel:${s.assignedAgent.phone}`}
-                                                        className="text-[11px] text-[#00e5c0] hover:underline flex items-center gap-1"
-                                                        title="Call Road Agent"
-                                                    >
-                                                        <Phone size={10} />
-                                                        <span>{s.assignedAgent.phone}</span>
-                                                    </a>
-                                                )}
-                                                {s.assignedAgent.email && (
-                                                    <span className="text-[10px] text-[#7ecfc4]/70 block truncate">
-                                                        {s.assignedAgent.email}
-                                                    </span>
-                                                )}
-                                                {s.assignedAgent.assignedArea && (
-                                                    <span className="text-[10px] text-amber-300/90 block truncate">
-                                                        Area: {s.assignedAgent.assignedArea}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/40 bg-amber-500/15 text-amber-300 inline-block">
-                                                Waiting for Road Agent Assignment
+                                <TableRow
+                                    key={s.id}
+                                    onClick={() => setDetailsModalShipment(s)}
+                                    className="hover:bg-[#112a2a]/40 transition-colors group cursor-pointer"
+                                >
+                                    {/* 1. Tracking Waybill & Weight */}
+                                    <TableCell className="py-3.5 px-4">
+                                        <div className="flex flex-col min-w-0">
+                                            <span
+                                                className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
+                                                title={`Waybill: ${s.trackingId}`}
+                                            >
+                                                {s.trackingId.length > 20
+                                                    ? `${s.trackingId.slice(0, 10)}...${s.trackingId.slice(-6)}`
+                                                    : s.trackingId}
                                             </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-[#7ecfc4]">
-                                        {s.weight} kg
-                                    </TableCell>
-                                    <TableCell>
-                                        <StatusBadge status={s.status} />
-                                    </TableCell>
-                                    <TableCell>
-                                        <PaymentStatusBadge status={s.paymentStatus} />
-                                    </TableCell>
-                                    <TableCell className="text-xs text-[#7ecfc4]">
-                                        <div className="flex items-center gap-1">
-                                            <Calendar size={12} className="text-[#7ecfc4]/70" />
-                                            {new Date(s.createdAt).toLocaleDateString("en-US", {
-                                                month: "short",
-                                                day: "numeric",
-                                                year: "numeric",
-                                            })}
+                                            <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/70 mt-0.5">
+                                                <span>{s.weight} kg</span>
+                                                <span>•</span>
+                                                <span>
+                                                    {new Date(s.createdAt).toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                    })}
+                                                </span>
+                                            </div>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-2">
+
+                                    {/* 2. Route Corridor */}
+                                    <TableCell className="py-3.5 px-4">
+                                        <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[260px]">
+                                            <span className="truncate" title={s.origin}>
+                                                {s.origin}
+                                            </span>
+                                            <span className="text-[#00c9a7] shrink-0 font-bold">→</span>
+                                            <span className="truncate" title={s.destination}>
+                                                {s.destination}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+
+                                    {/* 3. Dispatch Status */}
+                                    <TableCell className="py-3.5 px-4">
+                                        <StatusBadge status={s.status} />
+                                    </TableCell>
+
+                                    {/* 4. Payment Status */}
+                                    <TableCell className="py-3.5 px-4">
+                                        <PaymentStatusBadge status={s.paymentStatus} />
+                                    </TableCell>
+
+                                    {/* 5. Actions */}
+                                    <TableCell className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            {/* Details Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setDetailsModalShipment(s)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors cursor-pointer"
+                                                title="View consignment details & road agent"
+                                            >
+                                                <Eye size={13} />
+                                                <span>Details</span>
+                                            </button>
+
+                                            {/* Pay Now Button (if unpaid) */}
                                             {(s.paymentStatus === "UNPAID" || s.paymentStatus === "FAILED" || !s.paymentStatus) &&
                                                 s.status !== "CANCELLED" && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleOpenPayModal(s)}
                                                         disabled={creatingIntentId === s.id}
-                                                        className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#00c9a7] text-[#0a0f0f] text-xs font-black hover:bg-[#00e5c0] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#00c9a7] text-[#0a0f0f] text-xs font-black hover:bg-[#00e5c0] transition-all shadow-xs cursor-pointer disabled:opacity-50"
                                                     >
                                                         {creatingIntentId === s.id ? (
-                                                            <Loader2 size={12} className="animate-spin" />
+                                                             <Loader2 size={12} className="animate-spin" />
                                                         ) : (
                                                             <CreditCard size={12} />
                                                         )}
-                                                        <span>Pay Now</span>
+                                                        <span>Pay</span>
                                                     </button>
                                                 )}
+
+                                            {/* Download Receipt (if paid and invoiceUrl available) */}
+                                            {s.paymentStatus === "PAID" && s.invoiceUrl && (
+                                                <a
+                                                    href={s.invoiceUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-all shadow-xs"
+                                                    title="Download Payment Receipt PDF"
+                                                >
+                                                    <FileText size={12} />
+                                                    <span className="hidden sm:inline">Receipt</span>
+                                                </a>
+                                            )}
+
+                                            {/* Track Link */}
                                             <Link
                                                 href={`/dashboard/customer/tracking?trackingId=${encodeURIComponent(s.trackingId)}`}
-                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-xs font-semibold text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/40 transition-all"
+                                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#1a4a4a] bg-[#0a1a1a] text-xs font-semibold text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/40 transition-all"
+                                                title="Track Waybill"
                                             >
                                                 <Search size={12} />
-                                                Track
+                                                <span className="hidden sm:inline">Track</span>
                                             </Link>
                                         </div>
                                     </TableCell>
@@ -338,6 +359,15 @@ export default function CustomerShipmentsPage() {
                     </Table>
                 )}
             </div>
+
+            {/* Consignment Details Modal */}
+            <CustomerShipmentDetailsModal
+                shipment={detailsModalShipment}
+                isOpen={Boolean(detailsModalShipment)}
+                onClose={() => setDetailsModalShipment(null)}
+                onOpenPayModal={(s) => handleOpenPayModal(s)}
+                isCreatingIntent={creatingIntentId === detailsModalShipment?.id}
+            />
 
             {/* Stripe Checkout Modal */}
             <StripePaymentModal

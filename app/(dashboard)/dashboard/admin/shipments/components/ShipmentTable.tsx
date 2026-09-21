@@ -7,8 +7,9 @@ import {
     UserCheck,
     Loader2,
     Package,
+    Mail,
 } from "lucide-react";
-import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
+import { IShipment, IRoadAgent, ShipmentStatus } from "@/app/types/shipment.types";
 import { PaymentStatusBadge } from "@/components/ui/status-badge";
 import { DataTableWrapper } from "@/components/ui/DataTableWrapper";
 import { PaginationBar } from "@/components/ui/PaginationBar";
@@ -17,6 +18,7 @@ export interface ShipmentTableProps {
     shipments: IShipment[];
     loading: boolean;
     isAdmin: boolean;
+    availableAgents?: IRoadAgent[];
     onViewDetails: (shipment: IShipment) => void;
     onOpenStatusModal: (shipment: IShipment) => void;
     onOpenAssignModal: (shipment: IShipment) => void;
@@ -49,10 +51,95 @@ export const getShipmentStatusStyle = (status: ShipmentStatus) => {
     }
 };
 
+interface IResolvedAgentInfo {
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+}
+
+function resolveAgentDetails(
+    shipment: IShipment,
+    availableAgents?: IRoadAgent[]
+): IResolvedAgentInfo | null {
+    // 1. Direct assignedAgent object
+    if (shipment.assignedAgent && typeof shipment.assignedAgent === "object") {
+        const a = shipment.assignedAgent;
+        if (a.name) {
+            return {
+                name: a.name,
+                email: a.email || null,
+                phone: a.phone || null,
+            };
+        }
+    }
+
+    // 2. Direct agent / assignedTo / carrier alternative objects
+    const record = shipment as unknown as Record<string, unknown>;
+    const rawAgent =
+        record.agent ||
+        record.assignedTo ||
+        record.carrierAgent ||
+        record.carrier;
+
+    if (rawAgent && typeof rawAgent === "object" && rawAgent !== null) {
+        const r = rawAgent as Record<string, unknown>;
+        const userObj =
+            r.user && typeof r.user === "object"
+                ? (r.user as Record<string, unknown>)
+                : null;
+
+        const name =
+            (typeof r.name === "string" ? r.name : null) ||
+            (typeof r.fullName === "string" ? r.fullName : null) ||
+            (userObj && typeof userObj.name === "string" ? userObj.name : null);
+
+        const email =
+            (typeof r.email === "string" ? r.email : null) ||
+            (userObj && typeof userObj.email === "string" ? userObj.email : null);
+
+        const phone =
+            (typeof r.phone === "string" ? r.phone : null) ||
+            (userObj && typeof userObj.phone === "string" ? userObj.phone : null);
+
+        if (name) {
+            return { name, email, phone };
+        }
+    }
+
+    // 3. Fallback: Lookup by assignedAgentId in availableAgents list
+    const agentId =
+        (typeof shipment.assignedAgentId === "string" ? shipment.assignedAgentId : null) ||
+        (typeof shipment.assignedAgent === "string" ? (shipment.assignedAgent as string) : null) ||
+        (typeof record.agentId === "string" ? (record.agentId as string) : null);
+
+    if (agentId && availableAgents && availableAgents.length > 0) {
+        const found = availableAgents.find((a) => a.id === agentId);
+        if (found) {
+            return {
+                name: found.name,
+                email: found.email || null,
+                phone: found.phone || null,
+            };
+        }
+    }
+
+    // 4. Flat properties fallback (e.g. assignedAgentName, assignedAgentEmail)
+    if (typeof record.assignedAgentName === "string" && record.assignedAgentName.trim()) {
+        return {
+            name: record.assignedAgentName,
+            email: typeof record.assignedAgentEmail === "string" ? record.assignedAgentEmail : null,
+            phone: typeof record.assignedAgentPhone === "string" ? record.assignedAgentPhone : null,
+        };
+    }
+
+    return null;
+}
+
 export function ShipmentTable({
     shipments,
     loading,
     isAdmin,
+    availableAgents,
     onViewDetails,
     onOpenStatusModal,
     onOpenAssignModal,
@@ -150,16 +237,53 @@ export function ShipmentTable({
 
                                 {/* 5. Assigned Carrier Agent */}
                                 <td className="py-3.5 px-4">
-                                    {item.assignedAgent ? (
-                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-[#e0faf5] truncate max-w-[160px]">
-                                            <UserCheck size={13} className="text-[#00c9a7] shrink-0" />
-                                            <span className="truncate">{item.assignedAgent.name}</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-[11px] font-medium text-[#3a6b66] italic">
-                                            Unassigned
-                                        </span>
-                                    )}
+                                    {(() => {
+                                        const agent = resolveAgentDetails(item, availableAgents);
+                                        if (!agent) {
+                                            return (
+                                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#0a1a1a] text-[#7ecfc4]/60 border border-[#1a4a4a]">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#7ecfc4]/40 shrink-0" />
+                                                    <span className="text-[10px] font-mono font-bold">
+                                                        Unassigned
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="flex flex-col min-w-0 max-w-[210px]">
+                                                {/* Agent Name */}
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <div className="w-5 h-5 rounded-md bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center shrink-0">
+                                                        <UserCheck size={11} className="text-[#00e5c0]" />
+                                                    </div>
+                                                    <span
+                                                        className="text-xs font-bold text-[#e0faf5] truncate"
+                                                        title={agent.name}
+                                                    >
+                                                        {agent.name}
+                                                    </span>
+                                                </div>
+
+                                                {/* Agent Email */}
+                                                {agent.email ? (
+                                                    <div className="flex items-center gap-1.5 mt-0.5 pl-[26px] min-w-0">
+                                                        <Mail size={10} className="text-[#00c9a7]/70 shrink-0" />
+                                                        <span
+                                                            className="text-[11px] text-[#7ecfc4] hover:text-[#00e5c0] truncate font-mono transition-colors"
+                                                            title={agent.email}
+                                                        >
+                                                            {agent.email}
+                                                        </span>
+                                                    </div>
+                                                ) : agent.phone ? (
+                                                    <span className="text-[10px] text-[#7ecfc4]/70 truncate font-mono mt-0.5 pl-[26px]">
+                                                        {agent.phone}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })()}
                                 </td>
 
                                 {/* 6. Actions (Only Primary Details + Quick Status) */}

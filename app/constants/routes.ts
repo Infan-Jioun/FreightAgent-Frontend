@@ -28,12 +28,14 @@ export const ROUTES = {
     DASHBOARD_AGENT: "/dashboard/agent",
     DASHBOARD_AGENT_SHIPMENTS: "/dashboard/agent/shipments",
     DASHBOARD_AGENT_SHIPMENT_DETAIL: (id: string) => `/dashboard/agent/shipments/${id}`,
+    DASHBOARD_AGENT_EARNINGS: "/dashboard/agent/earnings",
 
     // Admin Portal Routes
     DASHBOARD_ADMIN: "/dashboard/admin",
     DASHBOARD_ADMIN_SHIPMENTS: "/dashboard/admin/shipments",
     DASHBOARD_ADMIN_USERS: "/dashboard/admin/users",
     DASHBOARD_ADMIN_LOCATIONS: "/dashboard/admin/locations",
+    DASHBOARD_ADMIN_FINANCES: "/dashboard/admin/finances",
 
     // General Dashboard / Account
     SHIPMENTS: "/dashboard/customer/shipments",

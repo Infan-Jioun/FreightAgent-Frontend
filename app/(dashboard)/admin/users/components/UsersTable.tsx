@@ -10,6 +10,7 @@ import {
     UserX,
     UserCheck,
     Edit3,
+    Phone,
 } from "lucide-react";
 import { IAdminUser } from "@/app/types/admin.types";
 import { ActionBtn } from "@/components/ui/ActionBtn";
@@ -84,6 +85,7 @@ export default function UsersTable({
                 <thead>
                     <tr className="border-b border-[#1a4a4a] bg-[#0a1a1a]/50 text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider">
                         <th className="py-3.5 px-4">User</th>
+                        <th className="py-3.5 px-4">Phone</th>
                         <th className="py-3.5 px-4">Role</th>
                         <th className="py-3.5 px-4">Status</th>
                         <th className="py-3.5 px-4">Email Verified</th>
@@ -105,6 +107,9 @@ export default function UsersTable({
                                     </div>
                                 </td>
                                 <td className="py-3.5 px-4">
+                                    <div className="w-24 h-4 rounded-sm bg-[#1a4a4a]/30" />
+                                </td>
+                                <td className="py-3.5 px-4">
                                     <div className="w-16 h-5 rounded-full bg-[#1a4a4a]/30" />
                                 </td>
                                 <td className="py-3.5 px-4">
@@ -123,7 +128,7 @@ export default function UsersTable({
                         ))
                     ) : users.length === 0 ? (
                         <tr>
-                            <td colSpan={6} className="py-12 text-center">
+                            <td colSpan={7} className="py-12 text-center">
                                 <Users size={36} className="mx-auto text-[#3a6b66] mb-2" />
                                 <p className="text-xs font-bold text-[#e0faf5]">No users found</p>
                                 <p className="text-[11px] text-[#7ecfc4]/70 mt-0.5">
@@ -170,6 +175,28 @@ export default function UsersTable({
                                                 </span>
                                             </div>
                                         </div>
+                                    </td>
+
+                                    {/* Phone Number */}
+                                    <td className="py-3 px-4 whitespace-nowrap">
+                                        {(() => {
+                                            const rawUser = u as unknown as Record<string, unknown>;
+                                            const phoneVal =
+                                                u.phone ||
+                                                (rawUser?.phoneNumber as string) ||
+                                                (rawUser?.contact as string) ||
+                                                (rawUser?.mobile as string);
+                                            return phoneVal ? (
+                                                <span className="text-xs font-mono text-[#e0faf5] inline-flex items-center gap-1.5">
+                                                    <Phone size={12} className="text-[#00c9a7] shrink-0" />
+                                                    <span>{String(phoneVal)}</span>
+                                                </span>
+                                            ) : (
+                                                <span className="text-[11px] text-[#3a6b66] italic">
+                                                    Not provided
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
 
                                     {/* Role with Quick-Edit Button */}

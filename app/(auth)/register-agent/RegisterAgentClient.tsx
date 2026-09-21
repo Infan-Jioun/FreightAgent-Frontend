@@ -253,16 +253,40 @@ export function RegisterAgentClient(): React.JSX.Element {
         return { score, label: lvl.label, color: lvl.color };
     })();
 
+// Curated standard trade hubs across Asia and global freight corridors used when store is syncing or unseeded
+const DEFAULT_FALLBACK_LOCATIONS: ILocation[] = [
+    { id: "hub-cgp", name: "Chittagong Port Terminal", code: "CGP", city: "Chittagong", country: "Bangladesh", countryCode: "BD", region: "South Asia", type: "SEA_PORT", latitude: 22.3475, longitude: 91.8123, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-dac", name: "Shahjalal Cargo Terminal", code: "DAC", city: "Dhaka", country: "Bangladesh", countryCode: "BD", region: "South Asia", type: "AIR_PORT", latitude: 23.8433, longitude: 90.3978, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-mgl", name: "Mongla Sea Terminal", code: "MGL", city: "Mongla", country: "Bangladesh", countryCode: "BD", region: "South Asia", type: "SEA_PORT", latitude: 22.4833, longitude: 89.5833, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-zyl", name: "Osmani Air Cargo Hub", code: "ZYL", city: "Sylhet", country: "Bangladesh", countryCode: "BD", region: "South Asia", type: "AIR_PORT", latitude: 24.8949, longitude: 91.8687, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-sgp", name: "Port of Singapore (PSA)", code: "SGP", city: "Singapore", country: "Singapore", countryCode: "SG", region: "Southeast Asia", type: "SEA_PORT", latitude: 1.2644, longitude: 103.8222, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-sin", name: "Changi Air Cargo Hub", code: "SIN", city: "Singapore", country: "Singapore", countryCode: "SG", region: "Southeast Asia", type: "AIR_PORT", latitude: 1.3644, longitude: 103.9915, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-jea", name: "Jebel Ali Freezone Terminal", code: "JEA", city: "Dubai", country: "United Arab Emirates", countryCode: "AE", region: "Middle East", type: "SEA_PORT", latitude: 24.9857, longitude: 55.0611, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-dxb", name: "Dubai Air Logistics Hub", code: "DXB", city: "Dubai", country: "United Arab Emirates", countryCode: "AE", region: "Middle East", type: "AIR_PORT", latitude: 25.2528, longitude: 55.3644, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-cmb", name: "Port of Colombo (JCT)", code: "CMB", city: "Colombo", country: "Sri Lanka", countryCode: "LK", region: "South Asia", type: "SEA_PORT", latitude: 6.9271, longitude: 79.8612, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-pvg", name: "Shanghai Yangshan Port", code: "PVG", city: "Shanghai", country: "China", countryCode: "CN", region: "East Asia", type: "SEA_PORT", latitude: 31.2304, longitude: 121.4737, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-szx", name: "Shenzhen Yantian Hub", code: "SZX", city: "Shenzhen", country: "China", countryCode: "CN", region: "East Asia", type: "SEA_PORT", latitude: 22.5431, longitude: 114.0579, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-can", name: "Guangzhou Nansha Port", code: "CAN", city: "Guangzhou", country: "China", countryCode: "CN", region: "East Asia", type: "SEA_PORT", latitude: 23.1291, longitude: 113.2644, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-pek", name: "Beijing Capital Cargo Terminal", code: "PEK", city: "Beijing", country: "China", countryCode: "CN", region: "East Asia", type: "AIR_PORT", latitude: 40.0799, longitude: 116.6031, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-bom", name: "Jawaharlal Nehru Port (JNPT)", code: "BOM", city: "Mumbai", country: "India", countryCode: "IN", region: "South Asia", type: "SEA_PORT", latitude: 18.9220, longitude: 72.8347, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-del", name: "Indira Gandhi Cargo Terminal", code: "DEL", city: "New Delhi", country: "India", countryCode: "IN", region: "South Asia", type: "AIR_PORT", latitude: 28.5562, longitude: 77.1000, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-maa", name: "Chennai Port Terminal", code: "MAA", city: "Chennai", country: "India", countryCode: "IN", region: "South Asia", type: "SEA_PORT", latitude: 13.0827, longitude: 80.2707, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-ccu", name: "Kolkata Syama Prasad Port", code: "CCU", city: "Kolkata", country: "India", countryCode: "IN", region: "South Asia", type: "SEA_PORT", latitude: 22.5726, longitude: 88.3639, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-pkg", name: "Port Klang Westports", code: "PKG", city: "Klang", country: "Malaysia", countryCode: "MY", region: "Southeast Asia", type: "SEA_PORT", latitude: 3.0319, longitude: 101.3868, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-kul", name: "Kuala Lumpur Air Cargo Hub", code: "KUL", city: "Kuala Lumpur", country: "Malaysia", countryCode: "MY", region: "Southeast Asia", type: "AIR_PORT", latitude: 2.7456, longitude: 101.7099, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-nrt", name: "Tokyo Narita Air Terminal", code: "NRT", city: "Tokyo", country: "Japan", countryCode: "JP", region: "East Asia", type: "AIR_PORT", latitude: 35.7720, longitude: 140.3929, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-pus", name: "Busan New Port Container Terminal", code: "PUS", city: "Busan", country: "South Korea", countryCode: "KR", region: "East Asia", type: "SEA_PORT", latitude: 35.1796, longitude: 129.0756, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+    { id: "hub-rtm", name: "Port of Rotterdam (Maasvlakte)", code: "RTM", city: "Rotterdam", country: "Netherlands", countryCode: "NL", region: "Europe", type: "SEA_PORT", latitude: 51.9225, longitude: 4.4792, isBlocked: false, blockedReason: null, createdAt: "2024-01-01T00:00:00.000Z", updatedAt: "2024-01-01T00:00:00.000Z" },
+];
+
     const { fetchLocations: fetchStoreLocations, locations: storeLocations, isLoading: loadingLocations } = useLocationStore();
 
-    // Fetch dynamic locations directly from useLocationStore
+    // Fetch dynamic locations directly from useLocationStore with standard 100 limit
     const fetchLocations = useCallback(async () => {
         try {
-            // First fetch with standard query identical to admin dashboard
-            const res = await fetchStoreLocations(undefined, true);
-            // If total available exceeds current limit, fetch up to 100
-            if (res?.meta?.total && res.meta.total > (res.data?.length ?? 0)) {
-                await fetchStoreLocations({ page: 1, limit: 100 }, true);
+            const res = await fetchStoreLocations({ page: 1, limit: 100 }, true);
+            if (res?.meta?.total && res.meta.total > 100) {
+                await fetchStoreLocations({ page: 1, limit: Math.min(res.meta.total, 200) }, true);
             }
         } catch (err: unknown) {
             console.error("Store query error:", err);
@@ -278,19 +302,30 @@ export function RegisterAgentClient(): React.JSX.Element {
         fetchLocations();
     }, [fetchLocations]);
 
-    // Synchronously derive active, deduplicated locations directly from locationStore
+    // Synchronously derive active, deduplicated locations with seamless fallback hubs
     const locations = useMemo<ILocation[]>(() => {
         const raw = Array.isArray(storeLocations) ? storeLocations : [];
-        if (raw.length === 0) return [];
         const activeList = raw.filter((l) => l && l.isBlocked !== true && l.isDeleted !== true);
-        const listToUse = activeList.length > 0 ? activeList : raw;
+
         const uniqueMap = new Map<string, ILocation>();
-        listToUse.forEach((loc) => {
+        // Add dynamic backend locations first
+        activeList.forEach((loc) => {
             const key = (loc.code || loc.id || "").toUpperCase();
             if (key && !uniqueMap.has(key)) {
                 uniqueMap.set(key, loc);
             }
         });
+
+        // Augment with fallback trade hubs if database returns 0 records or is syncing
+        if (uniqueMap.size === 0) {
+            DEFAULT_FALLBACK_LOCATIONS.forEach((loc) => {
+                const key = loc.code.toUpperCase();
+                if (!uniqueMap.has(key)) {
+                    uniqueMap.set(key, loc);
+                }
+            });
+        }
+
         const uniqueList = Array.from(uniqueMap.values());
         uniqueList.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
         return uniqueList;

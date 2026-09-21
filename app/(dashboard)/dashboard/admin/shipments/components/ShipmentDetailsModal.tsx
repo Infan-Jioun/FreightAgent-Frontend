@@ -299,6 +299,11 @@ export function ShipmentDetailsModal({
                                         <UserCheck size={13} className="text-[#00c9a7]" />
                                         <span>{shipment.assignedAgent.name}</span>
                                     </p>
+                                    {shipment.assignedAgent.email && (
+                                        <p className="text-[11px] text-[#7ecfc4]/90 font-mono">
+                                            {shipment.assignedAgent.email}
+                                        </p>
+                                    )}
                                     {shipment.assignedAgent.phone && (
                                         <p className="text-[11px] text-[#7ecfc4]">
                                             <a
@@ -351,7 +356,7 @@ export function ShipmentDetailsModal({
                                 <span>Cost Breakdown & Financial Settlement</span>
                             </span>
                             <span className="text-xs font-bold text-[#00e5c0]">
-                                Total: {shipment.cost.currency || "USD"} ${shipment.cost.totalCost?.toFixed(2)}
+                                Total: {shipment.cost.currency || "USD"} ${Number(shipment.cost.totalCost ?? 0).toFixed(2)}
                             </span>
                         </div>
 

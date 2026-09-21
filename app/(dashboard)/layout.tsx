@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 import { SocketProvider } from "@/app/providers/SocketProvider";
 
+// FreightAgent Enterprise Dashboard Layout
 export default function DashboardLayout({
     children,
 }: {

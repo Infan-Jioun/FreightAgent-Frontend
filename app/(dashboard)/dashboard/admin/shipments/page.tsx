@@ -67,7 +67,28 @@ export default function AdminShipmentsPage() {
                 status: statusFilter === "ALL" ? undefined : statusFilter,
                 search: searchQuery.trim() || undefined,
             });
-            setShipments(res.shipments || []);
+
+            setShipments((prev) => {
+                const prevMap = new Map<string, IShipment>();
+                prev.forEach((s) => prevMap.set(s.id, s));
+
+                return (res.shipments || []).map((s) => {
+                    const prevS = prevMap.get(s.id);
+                    let assignedAgent = s.assignedAgent;
+
+                    // Preserve locally assigned agent if backend list query didn't populate full object
+                    if (!assignedAgent && prevS?.assignedAgent) {
+                        if (!s.assignedAgentId || s.assignedAgentId === prevS.assignedAgentId) {
+                            assignedAgent = prevS.assignedAgent;
+                        }
+                    }
+
+                    return {
+                        ...s,
+                        assignedAgent: assignedAgent ?? s.assignedAgent,
+                    };
+                });
+            });
             setCurrentPage(1);
         } catch (err: unknown) {
             const error = AppError.fromAxios(err);
@@ -77,10 +98,16 @@ export default function AdminShipmentsPage() {
         }
     }, [isAdmin, statusFilter, searchQuery]);
 
-    // Initial and reactive fetch on filter changes
+    // Initial and reactive fetch on filter changes & eager agent pre-fetch
     useEffect(() => {
         if (isAdmin) {
-            fetchShipments();
+            void fetchShipments();
+            void adminService
+                .getAvailableAgents()
+                .then((agents) => {
+                    setAvailableAgents(agents);
+                })
+                .catch(() => {});
         }
     }, [fetchShipments, isAdmin]);
 
@@ -163,10 +190,7 @@ export default function AdminShipmentsPage() {
         setFilterAllAreas(false);
         setLoadingAgents(true);
         try {
-            const agents = await adminService.getAvailableAgents({
-                area: shipment.origin,
-                isAvailable: true,
-            });
+            const agents = await adminService.getAvailableAgents();
             setAvailableAgents(agents);
         } catch (err: unknown) {
             const error = AppError.fromAxios(err);
@@ -176,17 +200,16 @@ export default function AdminShipmentsPage() {
         }
     };
 
-    const handleToggleFilterAllAreas = async () => {
-        if (!assignModalShipment) return;
-        const nextFilterAll = !filterAllAreas;
-        setFilterAllAreas(nextFilterAll);
+    const handleToggleFilterAllAreas = () => {
+        setFilterAllAreas((prev) => !prev);
+    };
+
+    const handleRefreshAgents = async () => {
         setLoadingAgents(true);
         try {
-            const agents = await adminService.getAvailableAgents({
-                area: nextFilterAll ? undefined : assignModalShipment.origin,
-                isAvailable: true,
-            });
+            const agents = await adminService.getAvailableAgents();
             setAvailableAgents(agents);
+            toast.success("Carrier agents refreshed");
         } catch (err: unknown) {
             const error = AppError.fromAxios(err);
             toast.error(error.message || "Failed to load road agents");
@@ -205,21 +228,27 @@ export default function AdminShipmentsPage() {
             });
             toast.success(`Road Agent assigned to shipment #${assignModalShipment.trackingId}!`);
 
+            const assignedAgentObj = availableAgents.find((a) => a.id === agentId);
+            const mergedShipment: IShipment = {
+                ...assignModalShipment,
+                ...updated,
+                assignedAgentId: agentId,
+                assignedAgent: updated.assignedAgent || assignedAgentObj || assignModalShipment.assignedAgent,
+                status: updated.status || "ASSIGNED",
+            };
+
             setShipments((prev) =>
-                prev.map((s) =>
-                    s.id === updated.id
-                        ? { ...s, ...updated, status: updated.status || "ASSIGNED" }
-                        : s
-                )
+                prev.map((s) => (s.id === mergedShipment.id ? mergedShipment : s))
             );
 
-            if (selectedShipment?.id === updated.id) {
+            if (selectedShipment?.id === mergedShipment.id) {
                 setSelectedShipment((prev) =>
-                    prev ? { ...prev, ...updated, status: updated.status || "ASSIGNED" } : updated
+                    prev ? { ...prev, ...mergedShipment } : mergedShipment
                 );
             }
 
             setAssignModalShipment(null);
+            void fetchShipments();
         } catch (err: unknown) {
             const error = AppError.fromAxios(err);
             toast.error(error.message || "Failed to assign road agent");
@@ -365,6 +394,7 @@ export default function AdminShipmentsPage() {
                 shipments={paginatedShipments}
                 loading={loading}
                 isAdmin={isAdmin}
+                availableAgents={availableAgents}
                 onViewDetails={setSelectedShipment}
                 onOpenStatusModal={handleOpenStatusModal}
                 onOpenAssignModal={handleOpenAssignModal}
@@ -408,6 +438,7 @@ export default function AdminShipmentsPage() {
                 filterAllAreas={filterAllAreas}
                 onToggleFilterAllAreas={handleToggleFilterAllAreas}
                 isAssigning={isAssigning}
+                onRefreshAgents={handleRefreshAgents}
             />
 
             {/* Delete Consignment Confirmation Modal */}

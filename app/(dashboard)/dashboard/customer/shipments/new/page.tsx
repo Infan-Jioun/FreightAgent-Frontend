@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -14,18 +14,15 @@ import {
     Calendar,
     ArrowLeft,
     Loader2,
-    CheckCircle2,
     Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { shipmentService } from "@/app/services/shipment.service";
 import { useLocationStore } from "@/app/store/locationStore";
 import { LocationSelect } from "@/components/ui/LocationSelect";
-import type { ILocation, ILocationListResponse } from "@/app/types/location.types";
+import type { ILocation } from "@/app/types/location.types";
 import { ROUTES } from "@/app/constants/routes";
 import { AppError } from "@/app/errorHelper/appError";
-import api from "@/app/lib/api";
-import { API } from "@/app/constants/api";
 
 const createShipmentSchema = z
     .object({
@@ -47,45 +44,63 @@ type CreateShipmentFormValues = z.infer<typeof createShipmentSchema>;
 export default function NewShipmentPage() {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
-    const { fetchLocations, locations: storeLocations, isLoading: loadingLocations } = useLocationStore();
-    const [locations, setLocations] = useState<ILocation[]>([]);
 
+    // ── Location Store Dynamic Integration ───────────────────
+    const {
+        fetchLocations,
+        locations: storeLocations,
+        isLoading: loadingLocations,
+    } = useLocationStore();
+
+    // Fetch dynamic locations on mount directly via useLocationStore
     useEffect(() => {
+        // Skip network fetch if locations are already cached in store
+        if (useLocationStore.getState().locations.length > 0) return;
+
         let isCancelled = false;
-        const loadLocations = async () => {
+        const loadDynamicLocations = async () => {
             try {
                 const res = await fetchLocations({
                     page: 1,
-                    limit: 500,
-                    isDeleted: false,
-                    sortBy: "name",
-                    sortOrder: "asc",
+                    limit: 100,
                 }, true);
 
                 if (isCancelled) return;
-                const rawList = res?.data ?? storeLocations;
-                const activeList = rawList.filter((l) => !l.isBlocked && !l.isDeleted);
-                if (activeList.length > 0) {
-                    const uniqueMap = new Map<string, ILocation>();
-                    activeList.forEach((loc) => {
-                        const key = (loc.code || loc.id || "").toUpperCase();
-                        if (key && !uniqueMap.has(key)) {
-                            uniqueMap.set(key, loc);
-                        }
-                    });
-                    const uniqueList = Array.from(uniqueMap.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-                    setLocations(uniqueList);
+                // If more locations exist than 100, query with full total
+                if (res?.meta?.total && res.meta.total > 100) {
+                    await fetchLocations({
+                        page: 1,
+                        limit: Math.min(res.meta.total, 200),
+                    }, true);
                 }
-            } catch (err) {
-                console.error("Failed to fetch locations from store:", err);
+            } catch (err: unknown) {
+                console.error("Failed to load dynamic locations from store:", err);
             }
         };
 
-        loadLocations();
+        loadDynamicLocations();
         return () => {
             isCancelled = true;
         };
     }, [fetchLocations]);
+
+    // Synchronously derive active, deduplicated locations directly from locationStore
+    const locations = useMemo<ILocation[]>(() => {
+        const raw = Array.isArray(storeLocations) ? storeLocations : [];
+        if (raw.length === 0) return [];
+        const activeList = raw.filter((l) => l && !l.isBlocked && !l.isDeleted);
+        const listToUse = activeList.length > 0 ? activeList : raw;
+        const uniqueMap = new Map<string, ILocation>();
+        listToUse.forEach((loc) => {
+            const key = (loc.code || loc.id || "").toUpperCase();
+            if (key && !uniqueMap.has(key)) {
+                uniqueMap.set(key, loc);
+            }
+        });
+        return Array.from(uniqueMap.values()).sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "")
+        );
+    }, [storeLocations]);
 
     const {
         register,
@@ -159,9 +174,21 @@ export default function NewShipmentPage() {
                         <Package size={24} />
                     </div>
                     <div>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30">
-                            Consignment Booking
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30">
+                                Consignment Booking
+                            </span>
+                            {loadingLocations && locations.length === 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#112a2a] text-[#7ecfc4] border border-[#1a4a4a]">
+                                    <Loader2 size={10} className="animate-spin text-[#00c9a7]" />
+                                    <span>Syncing locations...</span>
+                                </span>
+                            ) : locations.length > 0 ? (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-medium font-mono bg-[#112a2a] text-[#7ecfc4] border border-[#1a4a4a]">
+                                    {locations.length} Hubs Available
+                                </span>
+                            ) : null}
+                        </div>
                         <h1 className="text-xl sm:text-2xl font-black text-[#e0faf5] mt-1 tracking-tight">
                             Create New Freight Shipment
                         </h1>

@@ -103,6 +103,7 @@ export interface IShipment {
     stripePaymentIntentId?: string | null;
     stripeRefundId?: string | null;
     paidAt?: string | null;
+    invoiceUrl?: string | null;
     cost?: IShipmentCost | null;
     declaredCargoValue?: number;
     estimatedDate?: string | null;

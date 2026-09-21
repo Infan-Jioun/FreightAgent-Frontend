@@ -82,5 +82,11 @@ export const API = {
         CREATE_INTENT: "/payment/create-intent",
         CALCULATE_PRICING: "/payment/calculate-pricing",
         REFUND: "/payment/refund",
+        VERIFY_STATUS: "/payment/verify-status",
+        AGENT_EARNINGS: "/payment/agent/earnings",
+        AGENT_WITHDRAW: "/payment/agent/withdraw",
+        AGENT_WITHDRAWALS: "/payment/agent/withdrawals",
+        ADMIN_STATS: "/payment/admin/stats",
+        ADMIN_WITHDRAWALS: "/payment/admin/withdrawals",
     },
 } as const;

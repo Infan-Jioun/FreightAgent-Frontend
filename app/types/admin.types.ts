@@ -43,6 +43,8 @@ export interface IAdminUser {
     phone?: string | null;
     address?: string | null;
     assignedArea?: string | null;
+    corridors?: string[];
+    locations?: unknown[];
     shipmentsCount?: number;
     createdAt?: string;
     updatedAt?: string;
@@ -60,6 +62,8 @@ export interface IAdminUserShipment {
 
 export interface IAdminUserDetail extends IAdminUser {
     shipments?: IAdminUserShipment[];
+    corridors?: string[];
+    locations?: unknown[];
 }
 
 // ── Request Payloads ────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import {
     X,
     ChevronLeft,
     ChevronRight,
+    Eye,
 } from "lucide-react";
 import { agentService } from "@/app/services/agent.service";
 import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
@@ -27,6 +28,7 @@ import { AppError } from "@/app/errorHelper/appError";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { useSocketEvent, useSocketContext } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
+import { AgentShipmentDetailsModal } from "./components/AgentShipmentDetailsModal";
 
 const AGENT_STATUS_FILTERS: { label: string; value: ShipmentStatus | "ALL" }[] = [
     { label: "All Assigned", value: "ALL" },
@@ -52,6 +54,9 @@ export default function AgentShipmentsPage() {
         1,
         meta?.totalPage ?? meta?.totalPages ?? (meta?.total ? Math.ceil(meta.total / limit) : 1)
     );
+
+    // Consignment Details Modal State
+    const [detailsModalShipment, setDetailsModalShipment] = useState<IShipment | null>(null);
 
     // Accept Shipment Modal State
     const [acceptModalShipment, setAcceptModalShipment] = useState<IShipment | null>(null);
@@ -127,6 +132,11 @@ export default function AgentShipmentsPage() {
             setShipments((prev) =>
                 prev.map((s) => (s.id === updated.id ? { ...s, ...updated, status: "ACCEPTED" } : s))
             );
+            if (detailsModalShipment?.id === updated.id) {
+                setDetailsModalShipment((prev) =>
+                    prev ? { ...prev, ...updated, status: "ACCEPTED" } : null
+                );
+            }
             setAcceptModalShipment(null);
             setAcceptLocation("");
             setAcceptNote("");
@@ -254,71 +264,113 @@ export default function AgentShipmentsPage() {
                     <>
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Tracking ID</TableHead>
-                                    <TableHead>Customer</TableHead>
-                                    <TableHead>Origin</TableHead>
-                                    <TableHead>Destination</TableHead>
-                                    <TableHead>Weight</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Payment</TableHead>
-                                    <TableHead>Booking Date</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                <TableRow className="border-b border-[#1a4a4a] bg-[#0a1a1a]/50 text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider">
+                                    <TableHead className="py-3.5 px-4">Tracking Waybill</TableHead>
+                                    <TableHead className="py-3.5 px-4">Route Corridor</TableHead>
+                                    <TableHead className="py-3.5 px-4">Cargo</TableHead>
+                                    <TableHead className="py-3.5 px-4">Status</TableHead>
+                                    <TableHead className="py-3.5 px-4">Payment & Commission</TableHead>
+                                    <TableHead className="py-3.5 px-4 text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
+                            <TableBody className="divide-y divide-[#1a4a4a]/40">
                                 {shipments.map((s) => (
-                                    <TableRow key={s.id}>
-                                        <TableCell className="font-mono font-bold text-[#00e5c0]">
-                                            {s.trackingId}
+                                    <TableRow
+                                        key={s.id}
+                                        onClick={() => setDetailsModalShipment(s)}
+                                        className="hover:bg-[#112a2a]/40 transition-colors group cursor-pointer"
+                                    >
+                                        {/* 1. Tracking Waybill & Customer */}
+                                        <TableCell className="py-3.5 px-4">
+                                            <div className="flex flex-col min-w-0">
+                                                <span
+                                                    className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
+                                                    title={`Waybill: ${s.trackingId}`}
+                                                >
+                                                    {s.trackingId.length > 20
+                                                        ? `${s.trackingId.slice(0, 10)}...${s.trackingId.slice(-6)}`
+                                                        : s.trackingId}
+                                                </span>
+                                                <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/70 truncate max-w-[190px] mt-0.5">
+                                                    <User size={11} className="text-[#7ecfc4]/60 shrink-0" />
+                                                    <span className="truncate">{s.user?.name || "Merchant Shipper"}</span>
+                                                </div>
+                                            </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1.5 text-xs">
-                                                <User size={12} className="text-[#7ecfc4]/70 shrink-0" />
-                                                <span className="text-[#e0faf5] font-medium">
-                                                    {s.user?.name || "Merchant"}
+
+                                        {/* 2. Route Corridor */}
+                                        <TableCell className="py-3.5 px-4">
+                                            <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[240px]">
+                                                <span className="truncate" title={s.origin}>
+                                                    {s.origin}
+                                                </span>
+                                                <span className="text-[#00c9a7] shrink-0 font-bold">→</span>
+                                                <span className="truncate" title={s.destination}>
+                                                    {s.destination}
                                                 </span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-xs font-medium text-[#e0faf5]">
-                                            {s.origin}
+
+                                        {/* 3. Cargo Spec */}
+                                        <TableCell className="py-3.5 px-4">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-bold text-[#e0faf5] text-xs">
+                                                    {s.weight} <span className="text-[11px] font-normal text-[#7ecfc4]">kg</span>
+                                                </span>
+                                                {s.declaredCargoValue ? (
+                                                    <span className="text-[10px] text-amber-300 font-mono">
+                                                        ${s.declaredCargoValue.toFixed(0)} USD
+                                                    </span>
+                                                ) : s.description ? (
+                                                    <span className="text-[10px] text-[#7ecfc4]/60 truncate max-w-[140px]" title={s.description}>
+                                                        {s.description}
+                                                    </span>
+                                                ) : null}
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="text-xs font-medium text-[#e0faf5]">
-                                            {s.destination}
-                                        </TableCell>
-                                        <TableCell className="text-xs text-[#7ecfc4]">
-                                            {s.weight} kg
-                                        </TableCell>
-                                        <TableCell>
+
+                                        {/* 4. Status */}
+                                        <TableCell className="py-3.5 px-4">
                                             <StatusBadge status={s.status} />
                                         </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1">
+
+                                        {/* 5. Payment & Commission */}
+                                        <TableCell className="py-3.5 px-4">
+                                            <div className="flex flex-col gap-1 min-w-0">
                                                 <PaymentStatusBadge status={s.paymentStatus} />
-                                                {(!s.paymentStatus || s.paymentStatus === "UNPAID") && (
-                                                    <span className="text-[10px] text-amber-300 font-semibold">
-                                                        Unpaid Cargo
+                                                <div className="flex items-center gap-1 text-[11px] font-mono">
+                                                    <span className="text-[#7ecfc4]">Comm:</span>
+                                                    <span className="font-bold text-[#00e5c0]">
+                                                        ${(s.cost?.agencyFee ?? 0).toFixed(2)}
                                                     </span>
-                                                )}
+                                                </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-xs text-[#7ecfc4]">
-                                            <div className="flex items-center gap-1">
-                                                <Calendar size={12} className="text-[#7ecfc4]/70" />
-                                                {new Date(s.createdAt).toLocaleDateString()}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="inline-flex items-center gap-1.5">
+
+                                        {/* 6. Actions */}
+                                        <TableCell className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                            <div className="inline-flex items-center gap-1.5 justify-end">
+                                                {/* Details Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailsModalShipment(s)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors cursor-pointer"
+                                                    title="View consignment details & payment"
+                                                >
+                                                    <Eye size={13} />
+                                                    <span>Details</span>
+                                                </button>
+
                                                 {/* Accept Button for ASSIGNED status */}
                                                 {s.status === "ASSIGNED" && (
                                                     <button
+                                                        type="button"
                                                         onClick={() => {
                                                             setAcceptModalShipment(s);
                                                             setAcceptLocation(s.origin || "");
                                                             setAcceptNote("");
                                                         }}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
                                                         title="Accept Consignment"
                                                     >
                                                         <CheckSquare size={12} />
@@ -326,11 +378,14 @@ export default function AgentShipmentsPage() {
                                                     </button>
                                                 )}
 
+                                                {/* Manage / Update link */}
                                                 <Link
                                                     href={`/dashboard/agent/shipments/${s.id}`}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#00c9a7]/15 text-xs font-bold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all shadow-xs"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] text-xs font-bold transition-colors cursor-pointer"
+                                                    title="Manage Checkpoint Tracking"
                                                 >
-                                                    <span>Manage / Update</span>
+                                                    <Truck size={13} />
+                                                    <span className="hidden lg:inline">Update</span>
                                                     <ArrowRight size={12} />
                                                 </Link>
                                             </div>
@@ -367,6 +422,18 @@ export default function AgentShipmentsPage() {
                     </>
                 )}
             </div>
+
+            {/* CONSIGNMENT DETAILS MODAL */}
+            <AgentShipmentDetailsModal
+                shipment={detailsModalShipment}
+                isOpen={Boolean(detailsModalShipment)}
+                onClose={() => setDetailsModalShipment(null)}
+                onOpenAcceptModal={(s) => {
+                    setAcceptModalShipment(s);
+                    setAcceptLocation(s.origin || "");
+                    setAcceptNote("");
+                }}
+            />
 
             {/* ACCEPT SHIPMENT MODAL */}
             {acceptModalShipment && (

@@ -72,11 +72,8 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
             controlledValue !== undefined ? controlledValue : defaultValue
         );
 
-        // Dynamic locations fetched directly from store
-        const [apiLocations, setApiLocations] = useState<ILocation[]>(
-            propsLocations && propsLocations.length > 0 ? propsLocations : storeLocations
-        );
         const [fetchingFromApi, setFetchingFromApi] = useState(false);
+        const [extraSearchLocations, setExtraSearchLocations] = useState<ILocation[]>([]);
 
         const containerRef = useRef<HTMLDivElement>(null);
         const searchInputRef = useRef<HTMLInputElement>(null);
@@ -91,18 +88,10 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
             }
         }, [controlledValue]);
 
-        // Sync when propsLocations or storeLocations change
+        // Fetch from useLocationStore on mount ONLY if not controlled by props and store is empty
         useEffect(() => {
-            if (propsLocations && propsLocations.length > 0) {
-                setApiLocations(propsLocations);
-            } else if (storeLocations && storeLocations.length > 0) {
-                setApiLocations(storeLocations);
-            }
-        }, [propsLocations, storeLocations]);
-
-        // Fetch from useLocationStore on mount if propsLocations not provided or empty
-        useEffect(() => {
-            if (propsLocations && propsLocations.length > 0) return;
+            if (propsLocations !== undefined) return;
+            if (storeLocations && storeLocations.length > 0) return;
 
             let isCancelled = false;
             const loadFromApi = async () => {
@@ -110,25 +99,14 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
                 try {
                     const res = await fetchLocations({
                         page: 1,
-                        limit: 500,
-                        isDeleted: false,
-                        sortBy: "name",
-                        sortOrder: "asc",
+                        limit: 100,
                     }, true);
                     if (isCancelled) return;
-                    const list = res?.data ?? storeLocations;
-
-                    if (list && list.length > 0) {
-                        const uniqueMap = new Map<string, ILocation>();
-                        list.filter((l) => !l.isBlocked && !l.isDeleted).forEach((l) => {
-                            const key = (l.code || l.id || "").toUpperCase();
-                            if (key && !uniqueMap.has(key)) uniqueMap.set(key, l);
-                        });
-
-                        const sorted = Array.from(uniqueMap.values()).sort((a, b) =>
-                            (a.name || "").localeCompare(b.name || "")
-                        );
-                        setApiLocations(sorted);
+                    if (res?.meta?.total && res.meta.total > 100) {
+                        await fetchLocations({
+                            page: 1,
+                            limit: Math.min(res.meta.total, 200),
+                        }, true);
                     }
                 } catch (err) {
                     console.error("Failed to load locations from store:", err);
@@ -141,7 +119,7 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
             return () => {
                 isCancelled = true;
             };
-        }, [propsLocations, fetchLocations]);
+        }, [propsLocations, storeLocations.length, fetchLocations]);
 
         // Live search via useLocationStore when typing in the search bar
         useEffect(() => {
@@ -152,41 +130,27 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
                 try {
                     const searchResults = await searchLocations(q, 25);
                     if (Array.isArray(searchResults) && searchResults.length > 0) {
-                        setApiLocations((prev) => {
-                            const existingMap = new Map<string, ILocation>();
-                            prev.forEach((loc) => {
-                                const key = (loc.code || loc.id || "").toUpperCase();
-                                if (key) existingMap.set(key, loc);
-                            });
-
-                            let addedAny = false;
-                            searchResults.forEach((item: ILocationOption) => {
-                                const codeKey = (item.code || item.id || "").toUpperCase();
-                                if (codeKey && !existingMap.has(codeKey)) {
-                                    existingMap.set(codeKey, {
-                                        id: item.id || `search-${codeKey}`,
-                                        name: item.name,
-                                        code: item.code,
-                                        city: item.city || "",
-                                        country: item.country || "",
-                                        countryCode: item.countryCode || "",
-                                        region: "Global",
-                                        type: item.type || "SEA_PORT",
-                                        latitude: item.latitude || 0,
-                                        longitude: item.longitude || 0,
-                                        isBlocked: false,
-                                        blockedReason: null,
-                                        createdAt: new Date().toISOString(),
-                                        updatedAt: new Date().toISOString(),
-                                    });
-                                    addedAny = true;
-                                }
-                            });
-
-                            if (!addedAny) return prev;
-                            return Array.from(existingMap.values()).sort((a, b) =>
-                                (a.name || "").localeCompare(b.name || "")
-                            );
+                        const newDiscovered: ILocation[] = searchResults.map((item: ILocationOption) => ({
+                            id: item.id || `search-${item.code || Date.now()}`,
+                            name: item.name,
+                            code: item.code,
+                            city: item.city || "",
+                            country: item.country || "",
+                            countryCode: item.countryCode || "",
+                            region: "Asia Hub",
+                            type: item.type || "SEA_PORT",
+                            latitude: item.latitude || 0,
+                            longitude: item.longitude || 0,
+                            isBlocked: false,
+                            blockedReason: null,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                        }));
+                        setExtraSearchLocations((prev) => {
+                            const map = new Map<string, ILocation>();
+                            prev.forEach((l) => map.set((l.code || l.id).toUpperCase(), l));
+                            newDiscovered.forEach((l) => map.set((l.code || l.id).toUpperCase(), l));
+                            return Array.from(map.values());
                         });
                     }
                 } catch {
@@ -195,23 +159,58 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
             }, 300);
 
             return () => clearTimeout(timer);
-        }, [searchQuery]);
+        }, [searchQuery, searchLocations]);
 
-        const activeLocations = propsLocations && propsLocations.length > 0 ? propsLocations : apiLocations;
-        const isLoading = propsLoading || fetchingFromApi;
+        // Unified active locations pool combining props, store, and live search results
+        const activeLocations = useMemo(() => {
+            const baseList =
+                propsLocations && propsLocations.length > 0
+                    ? propsLocations
+                    : Array.isArray(storeLocations) && storeLocations.length > 0
+                    ? storeLocations.filter((l) => !l.isBlocked && !l.isDeleted)
+                    : [];
 
-        // Auto-focus the search bar when dropdown opens
+            const map = new Map<string, ILocation>();
+            baseList.forEach((loc) => {
+                const key = (loc.code || loc.id || "").toUpperCase();
+                if (key && !map.has(key)) map.set(key, loc);
+            });
+
+            extraSearchLocations.forEach((loc) => {
+                const key = (loc.code || loc.id || "").toUpperCase();
+                if (key && !map.has(key)) map.set(key, loc);
+            });
+
+            return Array.from(map.values()).sort((a, b) =>
+                (a.name || "").localeCompare(b.name || "")
+            );
+        }, [propsLocations, storeLocations, extraSearchLocations]);
+
+        const isWaitingInitialData = (propsLoading || storeLoading || fetchingFromApi) && activeLocations.length === 0;
+
+        const onBlurRef = useRef(onBlur);
+        useEffect(() => {
+            onBlurRef.current = onBlur;
+        }, [onBlur]);
+
+        const wasOpenRef = useRef(false);
+
+        // Auto-focus the search bar when dropdown opens & handle blur only on actual close
         useEffect(() => {
             if (isOpen) {
+                wasOpenRef.current = true;
                 setTimeout(() => {
                     searchInputRef.current?.focus();
                 }, 50);
             } else {
                 setSearchQuery("");
                 setTypeFilter("ALL");
-                if (onBlur) onBlur();
+                if (wasOpenRef.current) {
+                    wasOpenRef.current = false;
+                    onBlurRef.current?.();
+                }
             }
-        }, [isOpen, onBlur]);
+        }, [isOpen]);
 
         // Dismiss dropdown on outside click or Escape key
         useEffect(() => {
@@ -406,10 +405,10 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
                 {/* Main Select Trigger Button */}
                 <button
                     type="button"
-                    disabled={disabled || isLoading}
+                    disabled={disabled}
                     onClick={() => setIsOpen((prev) => !prev)}
                     className={`w-full flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer shadow-xs ${
-                        disabled || isLoading
+                        disabled
                             ? "bg-[#0a1a1a]/60 border-[#1a4a4a] text-gray-500 cursor-not-allowed opacity-60"
                             : isOpen
                             ? "bg-[#0d1f1f] border-[#00c9a7] ring-3 ring-[#00c9a7]/20"
@@ -419,7 +418,7 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
                     } ${className}`}
                 >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {isLoading ? (
+                        {isWaitingInitialData ? (
                             <Loader2 size={14} className="animate-spin text-[#00c9a7] shrink-0" />
                         ) : icon ? (
                             icon
@@ -433,7 +432,7 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
                             </span>
                         ) : (
                             <span className="text-[#7ecfc4]/40 truncate">
-                                {isLoading ? "Loading network locations..." : placeholder}
+                                {isWaitingInitialData ? "Loading network locations..." : placeholder}
                             </span>
                         )}
                     </div>
@@ -561,7 +560,17 @@ export const LocationSelect = forwardRef<HTMLInputElement, LocationSelectProps>(
 
                         {/* Scrollable Locations Hub Catalog */}
                         <div className="flex-1 overflow-y-auto p-1.5 space-y-2 custom-modal-scrollbar">
-                            {totalFilteredCount === 0 ? (
+                            {isWaitingInitialData ? (
+                                <div className="py-8 px-4 text-center">
+                                    <Loader2 size={24} className="animate-spin mx-auto text-[#00c9a7] mb-2" />
+                                    <p className="text-xs font-semibold text-[#e0faf5]">
+                                        Loading Shipping Facilities...
+                                    </p>
+                                    <p className="text-[11px] text-[#7ecfc4]/70 mt-1">
+                                        Fetching available ports & hubs from network
+                                    </p>
+                                </div>
+                            ) : totalFilteredCount === 0 ? (
                                 <div className="py-8 px-4 text-center">
                                     <Search size={22} className="mx-auto text-gray-600 mb-2" />
                                     <p className="text-xs font-semibold text-gray-300">
