@@ -563,7 +563,7 @@ return (
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="w-full max-w-5xl my-auto rounded-[2rem] overflow-hidden shadow-2xl grid lg:grid-cols-2 min-h-[660px] lg:min-h-180"
+            className="w-full max-w-5xl my-auto rounded-[2rem] overflow-hidden shadow-2xl grid lg:grid-cols-2 min-h-[560px] sm:min-h-[620px] lg:min-h-[720px]"
             style={{
                 border: "1px solid var(--border-primary)",
                 background: "var(--bg-card)",
@@ -571,7 +571,7 @@ return (
             }}
         >
             {/* Left: Cinematic 3D animation panel (desktop only) */}
-            <div className="relative hidden lg:block h-full min-h-180">
+            <div className="relative hidden lg:block h-full min-h-[720px]">
                 <RegisterVisual
                     name={name}
                     email={email}
@@ -584,56 +584,57 @@ return (
             {/* Right: Stepped Agent Registration Form with Stable Min-Height */}
             <div
                 data-lenis-prevent
-                className="p-6 md:p-10 flex flex-col justify-between h-full min-h-[660px] lg:min-h-180 overflow-y-auto overscroll-contain custom-modal-scrollbar"
+                className="p-5 sm:p-6 md:p-10 flex flex-col justify-between h-full min-h-[560px] sm:min-h-[620px] lg:min-h-[720px] overflow-y-auto overscroll-contain custom-modal-scrollbar"
             >
                 <div>
                     <h1
-                        className="text-xl md:text-2xl font-bold mb-1 text-center tracking-tight"
+                        className="text-lg sm:text-xl md:text-2xl font-bold mb-1 text-center tracking-tight"
                         style={{ color: "var(--text-primary)" }}
                     >
                         Register as Logistics Agent
                     </h1>
                     <p
-                        className="text-xs mb-5 text-center"
+                        className="text-xs mb-4 sm:mb-5 text-center leading-relaxed"
                         style={{ color: "var(--text-muted)" }}
                     >
-                        Configure your credentials & operational freight corridors.
+                        Configure your credentials {"&"} operational freight corridors.
                     </p>
 
                     {/* Step indicator header */}
-                    <div className="flex items-center justify-between mb-5 pb-3 border-b border-gray-800">
-                        <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center justify-between mb-4 sm:mb-5 pb-3 border-b border-gray-800">
+                        <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
                             {/* Step 1 Tab Button */}
                             <button
                                 type="button"
                                 onClick={() => setStep(1)}
-                                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${step === 1
+                                className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${step === 1
                                     ? "bg-teal-500/15 border-teal-400 text-teal-300"
                                     : "bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200"
                                     }`}
                             >
                                 <span
-                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 1 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
+                                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold shrink-0 ${step === 1 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
                                         }`}
                                 >
                                     1
                                 </span>
-                                <span>Account Info</span>
+                                <span className="hidden sm:inline">Account Info</span>
+                                <span className="sm:hidden">Acct</span>
                             </button>
 
-                            <div className="w-4 sm:w-6 h-px bg-gray-700" />
+                            <div className="w-3 sm:w-6 h-px bg-gray-700 shrink-0" />
 
                             {/* Step 2 Tab Button */}
                             <button
                                 type="button"
                                 onClick={handleNextToStep2}
-                                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${step === 2
+                                className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${step === 2
                                     ? "bg-teal-500/15 border-teal-400 text-teal-300"
                                     : "bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200"
                                     }`}
                             >
                                 <span
-                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 2 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
+                                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold shrink-0 ${step === 2 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
                                         }`}
                                 >
                                     2
@@ -644,7 +645,7 @@ return (
                             </button>
                         </div>
 
-                        <span className="text-[11px] text-gray-400 font-mono">
+                        <span className="text-[10px] sm:text-[11px] text-gray-400 font-mono shrink-0">
                             Step {step} of 2
                         </span>
                     </div>
@@ -777,7 +778,7 @@ return (
                                     </div>
 
                                     <div
-                                        className="flex items-center gap-2 p-1.5 rounded-xl transition-all"
+                                        className="flex items-center gap-1.5 p-1.5 rounded-xl transition-all"
                                         style={{
                                             background: "var(--bg-input)",
                                             border: `1px solid ${errors.phone || phoneCheckStatus === "taken" || phoneCheckStatus === "invalid"
@@ -796,7 +797,7 @@ return (
                                                     const found = COUNTRIES.find((c) => c.code === e.target.value);
                                                     if (found) handleCountryChange(found);
                                                 }}
-                                                className="h-10 pl-2.5 pr-7 rounded-lg bg-black/40 border border-gray-800 text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-teal-400 appearance-none cursor-pointer transition-colors"
+                                                className="h-9 pl-2 pr-6 rounded-lg bg-black/40 border border-gray-800 text-[10px] sm:text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-teal-400 appearance-none cursor-pointer transition-colors max-w-[100px] sm:max-w-none"
                                             >
                                                 {COUNTRIES.map((c) => (
                                                     <option key={c.code} value={c.code} className="bg-[#0d1f1f] text-gray-200 cursor-pointer">
@@ -804,11 +805,11 @@ return (
                                                     </option>
                                                 ))}
                                             </select>
-                                            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                         </div>
 
                                         {/* National Phone Input */}
-                                        <div className="flex items-center gap-2 flex-1 px-2">
+                                        <div className="flex items-center gap-2 flex-1 px-2 min-w-0">
                                             <Phone
                                                 size={15}
                                                 className={
@@ -824,7 +825,7 @@ return (
                                                 value={nationalPhone}
                                                 onChange={(e) => handlePhoneChange(e.target.value)}
                                                 placeholder="e.g. 1712-345678"
-                                                className="flex-1 bg-transparent text-sm font-mono outline-hidden text-gray-100 placeholder:text-gray-600"
+                                                className="flex-1 min-w-0 bg-transparent text-sm font-mono outline-hidden text-gray-100 placeholder:text-gray-600"
                                             />
                                             {nationalPhone && (
                                                 <button
@@ -840,7 +841,7 @@ return (
 
                                     {/* Real-time Phone Availability / Format Indicator */}
                                     {phoneCheckMessage && (
-                                        <div className="flex items-center justify-between text-[11px] mt-1.5 px-1">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] mt-1.5 px-1">
                                             <span
                                                 className={
                                                     phoneCheckStatus === "available"
@@ -855,7 +856,7 @@ return (
                                                 {phoneCheckMessage}
                                             </span>
                                             {normalizePhoneToE164(selectedCountry, nationalPhone).fullNumber && (
-                                                <span className="font-mono text-[10px] text-teal-400/90 font-semibold">
+                                                <span className="font-mono text-[10px] text-teal-400/90 font-semibold shrink-0">
                                                     E.164: {normalizePhoneToE164(selectedCountry, nationalPhone).fullNumber}
                                                 </span>
                                             )}
@@ -937,7 +938,7 @@ return (
                                 <button
                                     type="button"
                                     onClick={handleNextToStep2}
-                                    className="mt-1 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                                    className="mt-1 flex justify-center items-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer w-full"
                                     style={{
                                         background: "var(--gradient-brand)",
                                         color: "#0a0f0f",
@@ -945,7 +946,7 @@ return (
                                     }}
                                 >
                                     <span>Continue to Step 2: Corridors</span>
-                                    <ArrowRight size={16} className="cursor-pointer" />
+                                    <ArrowRight size={16} className="cursor-pointer shrink-0" />
                                 </button>
                             </motion.div>
                         )}
@@ -1171,23 +1172,23 @@ return (
                                     <button
                                         type="button"
                                         onClick={() => setStep(1)}
-                                        className="py-3.5 px-4 rounded-xl font-semibold text-xs border border-gray-700 text-gray-300 hover:bg-gray-800 transition-all cursor-pointer"
+                                        className="py-3.5 px-3 sm:px-4 rounded-xl font-semibold text-xs border border-gray-700 text-gray-300 hover:bg-gray-800 transition-all cursor-pointer shrink-0"
                                     >
-                                        ← Back to Step 1
+                                        ← Back
                                     </button>
 
                                     <button
                                         type="submit"
                                         disabled={isSubmitting || registered}
-                                        className="grow flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 cursor-pointer bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20"
+                                        className="grow flex justify-center items-center gap-2 py-3.5 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 cursor-pointer bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 text-center"
                                     >
                                         {isSubmitting ? (
                                             <>
-                                                <Loader2 size={16} className="animate-spin" />
-                                                Registering...
+                                                <Loader2 size={16} className="animate-spin shrink-0" />
+                                                <span>Registering...</span>
                                             </>
                                         ) : (
-                                            `Register as Agent (${configuredRoutes.length} Routes)`
+                                            <span>Register as Agent ({configuredRoutes.length} Routes)</span>
                                         )}
                                     </button>
                                 </div>
@@ -1197,10 +1198,10 @@ return (
                 </div>
 
                 {/* Bottom Area: Social Login & Sign In Link strictly anchored at bottom */}
-                <div className="mt-4 pt-2">
+                <div className="mt-3 sm:mt-4 pt-2">
                     {step === 1 && (
                         <>
-                            <div className="flex items-center gap-3 my-3">
+                            <div className="flex items-center gap-3 my-2 sm:my-3">
                                 <div className="grow h-px bg-linear-to-r from-transparent to-gray-700" />
                                 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>
                                     or
@@ -1211,7 +1212,7 @@ return (
                             <button
                                 type="button"
                                 onClick={handleGoogleAgentLogin}
-                                className="flex items-center justify-center gap-3 w-full py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-80 cursor-pointer"
+                                className="flex items-center justify-center gap-3 w-full py-2.5 sm:py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-80 cursor-pointer"
                                 style={{
                                     border: "1px solid var(--border-primary)",
                                     color: "var(--text-primary)",
