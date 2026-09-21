@@ -462,7 +462,7 @@ export default function LocationsPageClient() {
                     {/* Reusable FilterSelect for Type */}
                     <FilterSelect
                         value={query.type || ""}
-                        onChange={(v) => setQuery(p => ({ ...p, type: (v || undefined) as ILocationQuery["type"], page: 1 }))}
+                        onChange={(v) => setQuery({ ...query, type: (v || undefined) as ILocationQuery["type"], page: 1 })}
                         options={LOCATION_TYPE_OPTIONS}
                         placeholder="All Types"
                         title="Filter by location type"
@@ -471,7 +471,7 @@ export default function LocationsPageClient() {
                     {/* Reusable FilterSelect for Status */}
                     <FilterSelect
                         value={query.isBlocked === undefined ? "" : String(query.isBlocked)}
-                        onChange={(v) => setQuery(p => ({ ...p, isBlocked: v === "" ? undefined : v === "true", page: 1 }))}
+                        onChange={(v) => setQuery({ ...query, isBlocked: v === "" ? undefined : v === "true", page: 1 })}
                         options={STATUS_OPTIONS}
                         placeholder="All Statuses"
                         title="Filter by active or blocked status"
