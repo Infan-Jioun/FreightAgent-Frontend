@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { X, Loader2, UserCheck, Search, RotateCw, CheckCircle2, ShieldCheck, Truck } from "lucide-react";
 import { IShipment, IRoadAgent } from "@/app/types/shipment.types";
+import { Modal } from "@/components/ui/Modal";
 
 export interface AssignAgentModalProps {
     shipment: IShipment | null;
@@ -146,41 +147,34 @@ export function AssignAgentModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-            <div className="w-full max-w-xl bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4 max-h-[92vh] flex flex-col overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3 shrink-0">
-                    <div>
-                        <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block font-bold">
-                            Dispatch Assignment
-                        </span>
-                        <h3 className="text-base font-extrabold text-[#e0faf5] flex items-center gap-2">
-                            <Truck size={17} className="text-[#00c9a7]" />
-                            <span>Assign Road Agent — {shipment.trackingId}</span>
-                        </h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {onRefreshAgents && (
-                            <button
-                                type="button"
-                                onClick={onRefreshAgents}
-                                disabled={loadingAgents}
-                                className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer disabled:opacity-50"
-                                title="Refresh Agent List"
-                            >
-                                <RotateCw size={14} className={loadingAgents ? "animate-spin" : ""} />
-                            </button>
-                        )}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer"
-                            title="Close Modal"
-                        >
-                            <X size={15} />
-                        </button>
-                    </div>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="xl"
+            headerRight={
+                onRefreshAgents && (
+                    <button
+                        type="button"
+                        onClick={onRefreshAgents}
+                        disabled={loadingAgents}
+                        className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer disabled:opacity-50"
+                        title="Refresh Agent List"
+                    >
+                        <RotateCw size={14} className={loadingAgents ? "animate-spin" : ""} />
+                    </button>
+                )
+            }
+            icon={<Truck size={17} className="text-[#00c9a7]" />}
+            title={
+                <div>
+                    <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block font-bold">
+                        Dispatch Assignment
+                    </span>
+                    <span>Assign Road Agent — {shipment.trackingId}</span>
                 </div>
+            }
+        >
+            <div className="space-y-4">
 
                 {/* Shipment Route Summary */}
                 <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex items-center justify-between text-xs shrink-0">
@@ -407,7 +401,7 @@ export function AssignAgentModal({
                     </div>
                 </form>
             </div>
-        </div>
+        </Modal>
     );
 }
 

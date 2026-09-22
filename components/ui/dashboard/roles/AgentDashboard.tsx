@@ -23,6 +23,7 @@ import { shipmentService } from "@/app/services/shipment.service";
 import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
 import { AppError } from "@/app/errorHelper/appError";
 import { useSocketEvent } from "@/app/hooks/useSocket";
+import { StatCard, StatCardsGrid } from "@/components/ui/dashboard/StatCard";
 
 interface DeliveryTask {
     id: string;
@@ -209,68 +210,44 @@ export default function AgentDashboard() {
                 </div>
             </div>
 
-            {/* 4 Agent Operational KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Metric 1 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#00c9a7]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Active Drops</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00c9a7]/15 text-[#00c9a7] flex items-center justify-center">
-                            <Truck size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">{activeDropsCount}</span>
-                        <span className="text-xs font-semibold text-[#00e5c0]">En Route</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Pending destination delivery</p>
-                </div>
+            {/* 4 Agent Operational KPIs with Uniform Size & Reusable StatCard */}
+            <StatCardsGrid>
+                <StatCard
+                    title="Active Drops"
+                    value={activeDropsCount}
+                    icon={Truck}
+                    variant="teal"
+                    badge="En Route"
+                    subtitle="Pending destination delivery"
+                />
 
-                {/* Metric 2 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#00b4d8]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Completed Today</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00b4d8]/15 text-[#00b4d8] flex items-center justify-center">
-                            <PackageCheck size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">{completedTodayCount}</span>
-                        <span className="text-xs font-semibold text-[#00b4d8]">Signed</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Confirmed handovers</p>
-                </div>
+                <StatCard
+                    title="Completed Today"
+                    value={completedTodayCount}
+                    icon={PackageCheck}
+                    variant="cyan"
+                    badge="Signed"
+                    subtitle="Confirmed handovers"
+                />
 
-                {/* Metric 3 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#00e5c0]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Success Rate</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00e5c0]/15 text-[#00e5c0] flex items-center justify-center">
-                            <Clock size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">99.2%</span>
-                        <span className="text-xs font-semibold text-[#00e5c0]">4.98 ★</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Optimal corridor delivery</p>
-                </div>
+                <StatCard
+                    title="Success Rate"
+                    value="99.2%"
+                    icon={Clock}
+                    variant="teal"
+                    trend={{ value: "4.98 ★", isPositive: true }}
+                    subtitle="Optimal corridor delivery"
+                />
 
-                {/* Metric 4 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-xs hover:border-[#f59e0b]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Today&apos;s Earnings</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/15 text-[#f59e0b] flex items-center justify-center">
-                            <DollarSign size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">$342.50</span>
-                        <span className="text-xs font-semibold text-[#f59e0b]">+$48 bonus</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Est. payout Friday</p>
-                </div>
-            </div>
+                <StatCard
+                    title="Today's Earnings"
+                    value="$342.50"
+                    icon={DollarSign}
+                    variant="amber"
+                    trend={{ value: "+$48 bonus", isPositive: true }}
+                    subtitle="Est. payout Friday"
+                />
+            </StatCardsGrid>
 
             {/* Main Dispatch Grid: Left Task Queue & Right Next Drop Focus */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

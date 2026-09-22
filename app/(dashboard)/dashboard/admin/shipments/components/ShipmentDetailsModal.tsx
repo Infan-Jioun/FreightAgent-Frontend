@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive modal presentation, clipboard copying, and RBAC-gated dispatch actions.
 "use client";
 
 import React, { useState } from "react";
@@ -26,6 +27,8 @@ import { toast } from "sonner";
 import { IShipment } from "@/app/types/shipment.types";
 import { PaymentStatusBadge } from "@/components/ui/status-badge";
 import { getShipmentStatusStyle } from "./ShipmentTable";
+import { Modal } from "@/components/ui/Modal";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 export interface ShipmentDetailsModalProps {
     shipment: IShipment | null;
@@ -73,8 +76,13 @@ export function ShipmentDetailsModal({
         : null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-            <div className="w-full max-w-3xl bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto custom-modal-scrollbar">
+        <Modal
+            isOpen={!!shipment}
+            onClose={onClose}
+            maxWidth="3xl"
+            showCloseButton={false}
+        >
+            <div className="space-y-5">
                 {/* 1. Header & Meta Identifiers */}
                 <div className="flex items-start justify-between border-b border-[#1a4a4a] pb-4 gap-4">
                     <div>
@@ -441,43 +449,49 @@ export function ShipmentDetailsModal({
                 {/* 8. Modal Footer Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#1a4a4a]">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                onClose();
-                                onOpenStatusModal(shipment);
-                            }}
-                            className="px-3.5 py-2 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors cursor-pointer"
-                        >
-                            Update Status
-                        </button>
-
-                        {(shipment.status === "PENDING" || !shipment.assignedAgentId) && (
+                        <PermissionGate permission="shipments:update_status">
                             <button
                                 type="button"
                                 onClick={() => {
                                     onClose();
-                                    onOpenAssignModal(shipment);
+                                    onOpenStatusModal(shipment);
                                 }}
-                                className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-colors cursor-pointer"
+                                className="px-3.5 py-2 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors cursor-pointer"
                             >
-                                Assign Agent
+                                Update Status
                             </button>
+                        </PermissionGate>
+
+                        {(shipment.status === "PENDING" || !shipment.assignedAgentId) && (
+                            <PermissionGate permission="shipments:assign_agent">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onClose();
+                                        onOpenAssignModal(shipment);
+                                    }}
+                                    className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-colors cursor-pointer"
+                                >
+                                    Assign Agent
+                                </button>
+                            </PermissionGate>
                         )}
 
                         {isAdmin && onOpenDeleteModal && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onClose();
-                                    onOpenDeleteModal(shipment);
-                                }}
-                                className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
-                                title="Delete Consignment"
-                            >
-                                <Trash2 size={12} />
-                                <span>Delete</span>
-                            </button>
+                            <PermissionGate permission="shipments:delete">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onClose();
+                                        onOpenDeleteModal(shipment);
+                                    }}
+                                    className="px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1"
+                                    title="Delete Consignment"
+                                >
+                                    <Trash2 size={12} />
+                                    <span>Delete</span>
+                                </button>
+                            </PermissionGate>
                         )}
                     </div>
 
@@ -490,7 +504,7 @@ export function ShipmentDetailsModal({
                     </Link>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }
 

@@ -21,6 +21,7 @@ import { IShipment } from "@/app/types/shipment.types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ROUTES } from "@/app/constants/routes";
+import { StatCard, StatCardsGrid } from "@/components/ui/dashboard/StatCard";
 import { toast } from "sonner";
 import { AppError } from "@/app/errorHelper/appError";
 import { useAuthStore } from "@/app/store/authStore";
@@ -123,96 +124,44 @@ export default function CustomerOverviewPage() {
                 </div>
             </div>
 
-            {/* 4 Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* 1. Total Shipments */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-[#00c9a7]/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#7ecfc4] uppercase tracking-wider">
-                            Total Shipments
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-center text-[#00c9a7]">
-                            <Package size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {totalShipments}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">All registered consignments</p>
-                    </div>
-                </div>
+            {/* 4 Customer Summary Cards with Uniform Size & Reusable StatCard */}
+            <StatCardsGrid>
+                <StatCard
+                    title="Total Shipments"
+                    value={totalShipments}
+                    icon={Package}
+                    variant="teal"
+                    loading={loading}
+                    subtitle="All registered consignments"
+                />
 
-                {/* 2. Pending */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-neutral-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                            Pending
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300">
-                            <Clock size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-neutral-200 tracking-tight">
-                                {pendingCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Awaiting carrier dispatch</p>
-                    </div>
-                </div>
+                <StatCard
+                    title="Pending"
+                    value={pendingCount}
+                    icon={Clock}
+                    variant="neutral"
+                    loading={loading}
+                    subtitle="Awaiting carrier dispatch"
+                />
 
-                {/* 3. In Transit */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-orange-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">
-                            In Transit
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
-                            <Truck size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {inTransitCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Active movement on network</p>
-                    </div>
-                </div>
+                <StatCard
+                    title="In Transit"
+                    value={inTransitCount}
+                    icon={Truck}
+                    variant="orange"
+                    loading={loading}
+                    subtitle="Active movement on network"
+                />
 
-                {/* 4. Delivered */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-emerald-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                            Delivered
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                            <CheckCircle2 size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {deliveredCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Successfully completed</p>
-                    </div>
-                </div>
-            </div>
+                <StatCard
+                    title="Delivered"
+                    value={deliveredCount}
+                    icon={CheckCircle2}
+                    variant="teal"
+                    loading={loading}
+                    subtitle="Successfully completed"
+                />
+            </StatCardsGrid>
 
             {/* Recent Shipments Table Section */}
             <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden">

@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive data tables, search debounce, socket event subscriptions, and RBAC-gated consignment actions.
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -27,6 +28,8 @@ import { useDebounce } from "@/app/hooks/useDebounce";
 import { useSocketEvent, useSocketContext } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
 import { AgentShipmentDetailsModal } from "./components/AgentShipmentDetailsModal";
+import { Modal } from "@/components/ui/Modal";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 const AGENT_STATUS_TABS: FilterTabOption<ShipmentStatus | "ALL">[] = [
     { key: "ALL", label: "All Assigned" },
@@ -246,31 +249,35 @@ export default function AgentShipmentsPage() {
 
                         {/* Accept Button for ASSIGNED status */}
                         {s.status === "ASSIGNED" && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setAcceptModalShipment(s);
-                                    setAcceptLocation(s.origin || "");
-                                    setAcceptNote("");
-                                }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
-                                title="Accept Consignment"
-                            >
-                                <CheckSquare size={12} />
-                                <span>Accept</span>
-                            </button>
+                            <PermissionGate permission="shipments:accept">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAcceptModalShipment(s);
+                                        setAcceptLocation(s.origin || "");
+                                        setAcceptNote("");
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                    title="Accept Consignment"
+                                >
+                                    <CheckSquare size={12} />
+                                    <span>Accept</span>
+                                </button>
+                            </PermissionGate>
                         )}
 
                         {/* Manage / Update link */}
-                        <Link
-                            href={`/dashboard/agent/shipments/${s.id}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] text-xs font-bold transition-colors cursor-pointer"
-                            title="Manage Checkpoint Tracking"
-                        >
-                            <Truck size={13} />
-                            <span className="hidden lg:inline">Update</span>
-                            <ArrowRight size={12} />
-                        </Link>
+                        <PermissionGate permission="shipments:update_status">
+                            <Link
+                                href={`/dashboard/agent/shipments/${s.id}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] text-xs font-bold transition-colors cursor-pointer"
+                                title="Manage Checkpoint Tracking"
+                            >
+                                <Truck size={13} />
+                                <span className="hidden lg:inline">Update</span>
+                                <ArrowRight size={12} />
+                            </Link>
+                        </PermissionGate>
                     </div>
                 ),
             },
@@ -321,7 +328,7 @@ export default function AgentShipmentsPage() {
                 data={shipments}
                 columns={columns}
                 rowKey={(s) => s.id}
-                onRowClick={(s) => setDetailsModalShipment(s)}
+                onRowClick={(s : any) => setDetailsModalShipment(s)}
                 loading={loading}
                 tabs={AGENT_STATUS_TABS}
                 activeTab={statusFilter}
@@ -382,26 +389,23 @@ export default function AgentShipmentsPage() {
             />
 
             {/* ACCEPT SHIPMENT MODAL */}
-            {acceptModalShipment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-                    <div className="w-full max-w-md bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4">
-                        <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
-                            <div>
-                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
-                                    Carrier Acceptance
-                                </span>
-                                <h3 className="text-base font-extrabold text-[#e0faf5]">
-                                    Accept Consignment #{acceptModalShipment.trackingId}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setAcceptModalShipment(null)}
-                                className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors"
-                            >
-                                <X size={15} />
-                            </button>
+            <Modal
+                isOpen={!!acceptModalShipment}
+                onClose={() => setAcceptModalShipment(null)}
+                maxWidth="md"
+                title={
+                    acceptModalShipment && (
+                        <div>
+                            <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
+                                Carrier Acceptance
+                            </span>
+                            <span>Accept Consignment #{acceptModalShipment.trackingId}</span>
                         </div>
-
+                    )
+                }
+            >
+                {acceptModalShipment && (
+                    <div className="space-y-4">
                         <p className="text-xs text-[#7ecfc4]">
                             Confirming acceptance changes consignment status from <strong className="text-amber-400">ASSIGNED</strong> to <strong className="text-emerald-400">ACCEPTED</strong>.
                         </p>
@@ -452,8 +456,8 @@ export default function AgentShipmentsPage() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

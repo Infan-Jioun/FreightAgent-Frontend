@@ -2,11 +2,9 @@
 
 import { motion } from "framer-motion";
 import { MapPin } from "lucide-react";
+import type { TrackingLocationCardProps } from "@/app/types/interface";
 
-interface TrackingLocationCardProps {
-    reducedMotion: boolean;
-    className?: string;
-}
+export type { TrackingLocationCardProps };
 
 export default function TrackingLocationCard({ reducedMotion, className = "" }: TrackingLocationCardProps) {
     return (

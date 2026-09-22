@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages carrier wallet balance views, commission tabs, and interactive withdrawal requests with RBAC gating.
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -26,6 +27,7 @@ import {
 import { AppError } from "@/app/errorHelper/appError";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { WithdrawModal } from "./components/WithdrawModal";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 export default function AgentEarningsPage() {
     const [summary, setSummary] = useState<IAgentEarningsSummary>({
@@ -98,15 +100,17 @@ export default function AgentEarningsPage() {
                     >
                         <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => setIsWithdrawModalOpen(true)}
-                        disabled={summary.availableBalanceUSD <= 0}
-                        className="px-4 py-2.5 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-xs font-black text-[#0a0f0f] transition-all flex items-center justify-center gap-1.5 shadow-md shadow-[#00c9a7]/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <ArrowUpRight size={15} />
-                        <span>Withdraw Funds</span>
-                    </button>
+                    <PermissionGate permission="payments:withdraw">
+                        <button
+                            type="button"
+                            onClick={() => setIsWithdrawModalOpen(true)}
+                            disabled={summary.availableBalanceUSD <= 0}
+                            className="px-4 py-2.5 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-xs font-black text-[#0a0f0f] transition-all flex items-center justify-center gap-1.5 shadow-md shadow-[#00c9a7]/20 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            <ArrowUpRight size={15} />
+                            <span>Withdraw Funds</span>
+                        </button>
+                    </PermissionGate>
                 </div>
             </div>
 

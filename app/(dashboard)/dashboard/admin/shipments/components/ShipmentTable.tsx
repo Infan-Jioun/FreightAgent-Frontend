@@ -1,3 +1,4 @@
+// This needs 'use client' because: it renders interactive table rows, sorting/pagination handlers, and RBAC-gated dispatch actions.
 "use client";
 
 import React from "react";
@@ -10,9 +11,11 @@ import {
     Mail,
 } from "lucide-react";
 import { IShipment, IRoadAgent, ShipmentStatus } from "@/app/types/shipment.types";
+import type { IResolvedAgentInfo } from "@/app/types/interface";
 import { PaymentStatusBadge } from "@/components/ui/status-badge";
 import { DataTableWrapper } from "@/components/ui/DataTableWrapper";
 import { PaginationBar } from "@/components/ui/PaginationBar";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 export interface ShipmentTableProps {
     shipments: IShipment[];
@@ -50,12 +53,6 @@ export const getShipmentStatusStyle = (status: ShipmentStatus) => {
             return "bg-[#1a4a4a]/40 text-[#7ecfc4] border-[#1a4a4a]";
     }
 };
-
-interface IResolvedAgentInfo {
-    name: string;
-    email?: string | null;
-    phone?: string | null;
-}
 
 function resolveAgentDetails(
     shipment: IShipment,
@@ -299,14 +296,16 @@ export function ShipmentTable({
                                             <span>Details</span>
                                         </button>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => onOpenStatusModal(item)}
-                                            className="p-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] transition-colors cursor-pointer"
-                                            title="Update checkpoint status"
-                                        >
-                                            <RefreshCw size={13} />
-                                        </button>
+                                        <PermissionGate permission="shipments:update_status">
+                                            <button
+                                                type="button"
+                                                onClick={() => onOpenStatusModal(item)}
+                                                className="p-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] transition-colors cursor-pointer"
+                                                title="Update checkpoint status"
+                                            >
+                                                <RefreshCw size={13} />
+                                            </button>
+                                        </PermissionGate>
                                     </div>
                                 </td>
                             </tr>

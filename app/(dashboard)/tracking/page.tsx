@@ -23,38 +23,8 @@ import MaritimeRouteTrackingWidget from "@/components/ui/dashboard/MaritimeRoute
 import { Button } from "@/components/ui/button";
 import { shipmentService } from "@/app/services/shipment.service";
 import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
+import type { TrackingEvent, ShipmentDetails } from "@/app/types/interface";
 import { AppError } from "@/app/errorHelper/appError";
-
-interface TrackingEvent {
-    id: string;
-    title: string;
-    description: string;
-    location: string;
-    timestamp: string;
-    completed: boolean;
-    current?: boolean;
-    author?: string;
-}
-
-interface ShipmentDetails {
-    trackingCode: string;
-    status: ShipmentStatus;
-    origin: string;
-    originAddress: string;
-    destination: string;
-    destAddress: string;
-    eta: string;
-    carrier: string;
-    driverName: string;
-    driverPhone: string;
-    vehiclePlate: string;
-    weight: string;
-    dimensions: string;
-    serviceType: string;
-    events: TrackingEvent[];
-    assignedBy?: string;
-    assignedAgentArea?: string;
-}
 
 // Fallback initial demo data
 const DEFAULT_SHIPMENT: ShipmentDetails = {

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { paymentService } from "@/app/services/payment.service";
 import { IAgentWithdrawResult } from "@/app/types/payment.types";
 import { AppError } from "@/app/errorHelper/appError";
+import { Modal } from "@/components/ui/Modal";
 
 interface WithdrawModalProps {
     isOpen: boolean;
@@ -89,32 +90,21 @@ export function WithdrawModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="w-full max-w-lg bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-5 max-h-[92vh] overflow-y-auto">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 text-[#00e5c0]">
-                            <DollarSign size={20} />
-                        </div>
-                        <div>
-                            <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider block font-bold">
-                                Carrier Commission Wallet
-                            </span>
-                            <h3 className="text-lg font-black text-[#e0faf5] tracking-tight">
-                                {successResult ? "Withdrawal Completed" : "Withdraw Carrier Funds"}
-                            </h3>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={handleClose}
-                        className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] transition-colors cursor-pointer"
-                        title="Close"
-                    >
-                        <X size={16} />
-                    </button>
+        <Modal
+            isOpen={isOpen}
+            onClose={handleClose}
+            maxWidth="lg"
+            icon={<DollarSign size={20} />}
+            title={
+                <div>
+                    <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider block font-bold">
+                        Carrier Commission Wallet
+                    </span>
+                    <span>{successResult ? "Withdrawal Completed" : "Withdraw Carrier Funds"}</span>
                 </div>
+            }
+        >
+            <div className="space-y-5">
 
                 {/* Success State View */}
                 {successResult ? (
@@ -295,6 +285,6 @@ export function WithdrawModal({
                     </form>
                 )}
             </div>
-        </div>
+        </Modal>
     );
 }

@@ -2,16 +2,9 @@
 
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { PaginationBarProps } from "@/app/types/interface";
 
-export interface PaginationBarProps {
-    currentPage: number;
-    totalPages: number;
-    totalCount?: number;
-    pageSize?: number;
-    itemName?: string;
-    onPageChange: (page: number) => void;
-    className?: string;
-}
+export type { PaginationBarProps };
 
 export function PaginationBar({
     currentPage,

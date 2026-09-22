@@ -2,11 +2,9 @@
 
 import { motion } from "framer-motion";
 import { Activity } from "lucide-react";
+import type { NetworkStatusCardProps } from "@/app/types/interface";
 
-interface NetworkStatusCardProps {
-    reducedMotion: boolean;
-    className?: string;
-}
+export type { NetworkStatusCardProps };
 
 export default function NetworkStatusCard({ reducedMotion, className = "" }: NetworkStatusCardProps) {
     return (

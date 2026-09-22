@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { IShipment } from "@/app/types/shipment.types";
 import { StatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
+import { Modal } from "@/components/ui/Modal";
 
 export interface CustomerShipmentDetailsModalProps {
     shipment: IShipment | null;
@@ -80,8 +81,13 @@ export function CustomerShipmentDetailsModal({
         shipment.status !== "CANCELLED";
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-            <div className="w-full max-w-3xl bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+        <Modal
+            isOpen={!!shipment}
+            onClose={onClose}
+            maxWidth="3xl"
+            showCloseButton={false}
+        >
+            <div className="space-y-5">
                 {/* 1. Header with Waybill and Status Badges */}
                 <div className="flex items-start justify-between border-b border-[#1a4a4a] pb-4 gap-4">
                     <div>
@@ -374,7 +380,7 @@ export function CustomerShipmentDetailsModal({
                     </Link>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 }
 

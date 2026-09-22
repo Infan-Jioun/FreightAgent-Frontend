@@ -4,17 +4,13 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Html } from "@react-three/drei";
+import type { IPortStopRoute as PortStop, ShipmentRouteProps } from "@/app/types/interface";
+
+export type { ShipmentRouteProps };
 
 /* ------------------------------------------------------------------ */
 /*  Route data — 4 ports, in order. Route always STARTS in Bangladesh. */
 /* ------------------------------------------------------------------ */
-
-interface PortStop {
-    port: string;
-    country: string;
-    /** ISO 3166-1 alpha-2 code, used to pull the real flag from flagcdn.com */
-    iso: string;
-}
 
 const ROUTE: PortStop[] = [
     { port: "Chattogram Port", country: "Bangladesh", iso: "bd" },
@@ -296,10 +292,7 @@ function RouteLine({ curve }: { curve: THREE.CatmullRomCurve3 }) {
 /*  Main export                                                        */
 /* ------------------------------------------------------------------ */
 
-interface ShipmentRouteProps {
-    reducedMotion: boolean;
-    boosted?: boolean;
-}
+
 
 export default function ShipmentRoute({ reducedMotion, boosted }: ShipmentRouteProps) {
     const curve = useMemo(() => buildCurve(), []);

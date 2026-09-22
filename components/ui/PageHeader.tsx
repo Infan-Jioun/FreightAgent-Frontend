@@ -1,15 +1,9 @@
 "use client";
 
 import React from "react";
+import type { PageHeaderProps } from "@/app/types/interface";
 
-export interface PageHeaderProps {
-    title: string;
-    subtitle?: string;
-    badge?: string;
-    badgeColor?: "red" | "teal" | "blue" | "amber";
-    actions?: React.ReactNode;
-    className?: string;
-}
+export type { PageHeaderProps };
 
 const BADGE_COLOR_MAP = {
     red: "bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/30",

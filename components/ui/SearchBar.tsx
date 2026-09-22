@@ -2,14 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { Search, X } from "lucide-react";
+import type { SearchBarProps } from "@/app/types/interface";
 
-export interface SearchBarProps {
-    value: string;
-    onChange: (query: string) => void;
-    placeholder?: string;
-    debounceMs?: number;
-    className?: string;
-}
+export type { SearchBarProps };
 
 export function SearchBar({
     value,

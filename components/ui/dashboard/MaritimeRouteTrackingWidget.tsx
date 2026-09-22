@@ -24,22 +24,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import type { PortNode } from "@/app/types/interface";
 
-export interface PortNode {
-    id: string;
-    name: string;
-    code: string;
-    country: "Bangladesh" | "China" | "Transit Hub";
-    flag: string;
-    x: number; // SVG coordinate 0 - 800
-    y: number; // SVG coordinate 0 - 450
-    status: "ORIGIN" | "DESTINATION" | "TRANSIT" | "FEEDER";
-    congestion: "OPTIMAL" | "MODERATE" | "BUSY";
-    draft: string;
-    berths: number;
-    arrivalEstimate?: string;
-    details: string;
-}
+export type { PortNode };
 
 const ALL_CORRIDOR_PORTS: PortNode[] = [
     // ── Bangladesh Ports ──

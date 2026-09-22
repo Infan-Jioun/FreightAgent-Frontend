@@ -3,6 +3,7 @@
 import React from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { IShipment } from "@/app/types/shipment.types";
+import { Modal } from "@/components/ui/Modal";
 
 export interface DeleteShipmentModalProps {
     shipment: IShipment | null;
@@ -18,28 +19,20 @@ export function DeleteShipmentModal({
     onClose,
     onConfirm,
     isDeleting,
-}: DeleteShipmentModalProps) {
+}: DeleteShipmentModalProps): React.JSX.Element | null {
     if (!isOpen || !shipment) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-            <div className="w-full max-w-sm bg-[#0d1f1f] border border-[#ff6b6b]/40 rounded-3xl shadow-2xl p-6 space-y-4">
-                <div className="flex items-center gap-3 text-[#ff6b6b]">
-                    <div className="p-2.5 rounded-2xl bg-[#ff6b6b]/15 border border-[#ff6b6b]/30">
-                        <AlertTriangle size={20} />
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-black text-[#e0faf5]">Delete Consignment?</h3>
-                        <p className="text-[11px] text-[#ff6b6b]">This action is irreversible</p>
-                    </div>
-                </div>
-
-                <p className="text-xs text-[#7ecfc4]">
-                    Are you sure you want to delete consignment{" "}
-                    <span className="font-mono font-bold text-[#e0faf5]">{shipment.trackingId}</span>? All checkpoint logs will be permanently purged.
-                </p>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#1a4a4a]">
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="sm"
+            className="border-[#ff6b6b]/40"
+            icon={<AlertTriangle size={20} className="text-[#ff6b6b]" />}
+            title="Delete Consignment?"
+            description={<span className="text-[#ff6b6b]">This action is irreversible</span>}
+            footer={
+                <>
                     <button
                         type="button"
                         onClick={onClose}
@@ -56,9 +49,14 @@ export function DeleteShipmentModal({
                         {isDeleting && <Loader2 size={13} className="animate-spin" />}
                         <span>{isDeleting ? "Deleting..." : "Delete Consignment"}</span>
                     </button>
-                </div>
-            </div>
-        </div>
+                </>
+            }
+        >
+            <p className="text-xs text-[#7ecfc4] py-2">
+                Are you sure you want to delete consignment{" "}
+                <span className="font-mono font-bold text-[#e0faf5]">{shipment.trackingId}</span>? All checkpoint logs will be permanently purged.
+            </p>
+        </Modal>
     );
 }
 

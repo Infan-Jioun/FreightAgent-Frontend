@@ -17,18 +17,9 @@ import api from "../lib/api";
 import { clearClientCookies, setAuthCookies } from "../lib/cookie";
 import { useAuthStore } from "../store/authStore";
 import { AppError, getErrorMessage } from "../errorHelper/appError";
+import type { RateLimitInfo, IApiResponseWithRateLimit } from "@/app/types/interface";
 
-export interface RateLimitInfo {
-    limit: number;
-    remaining: number;
-    resetSeconds: number;
-}
-
-// extend the shared response shape with optional rate-limit info
-// so register()/login() callers can read it without a type cast
-export type IApiResponseWithRateLimit<T> = IApiResponse<T> & {
-    rateLimit?: RateLimitInfo | null;
-};
+export type { RateLimitInfo, IApiResponseWithRateLimit };
 
 function extractRateLimit(headers: any): RateLimitInfo | null {
     if (!headers) return null;

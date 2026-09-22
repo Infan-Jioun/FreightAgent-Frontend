@@ -17,28 +17,10 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import type { ILocation } from "@/app/types/location.types";
+import type { ILocation, IAgentRoute, CorridorRouteModalProps } from "@/app/types/interface";
+import { Modal } from "@/components/ui/Modal";
 
-export interface IAgentRoute {
-    id: string;
-    origin: ILocation;
-    destination: ILocation;
-}
-
-export interface CorridorRouteModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    locations: ILocation[];
-    loadingLocations?: boolean;
-    configuredRoutes: IAgentRoute[];
-    onAddRoute: (route: IAgentRoute) => void;
-    onRemoveRoute: (routeId: string) => void;
-    onClearAll?: () => void;
-    maxRoutes?: number;
-    isPendingGoogleAuth?: boolean;
-    onApplyGoogleAuth?: () => void;
-    onRefreshLocations?: () => Promise<void>;
-}
+export type { IAgentRoute, CorridorRouteModalProps };
 
 export function CorridorRouteModal({
     isOpen,
@@ -192,15 +174,15 @@ export function CorridorRouteModal({
         configuredRoutes.length < maxRoutes;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs">
-            <motion.div
-                data-lenis-prevent
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.18 }}
-                className="w-full max-w-2xl bg-[#0a1818] border border-[#1a4a4a] rounded-2xl shadow-2xl flex flex-col h-[650px] max-h-[92vh] overflow-hidden"
-            >
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="2xl"
+            showCloseButton={false}
+            className="p-0 overflow-hidden h-[650px] max-h-[92vh] bg-[#0a1818] gap-0 space-y-0"
+            contentClassName="flex flex-col h-full overflow-hidden p-0"
+        >
+            <div className="flex flex-col h-full overflow-hidden">
                 {/* 1. Header (Fixed Height) */}
                 <div className="px-5 py-3.5 border-b border-[#1a4a4a] flex items-center justify-between bg-[#081414] shrink-0">
                     <div>
@@ -607,7 +589,7 @@ export function CorridorRouteModal({
                             : "Done & Close"}
                     </button>
                 </div>
-            </motion.div>
-        </div>
+            </div>
+        </Modal>
     );
 }

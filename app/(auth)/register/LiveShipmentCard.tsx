@@ -1,12 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import type { LiveShipmentCardProps } from "@/app/types/interface";
 
-interface LiveShipmentCardProps {
-    reducedMotion: boolean;
-    success?: boolean;
-    className?: string;
-}
+export type { LiveShipmentCardProps };
 
 export default function LiveShipmentCard({ reducedMotion, success, className = "" }: LiveShipmentCardProps) {
     return (

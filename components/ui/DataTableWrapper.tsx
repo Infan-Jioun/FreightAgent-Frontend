@@ -1,11 +1,9 @@
 "use client";
 
 import React from "react";
+import type { DataTableWrapperProps } from "@/app/types/interface";
 
-export interface DataTableWrapperProps {
-    children: React.ReactNode;
-    className?: string;
-}
+export type { DataTableWrapperProps };
 
 export function DataTableWrapper({ children, className = "" }: DataTableWrapperProps) {
     return (

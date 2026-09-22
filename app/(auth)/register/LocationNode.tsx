@@ -4,14 +4,9 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
+import type { LocationNodeProps } from "@/app/types/interface";
 
-interface LocationNodeProps {
-    position: [number, number, number];
-    label: string;
-    sublabel: string;
-    active?: boolean;
-    reducedMotion: boolean;
-}
+export type { LocationNodeProps };
 
 export default function LocationNode({ position, label, sublabel, active, reducedMotion }: LocationNodeProps) {
     const ring = useRef<THREE.Mesh>(null);

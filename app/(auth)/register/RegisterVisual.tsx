@@ -40,21 +40,8 @@ function usePrefersReducedMotion() {
     return reduced;
 }
 
-export interface PasswordStrength {
-    score: number;
-    label: string;
-    color: string;
-}
-
-interface RegisterVisualProps {
-    name?: string;
-    email?: string;
-    passwordStrength?: PasswordStrength;
-    /** True once registration has succeeded; plays the success sequence. */
-    success?: boolean;
-    /** Called when the success sequence finishes — caller does its own redirect. */
-    onSuccessComplete?: () => void;
-}
+export type { PasswordStrength, RegisterVisualProps } from "@/app/types/interface";
+import type { RegisterVisualProps } from "@/app/types/interface";
 
 /**
  * Compact mobile fallback — no WebGL, just enough motion to feel alive.

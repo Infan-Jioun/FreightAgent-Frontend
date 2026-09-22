@@ -22,6 +22,7 @@ import { useAuthStore } from "@/app/store/authStore";
 import { authService } from "@/app/services/auth.service";
 import { AppError } from "@/app/errorHelper/appError";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/Modal";
 
 export default function SettingsPage() {
     const { user: authUser, setUser } = useAuthStore();
@@ -582,54 +583,28 @@ export default function SettingsPage() {
             </div>
 
             {/* OTP Verification Modal */}
-            <AnimatePresence>
-                {isOtpModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-2xl relative overflow-hidden flex flex-col gap-5"
-                        >
-                            {/* Close Button */}
-                            <button
-                                type="button"
-                                onClick={closeOtpModal}
-                                disabled={isVerifyingOtp}
-                                className="absolute top-5 right-5 p-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7] transition-colors cursor-pointer disabled:opacity-50"
-                            >
-                                <X size={15} />
-                            </button>
-
-                            {/* Modal Header */}
-                            <div className="flex items-center gap-3 pr-8">
-                                <div className="w-10 h-10 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
-                                    <KeyRound size={18} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-[#e0faf5]">
-                                        Verify Password Change
-                                    </h3>
-                                    <p className="text-[11px] text-[#7ecfc4] mt-0.5">
-                                        Security verification required
-                                    </p>
-                                </div>
+            <Modal
+                isOpen={isOtpModalOpen}
+                onClose={closeOtpModal}
+                maxWidth="md"
+                icon={<KeyRound size={18} />}
+                title="Verify Password Change"
+                description="Security verification required"
+            >
+                <div className="space-y-4">
+                    {/* Rate Limit Warning Banner in Modal */}
+                    {isPasswordRateLimited && (
+                        <div className="p-3 rounded-2xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 flex items-start gap-2.5 text-xs text-[#ff6b6b]">
+                            <AlertCircle size={16} className="shrink-0 mt-0.5 text-[#ff6b6b]" />
+                            <div className="flex flex-col gap-0.5">
+                                <span className="font-bold">Limit Reached</span>
+                                <span className="text-[11px] text-[#ff6b6b]/90 leading-relaxed">
+                                    {passwordRateLimitMsg ||
+                                        "Daily password change quota reached. Please try again tomorrow."}
+                                </span>
                             </div>
-
-                            {/* Rate Limit Warning Banner in Modal */}
-                            {isPasswordRateLimited && (
-                                <div className="p-3 rounded-2xl bg-[#ff6b6b]/10 border border-[#ff6b6b]/30 flex items-start gap-2.5 text-xs text-[#ff6b6b]">
-                                    <AlertCircle size={16} className="shrink-0 mt-0.5 text-[#ff6b6b]" />
-                                    <div className="flex flex-col gap-0.5">
-                                        <span className="font-bold">Limit Reached</span>
-                                        <span className="text-[11px] text-[#ff6b6b]/90 leading-relaxed">
-                                            {passwordRateLimitMsg ||
-                                                "Daily password change quota reached. Please try again tomorrow."}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
+                        </div>
+                    )}
 
                             {/* Form */}
                             <form onSubmit={handleConfirmPasswordChange} className="flex flex-col gap-4">
@@ -704,10 +679,8 @@ export default function SettingsPage() {
                                     </Button>
                                 </div>
                             </form>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+                </div>
+            </Modal>
         </div>
     );
 }

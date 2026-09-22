@@ -16,6 +16,7 @@ import LoginVisual, { MobileShipmentSummary } from "./LoginVisual";
 import { authService, saveAuthSession } from "@/app/services/auth.service";
 import { useAuthStore } from "@/app/store/authStore";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/Modal";
 
 import { LoginInput, loginSchema } from "@/app/validations/auth.validation";
 import { useCountdown } from "@/app/hooks/useCountdown";
@@ -533,82 +534,57 @@ export default function LoginForm() {
             </motion.div>
 
             {/* ── 3-Device Simultaneous Limit Modal (Common Modal Design) ── */}
-            <AnimatePresence>
-                {showDeviceLimitModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-2xl relative overflow-hidden flex flex-col gap-5"
-                        >
-                            {/* Close Button */}
-                            <button
-                                type="button"
-                                onClick={handleDismissDeviceLimitModal}
-                                disabled={isRevokingAndLoggingIn}
-                                className="absolute top-5 right-5 p-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7] transition-colors cursor-pointer"
-                                aria-label="Close modal"
-                            >
-                                <X size={15} />
-                            </button>
-
-                            {/* Modal Header */}
-                            <div className="flex items-center gap-3 pr-8">
-                                <div className="w-10 h-10 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
-                                    <Smartphone size={18} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-[#e0faf5]">
-                                        Session Limit Reached
-                                    </h3>
-                                    <p className="text-[11px] text-[#ff6b6b] font-semibold mt-0.5">
-                                        Maximum 3 Active Devices Allowed
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/70 text-xs text-[#7ecfc4] flex flex-col gap-2 leading-relaxed">
-                                <p>
-                                    Your account is already signed in on <strong>3 active devices or browsers</strong>.
-                                </p>
-                                <p className="text-[11px] text-[#3a6b66]">
-                                    To log in here, you can log out manually from one of your other devices, or force-logout all other sessions now to gain instant access.
-                                </p>
-                            </div>
-
-                            <div className="flex items-center justify-end gap-2.5 pt-2">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={handleDismissDeviceLimitModal}
-                                    disabled={isRevokingAndLoggingIn}
-                                >
-                                    Cancel
-                                </Button>
-
-                                <Button
-                                    type="button"
-                                    variant="gradient"
-                                    shape="box"
-                                    size="default"
-                                    onClick={handleRevokeOthersAndLogin}
-                                    disabled={isRevokingAndLoggingIn}
-                                    isLoading={isRevokingAndLoggingIn}
-                                    loadingText="Terminating..."
-                                    leftIcon={<LogOut size={14} />}
-                                >
-                                    {isGoogleLimit
-                                        ? "Log Out All Other Sessions & Continue with Google"
-                                        : "Log Out All Other Sessions & Login"}
-                                </Button>
-                            </div>
-                        </motion.div>
+            <Modal
+                isOpen={showDeviceLimitModal}
+                onClose={handleDismissDeviceLimitModal}
+                maxWidth="md"
+                icon={<Smartphone size={18} />}
+                title="Session Limit Reached"
+                description={
+                    <span className="text-[11px] text-[#ff6b6b] font-semibold mt-0.5">
+                        Maximum 3 Active Devices Allowed
+                    </span>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/70 text-xs text-[#7ecfc4] flex flex-col gap-2 leading-relaxed">
+                        <p>
+                            Your account is already signed in on <strong>3 active devices or browsers</strong>.
+                        </p>
+                        <p className="text-[11px] text-[#3a6b66]">
+                            To log in here, you can log out manually from one of your other devices, or force-logout all other sessions now to gain instant access.
+                        </p>
                     </div>
-                )}
-            </AnimatePresence>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-[#1a4a4a]">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleDismissDeviceLimitModal}
+                            disabled={isRevokingAndLoggingIn}
+                        >
+                            Cancel
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="gradient"
+                            shape="box"
+                            size="default"
+                            onClick={handleRevokeOthersAndLogin}
+                            disabled={isRevokingAndLoggingIn}
+                            isLoading={isRevokingAndLoggingIn}
+                            loadingText="Terminating..."
+                            leftIcon={<LogOut size={14} />}
+                        >
+                            {isGoogleLimit
+                                ? "Log Out All Other Sessions & Continue with Google"
+                                : "Log Out All Other Sessions & Login"}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

@@ -1,3 +1,4 @@
+// This needs 'use client' because: it orchestrates real-time socket updates, consignment filters, CSV export, and administrative dispatch actions with RBAC security.
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -11,7 +12,7 @@ import {
     IUpdateShipmentStatusPayload,
     IRoadAgent,
 } from "@/app/types/shipment.types";
-import { useAuthStore } from "@/app/store/authStore";
+import { usePermission } from "@/app/hooks/usePermission";
 import { useSocketEvent } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
 import { AppError } from "@/app/errorHelper/appError";
@@ -32,8 +33,8 @@ const PAGE_SIZE = 10;
 
 export default function AdminShipmentsPage() {
     // ─── 1. Authentication & Admin Authorization Check ────────────────────────
-    const { user, isAuthenticated } = useAuthStore();
-    const isAdmin = user?.role === "ADMIN";
+    const { isAuthenticated, isAdmin, can } = usePermission();
+    const canReadAll = can("shipments:read_all");
 
     // ─── 2. State Management (useState) ───────────────────────────────────────
     const [shipments, setShipments] = useState<IShipment[]>([]);
@@ -324,7 +325,7 @@ export default function AdminShipmentsPage() {
     };
 
     // ─── 7. Render Authorization Checks ───────────────────────────────────────
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated) {
         return (
             <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
                 <Loader2 size={32} className="text-[#00c9a7] animate-spin" />
@@ -335,7 +336,7 @@ export default function AdminShipmentsPage() {
         );
     }
 
-    if (!isAdmin) {
+    if (!isAdmin || !canReadAll) {
         return <AdminShipmentsUnauthorized />;
     }
 

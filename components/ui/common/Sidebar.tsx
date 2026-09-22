@@ -1,3 +1,4 @@
+// This needs 'use client' because: it handles desktop/mobile navigation collapse toggles and reactive role-based route permissions.
 "use client";
 
 import Link from "next/link";
@@ -12,14 +13,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
+import { usePermission } from "@/app/hooks/usePermission";
 import { authService } from "@/app/services/auth.service";
 import { clearClientCookies } from "@/app/lib/cookie";
 import Image from "next/image";
-
-interface SidebarProps {
-    open: boolean;
-    onToggle: () => void;
-}
+import type { SidebarProps } from "@/app/types/interface";
 
 const CUSTOMER_LINKS = [
     { label: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
@@ -50,14 +48,18 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const { user, clearUser } = useAuthStore();
+    const { role, canAccess } = usePermission();
     const [loggingOut, setLoggingOut] = useState(false);
 
-    const links =
-        user?.role === "ADMIN"
+    const activeRole = role || user?.role || "CUSTOMER";
+    const rawLinks =
+        activeRole === "ADMIN"
             ? ADMIN_LINKS
-            : user?.role === "AGENT"
+            : activeRole === "AGENT"
                 ? AGENT_LINKS
                 : CUSTOMER_LINKS;
+
+    const links = rawLinks.filter((link) => canAccess(link.href));
 
     const handleLogout = async () => {
         try {

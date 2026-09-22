@@ -3,13 +3,9 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
+import type { RegisterSuccessAnimationProps } from "@/app/types/interface";
 
-interface RegisterSuccessAnimationProps {
-    active: boolean;
-    reducedMotion: boolean;
-    /** Called once the sequence has finished playing — the caller then does its own routing. */
-    onComplete: () => void;
-}
+export type { RegisterSuccessAnimationProps };
 
 /**
  * Purely presentational. Owns no business logic: it just plays a short

@@ -2,11 +2,9 @@
 
 import { motion } from "framer-motion";
 import { Box, Container } from "lucide-react";
+import type { ContainerInfoCardProps } from "@/app/types/interface";
 
-interface ContainerInfoCardProps {
-    reducedMotion: boolean;
-    className?: string;
-}
+export type { ContainerInfoCardProps };
 
 export default function ContainerInfoCard({ reducedMotion, className = "" }: ContainerInfoCardProps) {
     return (

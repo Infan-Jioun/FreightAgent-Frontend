@@ -1,11 +1,14 @@
+// This needs 'use client' because: it manages interactive administrative refund forms, loading state, and RBAC permission enforcement.
 "use client";
 
 import React, { useState } from "react";
-import { RotateCcw, AlertTriangle, X, Loader2 } from "lucide-react";
+import { RotateCcw, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { IShipment } from "@/app/types/shipment.types";
 import { paymentService } from "@/app/services/payment.service";
 import { AppError } from "@/app/errorHelper/appError";
+import { Modal } from "@/components/ui/Modal";
+import { usePermission } from "@/app/hooks/usePermission";
 
 interface RefundModalProps {
     isOpen: boolean;
@@ -19,11 +22,12 @@ export function RefundModal({
     onClose,
     onSuccess,
     shipment,
-}: RefundModalProps) {
+}: RefundModalProps): React.JSX.Element | null {
+    const { can } = usePermission();
     const [reason, setReason] = useState("");
     const [isRefunding, setIsRefunding] = useState(false);
 
-    if (!isOpen || !shipment) return null;
+    if (!isOpen || !shipment || !can("payments:refund")) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -49,31 +53,22 @@ export function RefundModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="w-full max-w-md bg-[#0d1f1f] border border-amber-500/40 rounded-3xl shadow-2xl p-6 space-y-4">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
-                    <div className="flex items-center gap-3 text-amber-400">
-                        <div className="p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30">
-                            <RotateCcw size={18} />
-                        </div>
-                        <div>
-                            <span className="text-[10px] font-mono uppercase tracking-wider block">
-                                Stripe Gateway Refund
-                            </span>
-                            <h3 className="text-base font-extrabold text-[#e0faf5]">
-                                Reverse Settlement
-                            </h3>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer"
-                    >
-                        <X size={16} />
-                    </button>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="md"
+            className="border-amber-500/40"
+            icon={<RotateCcw size={18} className="text-amber-400" />}
+            title={
+                <div>
+                    <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block">
+                        Stripe Gateway Refund
+                    </span>
+                    <span>Reverse Settlement</span>
                 </div>
-
+            }
+        >
+            <div className="space-y-4">
                 {/* Consignment Info */}
                 <div className="p-3.5 rounded-2xl bg-[#071313] border border-[#1a4a4a] space-y-2 text-xs">
                     <div className="flex items-center justify-between">
@@ -136,6 +131,8 @@ export function RefundModal({
                     </div>
                 </form>
             </div>
-        </div>
+        </Modal>
     );
 }
+
+export default RefundModal;

@@ -1,20 +1,11 @@
+// This needs 'use client' because: it renders interactive mock orders and call/message actions.
 "use client";
 
 import { MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
+import type { ShipmentOrder } from "@/app/types/interface";
 
-export interface ShipmentOrder {
-    id: string;
-    code: string;
-    status: "In Transit" | "Delivered" | "Waiting Courier";
-    type: "Document" | "Parcel";
-    departureDate: string;
-    departureTime: string;
-    destinationCity: string;
-    destinationAddress: string;
-    courierName: string;
-    courierAvatar: string;
-}
+export type { ShipmentOrder };
 
 export const INITIAL_ORDERS: ShipmentOrder[] = [
     {

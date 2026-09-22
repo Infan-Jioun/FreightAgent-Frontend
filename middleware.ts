@@ -1,6 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  canAccessRoute,
+  getRoleDashboard,
+  type UserRole,
+} from "@/app/lib/permissions";
 
 // ── Route Definitions ──────────────────────────────────────────────
 const PUBLIC_ROUTES = [
@@ -20,6 +24,7 @@ const PUBLIC_ROUTES = [
   "/google",
   "/google/success",
 ];
+
 const AUTH_ROUTES = [
   "/register",
   "/register-agent",
@@ -28,46 +33,33 @@ const AUTH_ROUTES = [
   "/reset-password",
 ];
 
+interface DecodedTokenPayload {
+  id?: string;
+  sub?: string;
+  email?: string;
+  role?: UserRole;
+  exp?: number;
+}
+
 // ── JWT Decode (without external library — Edge Runtime safe) ───────
-function decodeJWT(token: string) {
+function decodeJWT(token: string): DecodedTokenPayload | null {
   try {
     const base64 = token.split(".")[1];
+    if (!base64) return null;
     const decoded = Buffer.from(base64, "base64").toString("utf-8");
-    return JSON.parse(decoded);
+    return JSON.parse(decoded) as DecodedTokenPayload;
   } catch {
     return null;
   }
 }
 
-function isTokenExpired(payload: any): boolean {
+function isTokenExpired(payload: DecodedTokenPayload | null): boolean {
   if (!payload?.exp) return true;
   return Date.now() >= payload.exp * 1000;
 }
 
-function getRole(payload: any): string | null {
-  return payload?.role || null;
-}
-
-function getRoleDashboard(role: string | null): string {
-  if (role === "ADMIN") return "/dashboard/admin";
-  if (role === "AGENT") return "/dashboard/agent";
-  return "/dashboard/customer";
-}
-
-function hasRoleAccess(role: string, pathname: string): boolean {
-  if (role === "ADMIN") {
-    return true;
-  }
-  if (role === "AGENT") {
-    if (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin")) return false;
-    return true;
-  }
-  if (role === "CUSTOMER") {
-    if (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin")) return false;
-    if (pathname.startsWith("/dashboard/agent")) return false;
-    return true;
-  }
-  return false;
+function getRole(payload: DecodedTokenPayload | null): UserRole {
+  return payload?.role || "CUSTOMER";
 }
 
 // ── Security Headers ───────────────────────────────────────────────
@@ -78,7 +70,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-XSS-Protection", "1; mode=block");
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
+    "camera=(), microphone=(), geolocation=(self)"
   );
   response.headers.set(
     "Content-Security-Policy",
@@ -88,7 +80,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 }
 
 // ── Middleware ─────────────────────────────────────────────────────
-export function middleware(request: NextRequest) {
+export function middleware(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
   // Static files skip
@@ -187,7 +179,7 @@ export function middleware(request: NextRequest) {
     return addSecurityHeaders(response);
   }
 
-  const role = getRole(payload) || "CUSTOMER";
+  const role = getRole(payload);
 
   // If visiting /login after email verification, clear any existing session cookies
   if (pathname === "/login" && request.nextUrl.searchParams.get("verified") === "true") {
@@ -211,7 +203,7 @@ export function middleware(request: NextRequest) {
 
   // ── Case 5: Role-based access enforcement ──────────────────────
   if (!isPublicRoute) {
-    if (!hasRoleAccess(role, pathname)) {
+    if (!canAccessRoute(role, pathname)) {
       return NextResponse.redirect(new URL(getRoleDashboard(role), request.url));
     }
   }

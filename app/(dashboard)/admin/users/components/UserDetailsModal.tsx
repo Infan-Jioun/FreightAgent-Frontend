@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { Modal } from "@/components/ui/Modal";
 import {
     X,
     Mail,
@@ -17,11 +17,108 @@ import {
     Loader2,
     Navigation,
     Route,
+    Laptop,
+    UserCheck,
+    ChevronDown,
+    ChevronUp,
+    Copy,
+    Check,
+    Search,
+    ArrowRight,
 } from "lucide-react";
-import { IAdminUser, IAdminUserDetail } from "@/app/types/admin.types";
+import { toast } from "sonner";
+import {
+    IAdminUser,
+    IAdminUserDetail,
+    IAdminUserShipment,
+    ISessionItem,
+    ISessionsBreakdown,
+} from "@/app/types/admin.types";
 import { adminService } from "@/app/services/admin.service";
+import { shipmentService } from "@/app/services/shipment.service";
 import { locationService } from "@/app/services/location.service";
 import { ILocation } from "@/app/types/location.types";
+import type { IRoadAgent, IResolvedAgentInfo } from "@/app/types/shipment.types";
+import { getErrorMessage } from "@/app/errorHelper/appError";
+import ActiveSessionsSection from "@/app/(dashboard)/profile/components/ActiveSessionsSection";
+import UserSessionsModal from "./UserSessionsModal";
+
+function resolveShipmentAgent(
+    shipment: IAdminUserShipment,
+    availableAgents: IRoadAgent[]
+): IResolvedAgentInfo | null {
+    // 1. Direct assignedAgent object
+    if (shipment.assignedAgent && typeof shipment.assignedAgent === "object") {
+        const a = shipment.assignedAgent;
+        if (a.name) {
+            return {
+                name: a.name,
+                email: a.email || null,
+                phone: a.phone || null,
+            };
+        }
+    }
+
+    // 2. Alternative raw agent objects
+    const record = shipment as unknown as Record<string, unknown>;
+    const rawAgent =
+        record.agent ||
+        record.assignedTo ||
+        record.carrierAgent ||
+        record.carrier;
+
+    if (rawAgent && typeof rawAgent === "object" && rawAgent !== null) {
+        const r = rawAgent as Record<string, unknown>;
+        const userObj =
+            r.user && typeof r.user === "object"
+                ? (r.user as Record<string, unknown>)
+                : null;
+
+        const name =
+            (typeof r.name === "string" ? r.name : null) ||
+            (typeof r.fullName === "string" ? r.fullName : null) ||
+            (userObj && typeof userObj.name === "string" ? userObj.name : null);
+
+        const email =
+            (typeof r.email === "string" ? r.email : null) ||
+            (userObj && typeof userObj.email === "string" ? userObj.email : null);
+
+        const phone =
+            (typeof r.phone === "string" ? r.phone : null) ||
+            (userObj && typeof userObj.phone === "string" ? userObj.phone : null);
+
+        if (name) {
+            return { name, email, phone };
+        }
+    }
+
+    // 3. Fallback: Lookup by assignedAgentId in availableAgents
+    const agentId =
+        (typeof shipment.assignedAgentId === "string" ? shipment.assignedAgentId : null) ||
+        (typeof record.agentId === "string" ? (record.agentId as string) : null);
+
+    if (agentId && availableAgents && availableAgents.length > 0) {
+        const found = availableAgents.find((a) => a.id === agentId);
+        if (found) {
+            return {
+                name: found.name,
+                email: found.email || null,
+                phone: found.phone || null,
+            };
+        }
+    }
+
+    // 4. Flat properties fallback (e.g. assignedAgentName, assignedAgentEmail)
+    if (typeof record.assignedAgentName === "string" && record.assignedAgentName.trim()) {
+        return {
+            name: record.assignedAgentName,
+            email: typeof record.assignedAgentEmail === "string" ? record.assignedAgentEmail : null,
+            phone: typeof record.assignedAgentPhone === "string" ? record.assignedAgentPhone : null,
+        };
+    }
+
+    return null;
+}
 
 interface UserDetailsModalProps {
     isOpen: boolean;
@@ -45,10 +142,43 @@ export default function UserDetailsModal({
     const [agentCreatedLocations, setAgentCreatedLocations] = useState<ILocation[]>([]);
     const [loadingLocations, setLoadingLocations] = useState(false);
 
+    // Shipments & Assigned Carrier Fleet State
+    const [userShipments, setUserShipments] = useState<IAdminUserShipment[]>([]);
+    const [loadingShipments, setLoadingShipments] = useState(false);
+    const [availableAgents, setAvailableAgents] = useState<IRoadAgent[]>([]);
+    const [expandedShipmentId, setExpandedShipmentId] = useState<string | null>(null);
+    const [copiedTrackingId, setCopiedTrackingId] = useState<string | null>(null);
+    const [shipmentTab, setShipmentTab] = useState<"ALL" | "ASSIGNED" | "BOOKED">("ALL");
+    const [shipmentSearch, setShipmentSearch] = useState("");
+
+    // Active Sessions State
+    const [sessions, setSessions] = useState<ISessionItem[]>([]);
+    const [sessionsBreakdown, setSessionsBreakdown] = useState<ISessionsBreakdown>({
+        total: 0,
+        mobile: 0,
+        tablet: 0,
+        desktop: 0,
+    });
+    const [loadingSessions, setLoadingSessions] = useState(false);
+    const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+    const [isRevokingAll, setIsRevokingAll] = useState(false);
+    const [isDeviceSessionsModalOpen, setIsDeviceSessionsModalOpen] = useState(false);
+
     useEffect(() => {
         if (isOpen && user?.id) {
             let isMounted = true;
             setLoadingDetails(true);
+            setLoadingShipments(true);
+
+            // Fetch available agent fleet to resolve carrier details
+            adminService
+                .getAvailableAgents()
+                .then((agents) => {
+                    if (isMounted) setAvailableAgents(agents || []);
+                })
+                .catch(() => {
+                    if (isMounted) setAvailableAgents([]);
+                });
 
             adminService
                 .getUserById(user.id)
@@ -59,24 +189,112 @@ export default function UserDetailsModal({
                             raw.user && typeof raw.user === "object"
                                 ? (raw.user as Record<string, unknown>)
                                 : raw;
-                        const shipments =
-                            raw.shipments && Array.isArray(raw.shipments)
-                                ? raw.shipments
-                                : userEntity.shipments && Array.isArray(userEntity.shipments)
-                                ? userEntity.shipments
-                                : [];
+                        const rawShipments: IAdminUserShipment[] = Array.isArray(raw.shipments)
+                            ? (raw.shipments as IAdminUserShipment[])
+                            : Array.isArray(userEntity.shipments)
+                            ? (userEntity.shipments as IAdminUserShipment[])
+                            : [];
+                        const rawAssigned: IAdminUserShipment[] = Array.isArray(raw.assignedShipments)
+                            ? (raw.assignedShipments as IAdminUserShipment[])
+                            : Array.isArray(userEntity.assignedShipments)
+                            ? (userEntity.assignedShipments as IAdminUserShipment[])
+                            : [];
+
+                        const combinedMap = new Map<string, IAdminUserShipment>();
+                        [...rawShipments, ...rawAssigned].forEach((s) => {
+                            if (s && (s.id || s.trackingId)) {
+                                combinedMap.set(s.id || s.trackingId, s);
+                            }
+                        });
 
                         setDetailedUser({
                             ...user,
                             ...userEntity,
                             id: (userEntity.id || userEntity._id || user.id) as string,
-                            shipments: shipments as IAdminUserDetail["shipments"],
+                            shipments: Array.from(combinedMap.values()),
                         });
+
+                        if (combinedMap.size > 0) {
+                            setUserShipments(Array.from(combinedMap.values()));
+                        }
+
+                        // Query all shipments as resilient fallback / enrichment
+                        shipmentService
+                            .getAllShipments({ limit: 100 })
+                            .then((sRes) => {
+                                if (isMounted && sRes?.shipments && Array.isArray(sRes.shipments)) {
+                                    const targetUserId = user.id.trim();
+                                    const targetUserEmail = (user.email || "").toLowerCase().trim();
+
+                                    sRes.shipments.forEach((s) => {
+                                        const isShipper =
+                                            (s.userId && s.userId.trim() === targetUserId) ||
+                                            (s.user?.id && s.user.id.trim() === targetUserId) ||
+                                            Boolean(
+                                                targetUserEmail &&
+                                                    s.user?.email?.toLowerCase().trim() === targetUserEmail
+                                            );
+
+                                        const isCarrier =
+                                            (s.assignedAgentId && s.assignedAgentId.trim() === targetUserId) ||
+                                            (s.assignedAgent?.id && s.assignedAgent.id.trim() === targetUserId) ||
+                                            Boolean(
+                                                targetUserEmail &&
+                                                    s.assignedAgent?.email?.toLowerCase().trim() ===
+                                                        targetUserEmail
+                                            );
+
+                                        if (isShipper || isCarrier) {
+                                            const key = s.id || s.trackingId;
+                                            const existing = combinedMap.get(key);
+                                            combinedMap.set(key, {
+                                                ...(existing || {}),
+                                                ...s,
+                                                assignedAgent: s.assignedAgent || existing?.assignedAgent,
+                                            } as IAdminUserShipment);
+                                        }
+                                    });
+
+                                    setUserShipments(Array.from(combinedMap.values()));
+                                }
+                            })
+                            .catch(() => {})
+                            .finally(() => {
+                                if (isMounted) setLoadingShipments(false);
+                            });
                     }
                 })
                 .catch(() => {
-                    // Fallback to basic user data on failure
-                    if (isMounted) setDetailedUser(user as IAdminUserDetail);
+                    if (isMounted) {
+                        setDetailedUser(user as IAdminUserDetail);
+                        shipmentService
+                            .getAllShipments({ limit: 100 })
+                            .then((sRes) => {
+                                if (isMounted && sRes?.shipments) {
+                                    const targetUserId = user.id.trim();
+                                    const targetUserEmail = (user.email || "").toLowerCase().trim();
+                                    const matched = sRes.shipments.filter((s) => {
+                                        return (
+                                            s.userId === targetUserId ||
+                                            s.user?.id === targetUserId ||
+                                            s.assignedAgentId === targetUserId ||
+                                            s.assignedAgent?.id === targetUserId ||
+                                            Boolean(
+                                                targetUserEmail &&
+                                                    (s.user?.email?.toLowerCase().trim() === targetUserEmail ||
+                                                        s.assignedAgent?.email?.toLowerCase().trim() ===
+                                                            targetUserEmail)
+                                            )
+                                        );
+                                    });
+                                    setUserShipments(matched as IAdminUserShipment[]);
+                                }
+                            })
+                            .catch(() => {})
+                            .finally(() => {
+                                if (isMounted) setLoadingShipments(false);
+                            });
+                    }
                 })
                 .finally(() => {
                     if (isMounted) setLoadingDetails(false);
@@ -116,14 +334,52 @@ export default function UserDetailsModal({
                 setAgentCreatedLocations([]);
             }
 
+            // Fetch user's active login sessions
+            const isSelfUser = Boolean(
+                currentAdminId && user.id && user.id.trim() === currentAdminId.trim()
+            );
+            setLoadingSessions(true);
+            adminService
+                .getUserSessions(user.id, isSelfUser)
+                .then((sessData) => {
+                    if (isMounted) {
+                        setSessions(sessData.sessions || []);
+                        setSessionsBreakdown(
+                            sessData.breakdown || {
+                                total: sessData.sessions?.length || 0,
+                                mobile: 0,
+                                tablet: 0,
+                                desktop: 0,
+                            }
+                        );
+                    }
+                })
+                .catch(() => {
+                    if (isMounted) {
+                        setSessions([]);
+                        setSessionsBreakdown({ total: 0, mobile: 0, tablet: 0, desktop: 0 });
+                    }
+                })
+                .finally(() => {
+                    if (isMounted) setLoadingSessions(false);
+                });
+
             return () => {
                 isMounted = false;
             };
         } else {
             setDetailedUser(null);
             setAgentCreatedLocations([]);
+            setSessions([]);
+            setSessionsBreakdown({ total: 0, mobile: 0, tablet: 0, desktop: 0 });
+            setUserShipments([]);
+            setAvailableAgents([]);
+            setExpandedShipmentId(null);
+            setCopiedTrackingId(null);
+            setShipmentTab("ALL");
+            setShipmentSearch("");
         }
-    }, [isOpen, user]);
+    }, [isOpen, user, currentAdminId]);
 
     if (!isOpen || !user) return null;
 
@@ -221,28 +477,151 @@ export default function UserDetailsModal({
         }
     });
 
-    const shipments = displayUser.shipments ?? [];
+    const isTargetAgent = displayUser.role === "AGENT";
+    const targetUserId = (displayUser.id || user.id || "").trim();
+    const targetUserEmail = (displayUser.email || user.email || "").toLowerCase().trim();
+
+    const isShipmentAssignedToThisUser = useCallback(
+        (s: IAdminUserShipment): boolean => {
+            if (!isTargetAgent) return false;
+            const agentId = (s.assignedAgentId || s.assignedAgent?.id || "").trim();
+            const agentEmail = (s.assignedAgent?.email || "").toLowerCase().trim();
+            return Boolean(
+                (targetUserId && agentId === targetUserId) ||
+                (targetUserEmail && agentEmail === targetUserEmail)
+            );
+        },
+        [isTargetAgent, targetUserId, targetUserEmail]
+    );
+
+    const isShipmentBookedByThisUser = useCallback(
+        (s: IAdminUserShipment): boolean => {
+            const shipperId = (s.userId || s.user?.id || "").trim();
+            const shipperEmail = (s.user?.email || "").toLowerCase().trim();
+            return Boolean(
+                (targetUserId && shipperId === targetUserId) ||
+                (targetUserEmail && shipperEmail === targetUserEmail)
+            );
+        },
+        [targetUserId, targetUserEmail]
+    );
+
+    const effectiveShipments = userShipments.length > 0 ? userShipments : displayUser.shipments ?? [];
+    const assignedCount = effectiveShipments.filter(isShipmentAssignedToThisUser).length;
+    const bookedCount = effectiveShipments.filter(isShipmentBookedByThisUser).length;
+
+    const filteredShipments = effectiveShipments.filter((s) => {
+        if (shipmentTab === "ASSIGNED" && !isShipmentAssignedToThisUser(s)) return false;
+        if (shipmentTab === "BOOKED" && !isShipmentBookedByThisUser(s)) return false;
+
+        if (shipmentSearch.trim()) {
+            const q = shipmentSearch.trim().toLowerCase();
+            const tracking = (s.trackingId || s.id || "").toLowerCase();
+            const origin = (s.origin || "").toLowerCase();
+            const dest = (s.destination || "").toLowerCase();
+            const status = (s.status || "").toLowerCase();
+            const agent = resolveShipmentAgent(s, availableAgents);
+            const agentName = (agent?.name || "").toLowerCase();
+            return (
+                tracking.includes(q) ||
+                origin.includes(q) ||
+                dest.includes(q) ||
+                status.includes(q) ||
+                agentName.includes(q)
+            );
+        }
+        return true;
+    });
+
+    const handleCopyTrackingId = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!id) return;
+        navigator.clipboard.writeText(id);
+        setCopiedTrackingId(id);
+        toast.success(`Waybill "${id}" copied to clipboard`);
+        setTimeout(() => {
+            setCopiedTrackingId((prev) => (prev === id ? null : prev));
+        }, 2000);
+    };
+
+    const toggleExpandShipment = (id: string) => {
+        setExpandedShipmentId((prev) => (prev === id ? null : id));
+    };
+
+    // Session Revocation & Refresh Handlers
+    const handleRevokeSession = async (sessionId: string) => {
+        if (!displayUser.id) return;
+        try {
+            setRevokingSessionId(sessionId);
+            const res = await adminService.revokeUserSession(displayUser.id, sessionId);
+            toast.success(res.message || "Session terminated successfully");
+            setSessions((prev) => {
+                const next = prev.filter((s) => s.id !== sessionId);
+                setSessionsBreakdown((bPrev) => ({
+                    ...bPrev,
+                    total: Math.max(0, bPrev.total - 1),
+                }));
+                return next;
+            });
+        } catch (err: unknown) {
+            const msg = getErrorMessage(err, "Failed to terminate session");
+            toast.error(msg);
+        } finally {
+            setRevokingSessionId(null);
+        }
+    };
+
+    const handleRevokeAllSessions = async () => {
+        if (!displayUser.id) return;
+        const targetIds = sessions.map((s) => s.id);
+        if (targetIds.length === 0) return;
+
+        try {
+            setIsRevokingAll(true);
+            const res = await adminService.revokeAllUserSessions(displayUser.id, targetIds);
+            toast.success(res.message || "All sessions terminated successfully");
+            setSessions([]);
+            setSessionsBreakdown({ total: 0, mobile: 0, tablet: 0, desktop: 0 });
+        } catch (err: unknown) {
+            const msg = getErrorMessage(err, "Failed to terminate all sessions");
+            toast.error(msg);
+        } finally {
+            setIsRevokingAll(false);
+        }
+    };
+
+    const handleRefreshSessions = async () => {
+        if (!displayUser.id) return;
+        try {
+            setLoadingSessions(true);
+            const sessData = await adminService.getUserSessions(displayUser.id, isSelf);
+            setSessions(sessData.sessions || []);
+            setSessionsBreakdown(
+                sessData.breakdown || {
+                    total: sessData.sessions?.length || 0,
+                    mobile: 0,
+                    tablet: 0,
+                    desktop: 0,
+                }
+            );
+            toast.success("Sessions refreshed");
+        } catch (err: unknown) {
+            toast.error("Failed to refresh sessions");
+        } finally {
+            setLoadingSessions(false);
+        }
+    };
 
     return (
-        <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-2xl rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] p-6 shadow-2xl shadow-black relative max-h-[90vh] flex flex-col"
-                >
-                    {/* Close Button */}
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="absolute top-5 right-5 text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer"
-                        title="Close details"
-                    >
-                        <X size={18} />
-                    </button>
-
-                    {/* Header */}
+        <>
+            <Modal
+                isOpen={isOpen}
+                onClose={onClose}
+                maxWidth="3xl"
+                showCloseButton={true}
+            >
+            <div className="space-y-5">
+                {/* Header */}
                     <div className="flex items-center gap-3.5 mb-5 shrink-0">
                         <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-[#00c9a7]/30 to-[#00b4d8]/30 border border-[#00c9a7]/40 flex items-center justify-center font-black text-sm text-[#00e5c0] shrink-0">
                             {initials}
@@ -286,8 +665,8 @@ export default function UserDetailsModal({
                             /* Full Skeleton Loader when details are fetching */
                             <div className="space-y-4 animate-pulse">
                                 {/* Account Details Grid Skeleton */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                                    {Array.from({ length: 4 }).map((_, i) => (
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                    {Array.from({ length: 5 }).map((_, i) => (
                                         <div
                                             key={i}
                                             className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/50 space-y-2"
@@ -377,7 +756,7 @@ export default function UserDetailsModal({
                                 )}
 
                                 {/* Account Details Grid */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
                                     <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
                                         <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
                                             Role
@@ -424,6 +803,29 @@ export default function UserDetailsModal({
                                             )}
                                             <span>
                                                 {displayUser.emailVerified ? "Verified" : "Unverified"}
+                                            </span>
+                                        </span>
+                                    </div>
+
+                                    <div
+                                        onClick={() => setIsDeviceSessionsModalOpen(true)}
+                                        className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] hover:border-[#00c9a7]/50 transition-colors cursor-pointer group"
+                                        title="Click to manage active devices and sessions"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                                Active Sessions
+                                            </span>
+                                            <span className="text-[9px] text-[#00c9a7] opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Manage
+                                            </span>
+                                        </div>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30 inline-flex items-center gap-1">
+                                            <Laptop size={10} />
+                                            <span>
+                                                {loadingSessions
+                                                    ? "Checking..."
+                                                    : `${sessions.length} Active`}
                                             </span>
                                         </span>
                                     </div>
@@ -479,12 +881,10 @@ export default function UserDetailsModal({
                                         <Calendar size={16} className="text-[#00c9a7] shrink-0" />
                                         <div className="min-w-0 flex-1">
                                             <span className="text-[10px] text-[#7ecfc4]/70 block">
-                                                Member Since
+                                                Registered Date & Time
                                             </span>
                                             <span className="text-xs font-medium text-[#e0faf5] truncate block">
-                                                {displayUser.createdAt
-                                                    ? new Date(displayUser.createdAt).toLocaleDateString()
-                                                    : "N/A"}
+                                                {formatDateTime(displayUser.createdAt)}
                                             </span>
                                         </div>
                                     </div>
@@ -493,7 +893,7 @@ export default function UserDetailsModal({
                                         <Clock size={16} className="text-[#00c9a7] shrink-0" />
                                         <div className="min-w-0 flex-1">
                                             <span className="text-[10px] text-[#7ecfc4]/70 block">
-                                                Last Login
+                                                Last Active Login
                                             </span>
                                             <span className="text-xs font-medium text-[#e0faf5] truncate block">
                                                 {formatDateTime(displayUser.lastLoginAt)}
@@ -501,6 +901,22 @@ export default function UserDetailsModal({
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Active Device Sign-in Sessions Section (Reusable Component) */}
+                                <ActiveSessionsSection
+                                    sessions={sessions}
+                                    breakdown={sessionsBreakdown}
+                                    isLoadingSessions={loadingSessions}
+                                    revokingSessionId={revokingSessionId}
+                                    isRevokingAll={isRevokingAll}
+                                    onRevokeSession={handleRevokeSession}
+                                    onRevokeAllOther={handleRevokeAllSessions}
+                                    onRefreshSessions={handleRefreshSessions}
+                                    isAdminView={true}
+                                    isSelf={isSelf}
+                                    targetUserName={userName}
+                                    compact={true}
+                                />
 
                                 {/* Agent Added Locations & Operating Coverage (AGENT ONLY) */}
                                 {isAgent && (
@@ -645,74 +1061,355 @@ export default function UserDetailsModal({
                                     </div>
                                 )}
 
-                                {/* Recent Shipments Section */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
+                                {/* User Consignments & Carrier Assignment Section */}
+                                <div className="space-y-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                                         <div className="flex items-center gap-2">
-                                            <Package size={14} className="text-[#00c9a7]" />
-                                            <span className="text-xs font-bold text-[#e0faf5]">
-                                                Recent Shipments (Latest 10)
-                                            </span>
+                                            <div className="w-6 h-6 rounded-lg bg-[#00c9a7]/20 border border-[#00c9a7]/40 flex items-center justify-center text-[#00e5c0]">
+                                                <Package size={13} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-[#e0faf5] flex items-center gap-2">
+                                                    User Consignments & Carrier Assignments
+                                                    <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#00c9a7]/10 text-[#00e5c0] border border-[#00c9a7]/30">
+                                                        {effectiveShipments.length} {effectiveShipments.length === 1 ? "Shipment" : "Shipments"}
+                                                    </span>
+                                                </h4>
+                                            </div>
+                                        </div>
+
+                                        {/* Search & Tabs */}
+                                        <div className="flex items-center gap-2">
+                                            {effectiveShipments.length > 2 && (
+                                                <div className="relative">
+                                                    <Search
+                                                        size={11}
+                                                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#3a6b66]"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={shipmentSearch}
+                                                        onChange={(e) => setShipmentSearch(e.target.value)}
+                                                        placeholder="Search shipment, route, agent..."
+                                                        className="w-40 sm:w-48 pl-7 pr-2.5 py-1 text-[11px] rounded-lg bg-[#081414] border border-[#1a4a4a] text-[#e0faf5] placeholder:text-[#3a6b66] focus:border-[#00c9a7]/60 focus:outline-hidden"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {isTargetAgent && (assignedCount > 0 || bookedCount > 0) && (
+                                                <div className="flex items-center p-0.5 rounded-lg bg-[#081414] border border-[#1a4a4a] text-[10px]">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShipmentTab("ALL")}
+                                                        className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                                                            shipmentTab === "ALL"
+                                                                ? "bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30"
+                                                                : "text-[#7ecfc4]/70 hover:text-[#e0faf5]"
+                                                        }`}
+                                                    >
+                                                        All ({effectiveShipments.length})
+                                                    </button>
+                                                    {assignedCount > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShipmentTab("ASSIGNED")}
+                                                            className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                                                                shipmentTab === "ASSIGNED"
+                                                                    ? "bg-[#0284c7]/20 text-[#38bdf8] border border-[#0284c7]/30"
+                                                                    : "text-[#7ecfc4]/70 hover:text-[#e0faf5]"
+                                                            }`}
+                                                        >
+                                                            Assigned ({assignedCount})
+                                                        </button>
+                                                    )}
+                                                    {bookedCount > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShipmentTab("BOOKED")}
+                                                            className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
+                                                                shipmentTab === "BOOKED"
+                                                                    ? "bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30"
+                                                                    : "text-[#7ecfc4]/70 hover:text-[#e0faf5]"
+                                                            }`}
+                                                        >
+                                                            Booked ({bookedCount})
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] overflow-hidden">
-                                        {shipments.length === 0 ? (
-                                            <div className="p-6 text-center text-xs text-[#7ecfc4]/70">
-                                                No recent shipments found for this account.
+                                        {loadingShipments && effectiveShipments.length === 0 ? (
+                                            <div className="p-8 text-center space-y-2">
+                                                <Loader2 size={18} className="animate-spin text-[#00c9a7] mx-auto" />
+                                                <p className="text-xs text-[#7ecfc4]/70">Loading user consignments and carrier records...</p>
+                                            </div>
+                                        ) : filteredShipments.length === 0 ? (
+                                            <div className="p-6 text-center text-xs text-[#7ecfc4]/70 space-y-1">
+                                                <p>No shipments matching your filter criteria found for this account.</p>
+                                                {shipmentSearch && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShipmentSearch("")}
+                                                        className="text-[11px] text-[#00c9a7] hover:underline cursor-pointer"
+                                                    >
+                                                        Clear search filter
+                                                    </button>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-left text-xs">
                                                     <thead>
                                                         <tr className="border-b border-[#1a4a4a] bg-[#081414] text-[10px] font-bold text-[#3a6b66] uppercase">
-                                                            <th className="py-2 px-3">Tracking ID</th>
-                                                            <th className="py-2 px-3">
-                                                                Origin & Destination
-                                                            </th>
-                                                            <th className="py-2 px-3">Status</th>
-                                                            <th className="py-2 px-3 text-right">Date</th>
+                                                            <th className="py-2.5 px-3">Tracking / Waybill</th>
+                                                            <th className="py-2.5 px-3">Route Corridor</th>
+                                                            <th className="py-2.5 px-3">Status</th>
+                                                            <th className="py-2.5 px-3">Assigned Carrier Agent</th>
+                                                            <th className="py-2.5 px-3 text-right">Date</th>
+                                                            <th className="py-2.5 px-3 text-right">Action</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-[#1a4a4a]/40">
-                                                        {shipments.map((s) => (
-                                                            <tr
-                                                                key={s.id}
-                                                                className="hover:bg-[#112a2a]/30"
-                                                            >
-                                                                <td className="py-2 px-3 font-mono text-[11px] text-[#00e5c0]">
-                                                                    {s.trackingId ||
-                                                                        (s.id ? s.id.slice(0, 8) : "N/A")}
-                                                                </td>
-                                                                <td className="py-2 px-3 text-[#e0faf5]">
-                                                                    <span className="font-semibold">
-                                                                        {s.origin}
-                                                                    </span>
-                                                                    <span className="text-[#7ecfc4]/70 mx-1.5">
-                                                                        →
-                                                                    </span>
-                                                                    <span className="font-semibold">
-                                                                        {s.destination}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-2 px-3">
-                                                                    <span
-                                                                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getShipmentStatusBadge(
-                                                                            s.status
-                                                                        )}`}
+                                                        {filteredShipments.map((s) => {
+                                                            const isExpanded = expandedShipmentId === s.id;
+                                                            const agent = resolveShipmentAgent(s, availableAgents);
+                                                            const isThisUserAgent = isShipmentAssignedToThisUser(s);
+                                                            const trackingCode = s.trackingId || (s.id ? s.id.slice(0, 8) : "N/A");
+
+                                                            return (
+                                                                <React.Fragment key={s.id}>
+                                                                    <tr
+                                                                        onClick={() => toggleExpandShipment(s.id)}
+                                                                        className={`hover:bg-[#112a2a]/40 transition-colors cursor-pointer group ${
+                                                                            isExpanded ? "bg-[#112a2a]/30" : ""
+                                                                        }`}
                                                                     >
-                                                                        {s.status}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-2 px-3 text-right text-[#7ecfc4]/80 text-[11px]">
-                                                                    {s.createdAt
-                                                                        ? new Date(
-                                                                              s.createdAt
-                                                                          ).toLocaleDateString()
-                                                                        : "—"}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                                        {/* Tracking / Waybill */}
+                                                                        <td className="py-2.5 px-3">
+                                                                            <div className="flex items-center gap-1.5">
+                                                                                <span className="font-mono text-xs font-bold text-[#00e5c0]">
+                                                                                    {trackingCode}
+                                                                                </span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={(e) => handleCopyTrackingId(e, trackingCode)}
+                                                                                    className="p-1 rounded-sm text-[#7ecfc4]/60 hover:text-[#00e5c0] hover:bg-[#00c9a7]/10 transition-colors"
+                                                                                    title="Copy Waybill Tracking ID"
+                                                                                >
+                                                                                    {copiedTrackingId === trackingCode ? (
+                                                                                        <Check size={11} className="text-[#00e5c0]" />
+                                                                                    ) : (
+                                                                                        <Copy size={11} />
+                                                                                    )}
+                                                                                </button>
+                                                                                {s.weight ? (
+                                                                                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-sm bg-[#112a2a] text-[#7ecfc4] border border-[#1a4a4a]">
+                                                                                        {s.weight}kg
+                                                                                    </span>
+                                                                                ) : null}
+                                                                            </div>
+                                                                            {isThisUserAgent && (
+                                                                                <span className="text-[9px] font-semibold text-[#38bdf8] flex items-center gap-1 mt-0.5">
+                                                                                    <span>Fleet Delivery Task</span>
+                                                                                </span>
+                                                                            )}
+                                                                        </td>
+
+                                                                        {/* Route Corridor */}
+                                                                        <td className="py-2.5 px-3 text-[#e0faf5]">
+                                                                            <div className="flex items-center gap-1.5 font-medium">
+                                                                                <span className="truncate max-w-[110px]" title={s.origin}>
+                                                                                    {s.origin}
+                                                                                </span>
+                                                                                <ArrowRight size={11} className="text-[#00c9a7] shrink-0" />
+                                                                                <span className="truncate max-w-[110px]" title={s.destination}>
+                                                                                    {s.destination}
+                                                                                </span>
+                                                                            </div>
+                                                                        </td>
+
+                                                                        {/* Status */}
+                                                                        <td className="py-2.5 px-3">
+                                                                            <span
+                                                                                className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${getShipmentStatusBadge(
+                                                                                    s.status
+                                                                                )}`}
+                                                                            >
+                                                                                {s.status.replace(/_/g, " ")}
+                                                                            </span>
+                                                                        </td>
+
+                                                                        {/* Assigned Carrier Agent */}
+                                                                        <td className="py-2.5 px-3">
+                                                                            {agent ? (
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className="w-6 h-6 rounded-lg bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
+                                                                                        <UserCheck size={12} />
+                                                                                    </div>
+                                                                                    <div className="min-w-0">
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            <span className="font-bold text-[#e0faf5] truncate text-xs">
+                                                                                                {agent.name}
+                                                                                            </span>
+                                                                                            {isThisUserAgent && (
+                                                                                                <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-xs bg-[#0284c7]/20 text-[#38bdf8] border border-[#0284c7]/30 shrink-0">
+                                                                                                    This Agent
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                        {agent.phone ? (
+                                                                                            <a
+                                                                                                href={`tel:${agent.phone}`}
+                                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                                className="text-[10px] font-mono text-[#7ecfc4] hover:underline hover:text-[#00e5c0] truncate block"
+                                                                                            >
+                                                                                                {agent.phone}
+                                                                                            </a>
+                                                                                        ) : agent.email ? (
+                                                                                            <span className="text-[10px] text-[#7ecfc4]/70 truncate block max-w-[150px]">
+                                                                                                {agent.email}
+                                                                                            </span>
+                                                                                        ) : (
+                                                                                            <span className="text-[10px] text-[#00c9a7] block">
+                                                                                                Assigned
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#f59e0b]/10 text-[#fbbf24] border border-[#f59e0b]/30">
+                                                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse shrink-0" />
+                                                                                    <span className="text-[10px] font-semibold">
+                                                                                        Unassigned
+                                                                                    </span>
+                                                                                </span>
+                                                                            )}
+                                                                        </td>
+
+                                                                        {/* Date */}
+                                                                        <td className="py-2.5 px-3 text-right text-[#7ecfc4]/80 text-[11px] font-mono">
+                                                                            {s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}
+                                                                        </td>
+
+                                                                        {/* Action / Toggle */}
+                                                                        <td className="py-2.5 px-3 text-right">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    toggleExpandShipment(s.id);
+                                                                                }}
+                                                                                className="p-1 rounded-lg text-[#7ecfc4]/70 hover:text-[#00e5c0] hover:bg-[#1a4a4a]/40 transition-colors"
+                                                                                title={isExpanded ? "Collapse details" : "Expand details"}
+                                                                            >
+                                                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+
+                                                                    {/* Expanded Detail Accordion */}
+                                                                    {isExpanded && (
+                                                                        <tr>
+                                                                            <td colSpan={6} className="p-0 bg-[#081414]/90 border-b border-[#1a4a4a]">
+                                                                                <div className="p-3.5 space-y-3">
+                                                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                                                                                        {/* Cargo & Dimensions */}
+                                                                                        <div className="p-3 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]">
+                                                                                            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                                                                                Cargo & Transit Specs
+                                                                                            </span>
+                                                                                            <p className="text-xs font-semibold text-[#e0faf5] line-clamp-2">
+                                                                                                {s.description || "General Freight Consignment"}
+                                                                                            </p>
+                                                                                            <div className="flex flex-wrap items-center gap-3 mt-2 text-[11px] text-[#7ecfc4]">
+                                                                                                {s.weight && (
+                                                                                                    <span>Weight: <strong className="text-[#00e5c0] font-mono">{s.weight} kg</strong></span>
+                                                                                                )}
+                                                                                                {s.estimatedDate && (
+                                                                                                    <span>Est. Delivery: <strong className="text-[#e0faf5]">{new Date(s.estimatedDate).toLocaleDateString()}</strong></span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        {/* Assigned Carrier Agent Breakdown */}
+                                                                                        <div className="p-3 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]">
+                                                                                            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                                                                                Assigned Carrier Agent Profile
+                                                                                            </span>
+                                                                                            {agent ? (
+                                                                                                <div className="space-y-1.5">
+                                                                                                    <p className="text-xs font-bold text-[#00e5c0] flex items-center gap-1.5">
+                                                                                                        <UserCheck size={13} className="text-[#00c9a7]" />
+                                                                                                        <span>{agent.name}</span>
+                                                                                                    </p>
+                                                                                                    <div className="flex flex-col gap-1 text-[11px]">
+                                                                                                        {agent.phone && (
+                                                                                                            <a
+                                                                                                                href={`tel:${agent.phone}`}
+                                                                                                                className="text-[#7ecfc4] hover:underline flex items-center gap-1.5 font-mono"
+                                                                                                            >
+                                                                                                                <Phone size={10} className="text-[#00c9a7]" />
+                                                                                                                <span>{agent.phone}</span>
+                                                                                                            </a>
+                                                                                                        )}
+                                                                                                        {agent.email && (
+                                                                                                            <a
+                                                                                                                href={`mailto:${agent.email}`}
+                                                                                                                className="text-[#7ecfc4]/80 hover:underline flex items-center gap-1.5 truncate"
+                                                                                                            >
+                                                                                                                <Mail size={10} className="text-[#00c9a7]" />
+                                                                                                                <span className="truncate">{agent.email}</span>
+                                                                                                            </a>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ) : (
+                                                                                                <div className="space-y-1">
+                                                                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f59e0b]/15 text-[#fbbf24] border border-[#f59e0b]/30 inline-block">
+                                                                                                        Awaiting Carrier Assignment
+                                                                                                    </span>
+                                                                                                    <p className="text-[10px] text-[#7ecfc4]/60">
+                                                                                                        No road carrier is currently assigned to this consignment.
+                                                                                                    </p>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+
+                                                                                        {/* Billing & Dispatcher */}
+                                                                                        <div className="p-3 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]">
+                                                                                            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                                                                                Billing & Dispatch Information
+                                                                                            </span>
+                                                                                            <div className="flex items-center justify-between text-xs mb-1.5">
+                                                                                                <span className="text-[#7ecfc4]/80">Payment:</span>
+                                                                                                <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30 uppercase">
+                                                                                                    {s.paymentStatus || "PENDING"}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            <p className="text-[11px] text-[#7ecfc4]/80">
+                                                                                                {s.assignedBy?.name ? (
+                                                                                                    <span>Dispatcher: <strong className="text-[#e0faf5]">{s.assignedBy.name}</strong></span>
+                                                                                                ) : (
+                                                                                                    <span>Booking: Direct shipper consignment</span>
+                                                                                                )}
+                                                                                            </p>
+                                                                                            {s.cost?.totalCost && (
+                                                                                                <div className="text-[11px] text-[#e0faf5] font-mono mt-1">
+                                                                                                    Total Rate: <strong className="text-[#00e5c0]">${s.cost.totalCost}</strong>
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </td>
+                                                                        </tr>
+                                                                    )}
+                                                                </React.Fragment>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -802,8 +1499,28 @@ export default function UserDetailsModal({
                             </button>
                         </div>
                     </div>
-                </motion.div>
-            </div>
-        </AnimatePresence>
+                </div>
+            </Modal>
+
+            {/* Dedicated Active Devices & Sessions Management Modal */}
+            <UserSessionsModal
+                userId={displayUser.id || user?.id || null}
+                userName={userName}
+                userEmail={displayUser.email}
+                isOpen={isDeviceSessionsModalOpen}
+                onClose={() => setIsDeviceSessionsModalOpen(false)}
+                onSessionRevoked={(revokedId) => {
+                    setSessions((prev) => prev.filter((s) => s.id !== revokedId));
+                    setSessionsBreakdown((prev) => ({
+                        ...prev,
+                        total: Math.max(0, prev.total - 1),
+                    }));
+                }}
+                onAllRevoked={() => {
+                    setSessions([]);
+                    setSessionsBreakdown({ total: 0, mobile: 0, tablet: 0, desktop: 0 });
+                }}
+            />
+        </>
     );
 }

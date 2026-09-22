@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive location filters, debounced coordinates lookup, and RBAC-gated logistics hub operations.
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -14,7 +15,7 @@ import { Badge, typeBadgeColor } from "./Badge";
 import { detectLocationHint, LOCATION_HINTS } from "./location-hints";
 import type { LocationHint } from "./location-hints";
 import { Field } from "./Field";
-import { Modal } from "./Modal";
+import { Modal } from "@/components/ui/Modal";
 import { ToastStack } from "./ToastStack";
 import type { ToastItem, ToastType } from "./ToastStack";
 import { ModalActions } from "./ModalActions";
@@ -27,6 +28,7 @@ import { CtaButton } from "@/components/ui/CtaButton";
 import { ActionBtn } from "@/components/ui/ActionBtn";
 import { DataTableWrapper } from "@/components/ui/DataTableWrapper";
 import { PaginationBar } from "@/components/ui/PaginationBar";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 // ─── Constants ────────────────────────────────────────────
 const LOCATION_TYPES = ["SEA_PORT", "AIR_PORT", "INLAND_CONTAINER_DEPOT"];
@@ -275,7 +277,7 @@ export default function LocationsPageClient() {
             ...prev,
             country: hint.country, countryCode: hint.countryCode,
             city: hint.city, region: hint.region,
-            latitude: hint.lat, longitude: hint.lng, type: hint.type,
+            latitude: String(hint.lat), longitude: String(hint.lng), type: hint.type,
         }));
         setAutoFilledFields(new Set(["country", "countryCode", "city", "region", "latitude", "longitude", "type"]));
         addToast(`Auto-filled from "${triggeredBy[0]}" — verify before saving.`, "info");
@@ -299,7 +301,7 @@ export default function LocationsPageClient() {
             [field]: fieldValue,
             country: hint.country, countryCode: hint.countryCode,
             city: hint.city, region: hint.region,
-            latitude: hint.lat, longitude: hint.lng, type: hint.type,
+            latitude: String(hint.lat), longitude: String(hint.lng), type: hint.type,
         }));
         setAutoFilledFields(new Set(["country", "countryCode", "city", "region", "latitude", "longitude", "type"]));
         addToast(`Auto-filled from "${hint.city}" — verify before saving.`, "info");
@@ -311,7 +313,7 @@ export default function LocationsPageClient() {
         setSelected(loc);
         setForm({
             name: loc.name, code: loc.code, country: loc.country,
-            countryCode: loc.countryCode, city: loc.city, region: loc.region,
+            countryCode: loc.countryCode, city: loc.city, region: loc.region as string,
             latitude: String(loc.latitude ?? ""), longitude: String(loc.longitude ?? ""),
             type: loc.type ?? "SEA_PORT", blockedReason: "",
         });
@@ -437,12 +439,14 @@ export default function LocationsPageClient() {
                             <RefreshCw size={16} className={loading ? "animate-spin text-[#00c9a7]" : ""} />
                         </button>
 
-                        <CtaButton
-                            onClick={openCreate}
-                            icon={<Plus size={15} />}
-                        >
-                            Add Location
-                        </CtaButton>
+                        <PermissionGate permission="locations:create">
+                            <CtaButton
+                                onClick={openCreate}
+                                icon={<Plus size={15} />}
+                            >
+                                Add Location
+                            </CtaButton>
+                        </PermissionGate>
                     </>
                 }
             />
@@ -481,11 +485,10 @@ export default function LocationsPageClient() {
                     <button
                         type="button"
                         onClick={toggleDeleted}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer ${
-                            showDeleted
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer ${showDeleted
                                 ? "bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/30 hover:bg-[#e11d48]/25"
                                 : "bg-[#0a1a1a] text-[#7ecfc4] border-[#1a4a4a] hover:text-[#e0faf5] hover:bg-[#112a2a]"
-                        }`}
+                            }`}
                         title="Toggle deleted locations"
                     >
                         <Icon.Filter />
@@ -598,41 +601,53 @@ export default function LocationsPageClient() {
                                 <td className="py-3 px-4 text-right">
                                     <div className="flex items-center justify-end gap-1.5">
                                         {showDeleted ? (
-                                            <ActionBtn
-                                                icon={<Icon.Restore />}
-                                                label="Restore location"
-                                                variant="success"
-                                                onClick={() => openRestore(loc)}
-                                            />
+                                            <PermissionGate permission="locations:delete">
+                                                <ActionBtn
+                                                    icon={<Icon.Restore />}
+                                                    label="Restore location"
+                                                    variant="success"
+                                                    onClick={() => openRestore(loc)}
+                                                />
+                                            </PermissionGate>
                                         ) : (
                                             <>
-                                                <ActionBtn
-                                                    icon={<Icon.Edit />}
-                                                    label="Edit location"
-                                                    variant="info"
-                                                    onClick={() => openEdit(loc)}
-                                                />
+                                                <PermissionGate permission="locations:update">
+                                                    <ActionBtn
+                                                        icon={<Icon.Edit />}
+                                                        label="Edit location"
+                                                        variant="info"
+                                                        onClick={() => openEdit(loc)}
+                                                    />
+                                                </PermissionGate>
+
                                                 {loc.isBlocked ? (
-                                                    <ActionBtn
-                                                        icon={<Icon.Unblock />}
-                                                        label="Unblock location"
-                                                        variant="success"
-                                                        onClick={() => openUnblock(loc)}
-                                                    />
+                                                    <PermissionGate permission="locations:block">
+                                                        <ActionBtn
+                                                            icon={<Icon.Unblock />}
+                                                            label="Unblock location"
+                                                            variant="success"
+                                                            onClick={() => openUnblock(loc)}
+                                                        />
+                                                    </PermissionGate>
                                                 ) : (
-                                                    <ActionBtn
-                                                        icon={<Icon.Ban />}
-                                                        label="Block location"
-                                                        variant="warning"
-                                                        onClick={() => openBlock(loc)}
-                                                    />
+                                                    <PermissionGate permission="locations:block">
+                                                        <ActionBtn
+                                                            icon={<Icon.Ban />}
+                                                            label="Block location"
+                                                            variant="warning"
+                                                            onClick={() => openBlock(loc)}
+                                                        />
+                                                    </PermissionGate>
                                                 )}
-                                                <ActionBtn
-                                                    icon={<Icon.Trash />}
-                                                    label="Delete location"
-                                                    variant="danger"
-                                                    onClick={() => openDelete(loc)}
-                                                />
+
+                                                <PermissionGate permission="locations:delete">
+                                                    <ActionBtn
+                                                        icon={<Icon.Trash />}
+                                                        label="Delete location"
+                                                        variant="danger"
+                                                        onClick={() => openDelete(loc)}
+                                                    />
+                                                </PermissionGate>
                                             </>
                                         )}
                                     </div>

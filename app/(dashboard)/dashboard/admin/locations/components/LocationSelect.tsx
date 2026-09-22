@@ -5,15 +5,7 @@ import { Icon } from "./Icons";
 
 import { useLocationStore } from "@/app/store/locationStore";
 
-interface LocationOption {
-    id: string;
-    name: string;
-    code: string;
-    city: string;
-    country: string;
-    countryCode: string;
-    type: string;
-}
+import type { LocationOption } from "@/app/types/interface";
 
 interface LocationSelectProps {
     label: string;

@@ -10,11 +10,37 @@ import {
     IAdminUserQueryParams,
     IAdminUsersResult,
     IApiResponse,
+    ISessionItem,
+    ISessionsData,
+    ISessionsBreakdown,
 } from "../types/admin.types";
 import { IRoadAgent, IShipment, IAssignAgentPayload } from "../types/shipment.types";
 import { AppError } from "../errorHelper/appError";
 
 export * from "../types/admin.types";
+
+/**
+ * Utility helper to compute session breakdown by device type
+ */
+export function computeSessionBreakdown(sessions: ISessionItem[]): ISessionsBreakdown {
+    const breakdown: ISessionsBreakdown = {
+        total: sessions.length,
+        mobile: 0,
+        tablet: 0,
+        desktop: 0,
+    };
+    for (const s of sessions) {
+        const type = (s.deviceType || "").toLowerCase();
+        if (type === "mobile") {
+            breakdown.mobile++;
+        } else if (type === "tablet") {
+            breakdown.tablet++;
+        } else {
+            breakdown.desktop++;
+        }
+    }
+    return breakdown;
+}
 
 export const adminService = {
     /**
@@ -38,29 +64,32 @@ export const adminService = {
     },
 
     /**
-     * Fetch a single user by ID including profile and recent shipments
+     * Fetch a single user by ID including profile, recent shipments, and active sessions
      */
     getUserById: async (id: string): Promise<IAdminUserDetail> => {
         try {
             const res = await api.get<IApiResponse<Record<string, unknown>>>(API.ADMIN.GET_USER_BY_ID(id));
             const rawData = res.data?.data;
             if (rawData && typeof rawData === "object") {
-                // Check if backend returned { user: {...}, shipments: [...] }
+                // Check if backend returned { user: {...}, shipments: [...], sessions: [...] }
                 if ("user" in rawData && rawData.user && typeof rawData.user === "object") {
                     const userObj = rawData.user as Record<string, unknown>;
                     const shipmentsObj = rawData.shipments;
+                    const sessionsObj = rawData.sessions || userObj.sessions;
                     return {
                         ...userObj,
                         id: (userObj.id || userObj._id || id) as string,
                         shipments: Array.isArray(shipmentsObj) ? shipmentsObj : [],
+                        sessions: Array.isArray(sessionsObj) ? (sessionsObj as ISessionItem[]) : [],
                     } as unknown as IAdminUserDetail;
                 }
-                // Flat structure { ...user, shipments: [...] }
+                // Flat structure { ...user, shipments: [...], sessions: [...] }
                 const rawObj = rawData as Record<string, unknown>;
                 return {
                     ...rawObj,
                     id: (rawObj.id || rawObj._id || id) as string,
                     shipments: Array.isArray(rawObj.shipments) ? rawObj.shipments : [],
+                    sessions: Array.isArray(rawObj.sessions) ? (rawObj.sessions as ISessionItem[]) : [],
                 } as unknown as IAdminUserDetail;
             }
             return { id } as IAdminUserDetail;
@@ -268,6 +297,116 @@ export const adminService = {
             }
             return rawData as IShipment;
         } catch (err: unknown) {
+            throw AppError.fromAxios(err);
+        }
+    },
+
+    /**
+     * Fetch active sessions for a specific user.
+     * Attempts /admin/users/:id/sessions, with fallback to checking if getUserById had sessions,
+     * or /user/sessions if isSelf.
+     */
+    getUserSessions: async (userId: string, isSelf = false): Promise<ISessionsData> => {
+        if (isSelf) {
+            try {
+                const res = await api.get<IApiResponse<ISessionsData>>(API.USER.ACTIVE_SESSIONS);
+                if (res.data?.data?.sessions) {
+                    return res.data.data;
+                }
+            } catch {
+                // proceed to admin endpoint below
+            }
+        }
+
+        try {
+            const res = await api.get<IApiResponse<ISessionsData | ISessionItem[]>>(
+                API.ADMIN.GET_USER_SESSIONS(userId)
+            );
+            const raw = res.data?.data;
+            if (raw) {
+                if ("sessions" in raw && Array.isArray((raw as ISessionsData).sessions)) {
+                    const sessionsData = raw as ISessionsData;
+                    return {
+                        sessions: sessionsData.sessions,
+                        breakdown:
+                            sessionsData.breakdown || computeSessionBreakdown(sessionsData.sessions),
+                    };
+                }
+                if (Array.isArray(raw)) {
+                    const sessions = raw as ISessionItem[];
+                    return {
+                        sessions,
+                        breakdown: computeSessionBreakdown(sessions),
+                    };
+                }
+            }
+        } catch {
+            // Admin sessions endpoint might not be active, fallback to getUserById
+            try {
+                const userDetail = await adminService.getUserById(userId);
+                if (userDetail.sessions && Array.isArray(userDetail.sessions)) {
+                    return {
+                        sessions: userDetail.sessions,
+                        breakdown: computeSessionBreakdown(userDetail.sessions),
+                    };
+                }
+            } catch {
+                // fallback to empty
+            }
+        }
+
+        return {
+            sessions: [],
+            breakdown: { total: 0, mobile: 0, tablet: 0, desktop: 0 },
+        };
+    },
+
+    /**
+     * Terminate a specific active session for a user.
+     */
+    revokeUserSession: async (
+        userId: string,
+        sessionId: string
+    ): Promise<{ message: string }> => {
+        try {
+            const res = await api.delete<IApiResponse<null>>(
+                API.ADMIN.REVOKE_USER_SESSION(userId, sessionId)
+            );
+            return { message: res.data?.message || "Session terminated successfully" };
+        } catch (err: unknown) {
+            try {
+                // Fallback to user session endpoint
+                const fallbackRes = await api.delete<IApiResponse<null>>(
+                    API.USER.DELETE_SESSION(sessionId)
+                );
+                return { message: fallbackRes.data?.message || "Session terminated successfully" };
+            } catch {
+                throw AppError.fromAxios(err);
+            }
+        }
+    },
+
+    /**
+     * Terminate all active sessions for a user.
+     */
+    revokeAllUserSessions: async (
+        userId: string,
+        sessionIds: string[] = []
+    ): Promise<{ message: string }> => {
+        try {
+            const res = await api.delete<IApiResponse<null>>(
+                API.ADMIN.REVOKE_ALL_USER_SESSIONS(userId)
+            );
+            return { message: res.data?.message || "All user sessions terminated successfully" };
+        } catch (err: unknown) {
+            if (sessionIds.length > 0) {
+                await Promise.all(
+                    sessionIds.map((sId) =>
+                        adminService.revokeUserSession(userId, sId).catch(() => null)
+                    )
+                );
+                return { message: "All user sessions terminated successfully" };
+            }
             throw AppError.fromAxios(err);
         }
     },

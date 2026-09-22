@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive consignment search, live filtering, and status update modals with RBAC permission gates.
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -21,13 +22,15 @@ import {
 import { ROUTES } from "@/app/constants/routes";
 import { toast } from "sonner";
 import { shipmentService } from "@/app/services/shipment.service";
+import { Modal } from "@/components/ui/Modal";
 import {
     IShipment,
     ShipmentStatus,
     IUpdateShipmentStatusPayload,
 } from "@/app/types/shipment.types";
 import { useDebounce } from "@/app/hooks/useDebounce";
-import { useAuthStore } from "@/app/store/authStore";
+import { usePermission } from "@/app/hooks/usePermission";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 import { AppError } from "@/app/errorHelper/appError";
 
 const STATUS_TABS: { label: string; value: ShipmentStatus | "ALL" }[] = [
@@ -42,10 +45,8 @@ const STATUS_TABS: { label: string; value: ShipmentStatus | "ALL" }[] = [
 ];
 
 export default function ShipmentsPage() {
-    const { user } = useAuthStore();
-    const isAgent = user?.role === "AGENT";
-    const isAdmin = user?.role === "ADMIN";
-    const canUpdateStatus = isAgent || isAdmin;
+    const { can, isAgent, isAdmin } = usePermission();
+    const canUpdateStatus = can("shipments:update_status");
 
     const [shipments, setShipments] = useState<IShipment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -197,13 +198,15 @@ export default function ShipmentsPage() {
                         <span className="hidden sm:inline">Refresh</span>
                     </button>
 
-                    <Link
-                        href={ROUTES.SHIPMENT_CREATE}
-                        className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-lg shadow-[#00c9a7]/20 hover:opacity-90 transition-all"
-                    >
-                        <Plus size={15} strokeWidth={2.5} />
-                        <span>{isAgent ? "Book Counter Consignment" : "Book Consignment"}</span>
-                    </Link>
+                    <PermissionGate permission="shipments:create">
+                        <Link
+                            href={ROUTES.SHIPMENT_CREATE}
+                            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-lg shadow-[#00c9a7]/20 hover:opacity-90 transition-all"
+                        >
+                            <Plus size={15} strokeWidth={2.5} />
+                            <span>{isAgent ? "Book Counter Consignment" : "Book Consignment"}</span>
+                        </Link>
+                    </PermissionGate>
                 </div>
             </div>
 
@@ -306,16 +309,16 @@ export default function ShipmentsPage() {
 
                                 <div className="flex items-center gap-2">
                                     {/* Agent Status Update Button (PATCH permission) */}
-                                    {canUpdateStatus && (
+                                    <PermissionGate permission="shipments:update_status">
                                         <button
                                             onClick={() => handleOpenStatusModal(item)}
-                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#00b4d8]/15 hover:bg-[#00b4d8]/25 text-[#00b4d8] border border-[#00b4d8]/30 text-xs font-bold transition-colors"
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#00b4d8]/15 hover:bg-[#00b4d8]/25 text-[#00b4d8] border border-[#00b4d8]/30 text-xs font-bold transition-colors cursor-pointer"
                                             title="Update Status Checkpoint"
                                         >
                                             <RefreshCw size={11} />
                                             <span>Update Status</span>
                                         </button>
-                                    )}
+                                    </PermissionGate>
 
                                     <button
                                         onClick={() => setSelectedShipment(item)}
@@ -345,39 +348,38 @@ export default function ShipmentsPage() {
                                     ? "No active shipments found in this status category across the hub."
                                     : "You have not booked any shipments yet or no records match your filter."}
                             </p>
-                            <Link
-                                href={ROUTES.SHIPMENT_CREATE}
-                                className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-[#00c9a7] text-[#0a0f0f] text-xs font-bold hover:bg-[#00e5c0] transition-colors"
-                            >
-                                <Plus size={14} />
-                                <span>{isAgent ? "Book Counter Consignment" : "Book Your First Consignment"}</span>
-                            </Link>
+                            <PermissionGate permission="shipments:create">
+                                <Link
+                                    href={ROUTES.SHIPMENT_CREATE}
+                                    className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-[#00c9a7] text-[#0a0f0f] text-xs font-bold hover:bg-[#00e5c0] transition-colors"
+                                >
+                                    <Plus size={14} />
+                                    <span>{isAgent ? "Book Counter Consignment" : "Book Your First Consignment"}</span>
+                                </Link>
+                            </PermissionGate>
                         </div>
                     )}
                 </div>
             )}
 
             {/* Quick Details Modal */}
-            {selectedShipment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-                    <div className="w-full max-w-lg bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4">
-                        <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
-                            <div>
-                                <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider block">
-                                    Consignment Detail
-                                </span>
-                                <h3 className="text-base font-extrabold text-[#e0faf5]">
-                                    {selectedShipment.trackingId}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setSelectedShipment(null)}
-                                className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors"
-                            >
-                                <X size={15} />
-                            </button>
+            <Modal
+                isOpen={!!selectedShipment}
+                onClose={() => setSelectedShipment(null)}
+                maxWidth="lg"
+                title={
+                    selectedShipment && (
+                        <div>
+                            <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider block">
+                                Consignment Detail
+                            </span>
+                            <span>{selectedShipment.trackingId}</span>
                         </div>
-
+                    )
+                }
+            >
+                {selectedShipment && (
+                    <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-3 text-xs">
                             <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
                                 <span className="text-[10px] text-[#3a6b66] block">Origin</span>
@@ -473,31 +475,27 @@ export default function ShipmentsPage() {
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
 
             {/* Agent / Admin Status Update Modal */}
-            {statusModalShipment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-                    <div className="w-full max-w-md bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4">
-                        <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
-                            <div>
-                                <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider block">
-                                    Update Checkpoint
-                                </span>
-                                <h3 className="text-base font-extrabold text-[#e0faf5]">
-                                    {statusModalShipment.trackingId}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setStatusModalShipment(null)}
-                                className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors"
-                            >
-                                <X size={15} />
-                            </button>
+            <Modal
+                isOpen={!!statusModalShipment}
+                onClose={() => setStatusModalShipment(null)}
+                maxWidth="md"
+                title={
+                    statusModalShipment && (
+                        <div>
+                            <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider block">
+                                Update Checkpoint
+                            </span>
+                            <span>{statusModalShipment.trackingId}</span>
                         </div>
-
-                        <form onSubmit={handleUpdateStatusSubmit} className="space-y-4">
+                    )
+                }
+            >
+                {statusModalShipment && (
+                    <form onSubmit={handleUpdateStatusSubmit} className="space-y-4">
                             <div>
                                 <label className="text-xs font-semibold text-[#7ecfc4] block mb-1">
                                     Status Checkpoint
@@ -561,9 +559,8 @@ export default function ShipmentsPage() {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

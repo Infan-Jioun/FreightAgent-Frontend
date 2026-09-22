@@ -1,16 +1,9 @@
 "use client";
 
 import React from "react";
+import type { ActionBtnProps } from "@/app/types/interface";
 
-export interface ActionBtnProps {
-    icon: React.ReactNode;
-    label: string;
-    onClick: () => void;
-    color?: string;
-    variant?: "primary" | "info" | "warning" | "danger" | "success" | "default";
-    disabled?: boolean;
-    className?: string;
-}
+export type { ActionBtnProps };
 
 const VARIANT_STYLES: Record<string, string> = {
     primary: "border-[#00c9a7]/30 text-[#00e5c0] hover:bg-[#00c9a7]/10 hover:border-[#00c9a7]/50",
@@ -36,6 +29,23 @@ export function ActionBtn({
         ? ""
         : VARIANT_STYLES.default;
 
+    const renderIcon = () => {
+        if (!icon) return null;
+        if (React.isValidElement(icon)) return icon;
+        if (
+            typeof icon === "function" ||
+            (typeof icon === "object" && icon !== null && "$$typeof" in icon)
+        ) {
+            const IconComponent = icon as unknown as React.ComponentType<{
+                size?: number;
+                className?: string;
+            }>;
+            return <IconComponent size={14} />;
+        }
+        if (typeof icon === "string" || typeof icon === "number") return icon;
+        return null;
+    };
+
     return (
         <button
             type="button"
@@ -52,7 +62,7 @@ export function ActionBtn({
                     : undefined
             }
         >
-            {icon}
+            {renderIcon()}
         </button>
     );
 }

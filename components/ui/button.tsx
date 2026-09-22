@@ -118,6 +118,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ): React.JSX.Element => {
         const Comp = asChild ? Slot : "button";
 
+        const renderIconNode = (node: React.ReactNode) => {
+            if (!node) return null;
+            if (React.isValidElement(node)) return node;
+            if (
+                typeof node === "function" ||
+                (typeof node === "object" && node !== null && "$$typeof" in node)
+            ) {
+                const IconComponent = node as unknown as React.ComponentType<{ className?: string }>;
+                return <IconComponent className="size-4 shrink-0" />;
+            }
+            if (typeof node === "string" || typeof node === "number") return node;
+            return null;
+        };
+
         return (
             <Comp
                 ref={ref}
@@ -133,9 +147,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     </>
                 ) : (
                     <>
-                        {leftIcon && <span className="shrink-0 inline-flex">{leftIcon}</span>}
+                        {leftIcon && <span className="shrink-0 inline-flex">{renderIconNode(leftIcon)}</span>}
                         {children}
-                        {rightIcon && <span className="shrink-0 inline-flex">{rightIcon}</span>}
+                        {rightIcon && <span className="shrink-0 inline-flex">{renderIconNode(rightIcon)}</span>}
                     </>
                 )}
             </Comp>

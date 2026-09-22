@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages carrier terminal duty status, real-time assignment websockets, and interactive checkpoint actions with RBAC gates.
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -23,10 +24,13 @@ import { IAgentProfile } from "@/app/types/agent.types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ROUTES } from "@/app/constants/routes";
+import { StatCard, StatCardsGrid } from "@/components/ui/dashboard/StatCard";
+import { Modal } from "@/components/ui/Modal";
 import { toast } from "sonner";
 import { AppError } from "@/app/errorHelper/appError";
 import { useAuthStore } from "@/app/store/authStore";
 import { useSocketEvent, useSocketContext } from "@/app/hooks/useSocket";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 export default function AgentOverviewPage() {
     const { user } = useAuthStore();
@@ -233,96 +237,44 @@ export default function AgentOverviewPage() {
                 </div>
             </div>
 
-            {/* 4 Agent Summary Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* 1. Assigned (Pending acceptance) */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-amber-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                            New Assigned
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                            <UserCheck size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {assignedCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Awaiting carrier acceptance</p>
-                    </div>
-                </div>
+            {/* 4 Agent Summary Metric Cards with Uniform Size & Reusable StatCard */}
+            <StatCardsGrid>
+                <StatCard
+                    title="New Assigned"
+                    value={assignedCount}
+                    icon={UserCheck}
+                    variant="amber"
+                    loading={loading}
+                    subtitle="Awaiting carrier acceptance"
+                />
 
-                {/* 2. Active Loads */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-blue-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
-                            Active Deliveries
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                            <CheckSquare size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-blue-300 tracking-tight">
-                                {activeCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Ongoing assigned shipments</p>
-                    </div>
-                </div>
+                <StatCard
+                    title="Active Deliveries"
+                    value={activeCount}
+                    icon={CheckSquare}
+                    variant="blue"
+                    loading={loading}
+                    subtitle="Ongoing assigned shipments"
+                />
 
-                {/* 3. In Transit */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-orange-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-orange-400 uppercase tracking-wider">
-                            In Transit
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center text-orange-400">
-                            <Truck size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {inTransitCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">On the road / in delivery</p>
-                    </div>
-                </div>
+                <StatCard
+                    title="In Transit"
+                    value={inTransitCount}
+                    icon={Truck}
+                    variant="orange"
+                    loading={loading}
+                    subtitle="On the road / in delivery"
+                />
 
-                {/* 4. Completed / Delivered */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-emerald-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                            Delivered Total
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                            <CheckCircle2 size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {deliveredCount}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Successfully signed & delivered</p>
-                    </div>
-                </div>
-            </div>
+                <StatCard
+                    title="Delivered Total"
+                    value={deliveredCount}
+                    icon={CheckCircle2}
+                    variant="teal"
+                    loading={loading}
+                    subtitle="Successfully signed & delivered"
+                />
+            </StatCardsGrid>
 
             {/* Recent Assigned Shipments Table */}
             <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden">
@@ -394,27 +346,31 @@ export default function AgentOverviewPage() {
                                         <div className="inline-flex items-center gap-1.5">
                                             {/* Accept Action Button for ASSIGNED status */}
                                             {s.status === "ASSIGNED" && (
-                                                <button
-                                                    onClick={() => {
-                                                        setAcceptModalShipment(s);
-                                                        setAcceptLocation(s.origin || "");
-                                                        setAcceptNote("");
-                                                    }}
-                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
-                                                    title="Accept Shipment"
-                                                >
-                                                    <CheckSquare size={13} />
-                                                    <span>Accept</span>
-                                                </button>
+                                                <PermissionGate permission="shipments:accept">
+                                                    <button
+                                                        onClick={() => {
+                                                            setAcceptModalShipment(s);
+                                                            setAcceptLocation(s.origin || "");
+                                                            setAcceptNote("");
+                                                        }}
+                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                                        title="Accept Shipment"
+                                                    >
+                                                        <CheckSquare size={13} />
+                                                        <span>Accept</span>
+                                                    </button>
+                                                </PermissionGate>
                                             )}
 
-                                            <Link
-                                                href={`/dashboard/agent/shipments/${s.id}`}
-                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-[#00c9a7]/10 text-xs font-semibold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all"
-                                            >
-                                                <span>Update Status</span>
-                                                <ArrowRight size={12} />
-                                            </Link>
+                                            <PermissionGate permission="shipments:update_status">
+                                                <Link
+                                                    href={`/dashboard/agent/shipments/${s.id}`}
+                                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-[#00c9a7]/10 text-xs font-semibold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all"
+                                                >
+                                                    <span>Update Status</span>
+                                                    <ArrowRight size={12} />
+                                                </Link>
+                                            </PermissionGate>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -425,26 +381,23 @@ export default function AgentOverviewPage() {
             </div>
 
             {/* ACCEPT SHIPMENT MODAL */}
-            {acceptModalShipment && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-                    <div className="w-full max-w-md bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4">
-                        <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
-                            <div>
-                                <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
-                                    Carrier Acceptance
-                                </span>
-                                <h3 className="text-base font-extrabold text-[#e0faf5]">
-                                    Accept Consignment #{acceptModalShipment.trackingId}
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => setAcceptModalShipment(null)}
-                                className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors"
-                            >
-                                <X size={15} />
-                            </button>
+            <Modal
+                isOpen={!!acceptModalShipment}
+                onClose={() => setAcceptModalShipment(null)}
+                maxWidth="md"
+                title={
+                    acceptModalShipment && (
+                        <div>
+                            <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block">
+                                Carrier Acceptance
+                            </span>
+                            <span>Accept Consignment #{acceptModalShipment.trackingId}</span>
                         </div>
-
+                    )
+                }
+            >
+                {acceptModalShipment && (
+                    <div className="space-y-4">
                         <p className="text-xs text-[#7ecfc4]">
                             Confirming acceptance changes consignment status from <strong className="text-amber-400">ASSIGNED</strong> to <strong className="text-emerald-400">ACCEPTED</strong>.
                         </p>
@@ -495,8 +448,8 @@ export default function AgentOverviewPage() {
                             </div>
                         </form>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 }

@@ -1,12 +1,6 @@
-export interface LocationHint {
-    country: string;
-    countryCode: string;
-    city: string;
-    region: string;
-    lat: string;
-    lng: string;
-    type: string;
-}
+import type { LocationHint } from "@/app/types/interface";
+
+export type { LocationHint };
 
 export const LOCATION_HINTS: Record<string, LocationHint> = {
     // Bangladesh

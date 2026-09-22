@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive navigation state, mobile drawer toggles, and reactive role-based route permissions.
 "use client";
 
 import Link from "next/link";
@@ -27,13 +28,10 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
+import { usePermission } from "@/app/hooks/usePermission";
 import { authService } from "@/app/services/auth.service";
 import { clearClientCookies } from "@/app/lib/cookie";
-
-interface SidebarProps {
-    mobileOpen: boolean;
-    onCloseMobile: () => void;
-}
+import type { SidebarProps } from "@/app/types/interface";
 
 const ROOT_DASHBOARD_ROUTES: readonly string[] = [
     ROUTES.DASHBOARD,
@@ -46,9 +44,10 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
     const pathname = usePathname();
     const router = useRouter();
     const { clearUser, user } = useAuthStore();
+    const { role: userRole, canAccess } = usePermission();
     const [loggingOut, setLoggingOut] = useState(false);
 
-    const role = user?.role || "CUSTOMER";
+    const role = userRole || user?.role || "CUSTOMER";
 
     // Dynamic Navigation Items Based On Role
     const getNavItems = () => {
@@ -83,7 +82,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
         }
     };
 
-    const navItems = getNavItems();
+    const navItems = getNavItems().filter((item) => canAccess(item.href));
     const hasExactMatch = navItems.some((item) => item.href === pathname);
 
     const isItemActive = (itemHref: string): boolean => {

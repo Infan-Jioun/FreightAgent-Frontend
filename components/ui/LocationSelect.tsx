@@ -19,24 +19,10 @@ import {
     Warehouse,
     Loader2,
 } from "lucide-react";
-import type { ILocation, ILocationOption } from "@/app/types/location.types";
+import type { ILocation, ILocationOption, LocationSelectProps } from "@/app/types/interface";
 import { useLocationStore } from "@/app/store/locationStore";
 
-export interface LocationSelectProps {
-    name?: string;
-    value?: string;
-    defaultValue?: string;
-    onChange?: (value: string) => void;
-    onBlur?: () => void;
-    locations?: ILocation[];
-    loading?: boolean;
-    placeholder?: string;
-    excludeValue?: string;
-    error?: string;
-    disabled?: boolean;
-    className?: string;
-    icon?: React.ReactNode;
-}
+export type { LocationSelectProps };
 
 /**
  * Reusable Searchable LocationSelect Component

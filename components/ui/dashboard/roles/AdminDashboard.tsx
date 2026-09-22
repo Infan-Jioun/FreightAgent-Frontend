@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive platform command center metrics, agent KYC approval actions, and Framer Motion transitions.
 "use client";
 
 import { useState } from "react";
@@ -19,6 +20,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { ROUTES } from "@/app/constants/routes";
+import { StatCard, StatCardsGrid } from "@/components/ui/dashboard/StatCard";
 
 interface PendingAgent {
     id: string;
@@ -88,7 +90,7 @@ export default function AdminDashboard() {
             {/* System Health Status Bar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-lg shadow-black/20">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#e11d48] to-[#f43f5e] flex items-center justify-center text-white shadow-md shadow-rose-900/40 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-[#e11d48] to-[#f43f5e] flex items-center justify-center text-white shadow-md shadow-rose-900/40 shrink-0">
                         <Activity size={24} strokeWidth={2.2} />
                     </div>
                     <div>
@@ -120,7 +122,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                         onClick={() => toast.info("Exporting platform data in CSV...")}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-90"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] text-xs font-bold shadow-md shadow-[#00c9a7]/20 hover:opacity-90 cursor-pointer"
                     >
                         <FileSpreadsheet size={15} />
                         <span>Export CSV</span>
@@ -128,75 +130,45 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* 4 Executive Platform KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* KPI 1 */}
-                <Link
+            {/* 4 Executive Platform KPIs with Uniform Size & Reusable StatCard */}
+            <StatCardsGrid>
+                <StatCard
+                    title="Total Platform Users"
+                    value="User Directory"
+                    icon={Users}
+                    variant="teal"
+                    trend="Manage"
+                    subtitle="Role assignments, KYC, & directory"
                     href={ROUTES.ADMIN_USERS}
-                    className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00c9a7]/40 transition-all block group"
-                >
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4] group-hover:text-[#e0faf5] transition-colors">Total Platform Users</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00c9a7]/15 text-[#00c9a7] flex items-center justify-center group-hover:bg-[#00c9a7]/25 transition-colors">
-                            <Users size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">User Directory</span>
-                        <span className="text-xs font-semibold text-[#00e5c0] flex items-center gap-0.5">
-                            Manage <ChevronRight size={12} />
-                        </span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Role assignments, KYC, & directory</p>
-                </Link>
+                />
 
-                {/* KPI 2 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00b4d8]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Active Drivers On Duty</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00b4d8]/15 text-[#00b4d8] flex items-center justify-center">
-                            <Activity size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">142</span>
-                        <span className="text-xs font-semibold text-[#00b4d8]">94% coverage</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Active across 18 regional hubs</p>
-                </div>
+                <StatCard
+                    title="Active Drivers On Duty"
+                    value="142"
+                    icon={Activity}
+                    variant="cyan"
+                    badge="94% coverage"
+                    subtitle="Active across 18 regional hubs"
+                />
 
-                {/* KPI 3 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#00e5c0]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Gross Freight Volume</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#00e5c0]/15 text-[#00e5c0] flex items-center justify-center">
-                            <TrendingUp size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">$248.5K</span>
-                        <span className="text-xs font-semibold text-[#00e5c0]">+18.2%</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Platform volume this month</p>
-                </div>
+                <StatCard
+                    title="Gross Freight Volume"
+                    value="$248.5K"
+                    icon={TrendingUp}
+                    variant="teal"
+                    trend={{ value: "+18.2%", isPositive: true }}
+                    subtitle="Platform volume this month"
+                />
 
-                {/* KPI 4 */}
-                <div className="bg-[#0d1f1f] rounded-2xl p-5 border border-[#1a4a4a] shadow-sm hover:border-[#f59e0b]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-[#7ecfc4]">Pending Approvals</span>
-                        <div className="w-8 h-8 rounded-lg bg-[#f59e0b]/15 text-[#f59e0b] flex items-center justify-center">
-                            <ShieldAlert size={16} />
-                        </div>
-                    </div>
-                    <div className="mt-3 flex items-baseline gap-2">
-                        <span className="text-2xl font-extrabold text-[#e0faf5]">
-                            {pendingAgents.filter((a) => a.status === "PENDING").length}
-                        </span>
-                        <span className="text-xs font-semibold text-[#f59e0b]">Action required</span>
-                    </div>
-                    <p className="text-[11px] text-[#3a6b66] mt-1">Awaiting CDL/KYC verification</p>
-                </div>
-            </div>
+                <StatCard
+                    title="Pending Approvals"
+                    value={pendingAgents.filter((a) => a.status === "PENDING").length}
+                    icon={ShieldAlert}
+                    variant="amber"
+                    badge="Action required"
+                    subtitle="Awaiting CDL/KYC verification"
+                />
+            </StatCardsGrid>
 
             {/* Management Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">

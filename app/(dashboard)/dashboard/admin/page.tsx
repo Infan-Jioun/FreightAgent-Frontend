@@ -23,6 +23,7 @@ import { IAdminUser } from "@/app/types/admin.types";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ROUTES } from "@/app/constants/routes";
+import { StatCard, StatCardsGrid } from "@/components/ui/dashboard/StatCard";
 import { toast } from "sonner";
 import { AppError } from "@/app/errorHelper/appError";
 import { useAuthStore } from "@/app/store/authStore";
@@ -113,96 +114,44 @@ export default function AdminOverviewPage() {
                 </div>
             </div>
 
-            {/* 4 Admin Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* 1. Total Shipments */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-[#00c9a7]/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#7ecfc4] uppercase tracking-wider">
-                            Total Shipments
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-center text-[#00c9a7]">
-                            <Package size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-[#e0faf5] tracking-tight">
-                                {totalShipments}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Platform freight consignments</p>
-                    </div>
-                </div>
+            {/* 4 Admin Summary Cards with Uniform Size & Reusable StatCard */}
+            <StatCardsGrid>
+                <StatCard
+                    title="Total Shipments"
+                    value={totalShipments}
+                    icon={Package}
+                    variant="teal"
+                    loading={loading}
+                    subtitle="Platform freight consignments"
+                />
 
-                {/* 2. Total Users */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-blue-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-blue-400 uppercase tracking-wider">
-                            Total Users
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                            <Users size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-blue-300 tracking-tight">
-                                {totalUsers}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Registered platform accounts</p>
-                    </div>
-                </div>
+                <StatCard
+                    title="Total Users"
+                    value={totalUsers}
+                    icon={Users}
+                    variant="blue"
+                    loading={loading}
+                    subtitle="Registered platform accounts"
+                />
 
-                {/* 3. Total Agents */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-purple-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-                            Total Agents
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                            <Truck size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-purple-300 tracking-tight">
-                                {totalAgents}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Certified freight carriers</p>
-                    </div>
-                </div>
+                <StatCard
+                    title="Total Agents"
+                    value={totalAgents}
+                    icon={Truck}
+                    variant="purple"
+                    loading={loading}
+                    subtitle="Certified freight carriers"
+                />
 
-                {/* 4. Pending Shipments */}
-                <div className="p-5 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] relative overflow-hidden group hover:border-neutral-500/40 transition-all shadow-md">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-                            Pending
-                        </span>
-                        <div className="w-10 h-10 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300">
-                            <Clock size={20} />
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        {loading ? (
-                            <div className="h-8 w-16 bg-[#1a4a4a]/40 rounded-md animate-pulse" />
-                        ) : (
-                            <span className="text-3xl font-extrabold text-neutral-200 tracking-tight">
-                                {pendingShipments}
-                            </span>
-                        )}
-                        <p className="text-[11px] text-[#7ecfc4]/70 mt-1">Awaiting dispatch or pickup</p>
-                    </div>
-                </div>
-            </div>
+                <StatCard
+                    title="Pending"
+                    value={pendingShipments}
+                    icon={Clock}
+                    variant="neutral"
+                    loading={loading}
+                    subtitle="Awaiting carrier dispatch"
+                />
+            </StatCardsGrid>
 
             {/* Global Shipments Feed */}
             <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden">

@@ -1,11 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
+import type { ShipmentStatusCardProps } from "@/app/types/interface";
 
-interface ShipmentStatusCardProps {
-    reducedMotion: boolean;
-    className?: string;
-}
+export type { ShipmentStatusCardProps };
 
 export default function ShipmentStatusCard({ reducedMotion, className = "" }: ShipmentStatusCardProps) {
     return (

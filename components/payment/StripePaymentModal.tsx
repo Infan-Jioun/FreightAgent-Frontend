@@ -3,9 +3,10 @@
 import React, { useMemo } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import { X, CreditCard, ArrowRight } from "lucide-react";
+import { CreditCard, ArrowRight } from "lucide-react";
 import { IShipment } from "@/app/types/shipment.types";
 import { CheckoutForm } from "./CheckoutForm";
+import { Modal } from "@/components/ui/Modal";
 
 const stripePublicKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "";
 const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
@@ -26,7 +27,7 @@ export function StripePaymentModal({
     shipment,
     clientSecret,
     amountUSD,
-}: StripePaymentModalProps) {
+}: StripePaymentModalProps): React.JSX.Element | null {
     const appearance = useMemo(
         () => ({
             theme: "night" as const,
@@ -55,31 +56,21 @@ export function StripePaymentModal({
     if (!isOpen || !shipment || !clientSecret) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="w-full max-w-lg bg-[#0d1f1f] border border-[#1a4a4a] rounded-3xl shadow-2xl p-6 space-y-4 max-h-[92vh] overflow-y-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-[#1a4a4a] pb-3">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 text-[#00e5c0]">
-                            <CreditCard size={18} />
-                        </div>
-                        <div>
-                            <span className="text-[10px] font-mono text-[#00e5c0] uppercase tracking-wider block">
-                                Freight Settlement
-                            </span>
-                            <h3 className="text-base font-extrabold text-[#e0faf5]">
-                                Checkout Consignment
-                            </h3>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1.5 rounded-xl bg-[#112a2a] text-[#7ecfc4] hover:text-[#e0faf5] transition-colors cursor-pointer"
-                    >
-                        <X size={16} />
-                    </button>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="lg"
+            icon={<CreditCard size={18} />}
+            title={
+                <div>
+                    <span className="text-[10px] font-mono text-[#00e5c0] uppercase tracking-wider block">
+                        Freight Settlement
+                    </span>
+                    <span>Checkout Consignment</span>
                 </div>
-
+            }
+        >
+            <div className="space-y-4">
                 {/* Route Pill */}
                 <div className="flex items-center justify-between text-xs px-3.5 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a]">
                     <div className="flex items-center gap-2 truncate">
@@ -118,6 +109,8 @@ export function StripePaymentModal({
                     </div>
                 )}
             </div>
-        </div>
+        </Modal>
     );
 }
+
+export default StripePaymentModal;

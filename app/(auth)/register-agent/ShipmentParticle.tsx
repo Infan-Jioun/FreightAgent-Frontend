@@ -3,14 +3,9 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import type { ShipmentParticleProps } from "@/app/types/interface";
 
-interface ShipmentParticleProps {
-    curve: THREE.CatmullRomCurve3;
-    reducedMotion: boolean;
-    /** Loop duration in seconds for one full traversal of the curve. */
-    duration?: number;
-    boosted?: boolean;
-}
+export type { ShipmentParticleProps };
 
 export default function ShipmentParticle({ curve, reducedMotion, duration = 6, boosted }: ShipmentParticleProps) {
     const mesh = useRef<THREE.Mesh>(null);

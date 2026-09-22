@@ -3,11 +3,9 @@
 import React from "react";
 import { ShipmentStatus } from "@/app/types/shipment.types";
 import { SearchBar } from "@/components/ui/SearchBar";
+import type { StatusFilterOption } from "@/app/types/interface";
 
-export interface StatusFilterOption {
-    label: string;
-    value: ShipmentStatus | "ALL";
-}
+export type { StatusFilterOption };
 
 export const ALL_STATUSES: StatusFilterOption[] = [
     { label: "All Statuses", value: "ALL" },

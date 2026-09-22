@@ -29,74 +29,37 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ─── TYPE DEFINITIONS ─────────────────────────────────────────────────────────
+// ─── CENTRAL TYPE IMPORT & RE-EXPORTS ─────────────────────────────────────────
 
-export type SortDirection = "asc" | "desc";
+import type {
+    SortDirection,
+    DataTableSortConfig,
+    FilterTabOption,
+    DataTableColumn,
+    DataTableSearchConfig,
+    DataTablePaginationConfig,
+    DataTableEmptyStateConfig,
+    FilterTabsProps,
+    DataTableToolbarProps,
+    DataTableProps,
+    PaginatedDataTableProps,
+} from "@/app/types/interface";
 
-export interface DataTableSortConfig {
-    sortBy?: string;
-    sortDirection?: SortDirection;
-    onSortChange?: (columnKey: string, direction: SortDirection) => void;
-}
-
-export interface FilterTabOption<TTab extends string | number = string> {
-    key: TTab;
-    label: string;
-    count?: number;
-    icon?: React.ComponentType<{ className?: string; size?: number }>;
-    disabled?: boolean;
-}
-
-export interface DataTableColumn<T> {
-    id?: string;
-    header: React.ReactNode | ((context: { data: T[]; sortDirection?: SortDirection | null }) => React.ReactNode);
-    accessorKey?: keyof T;
-    cell?: (item: T, index: number) => React.ReactNode;
-    headerClassName?: string;
-    className?: string;
-    align?: "left" | "center" | "right";
-    width?: string | number;
-    sortable?: boolean;
-    sortKey?: string;
-}
-
-export interface DataTableSearchConfig {
-    value: string;
-    onChange: (query: string) => void;
-    placeholder?: string;
-    debounceMs?: number;
-    className?: string;
-}
-
-export interface DataTablePaginationConfig {
-    currentPage: number;
-    totalPages: number;
-    totalCount?: number;
-    pageSize?: number;
-    itemName?: string;
-    onPageChange: (page: number) => void;
-    onPageSizeChange?: (size: number) => void;
-    pageSizeOptions?: number[];
-    className?: string;
-}
-
-export interface DataTableEmptyStateConfig {
-    icon?: React.ComponentType<{ className?: string; size?: number }>;
-    title?: string;
-    description?: string;
-    action?: React.ReactNode;
-}
+export type {
+    SortDirection,
+    DataTableSortConfig,
+    FilterTabOption,
+    DataTableColumn,
+    DataTableSearchConfig,
+    DataTablePaginationConfig,
+    DataTableEmptyStateConfig,
+    FilterTabsProps,
+    DataTableToolbarProps,
+    DataTableProps,
+    PaginatedDataTableProps,
+};
 
 // ─── 1. FILTER TABS COMPONENT ──────────────────────────────────────────────────
-
-export interface FilterTabsProps<TTab extends string | number = string> {
-    tabs: FilterTabOption<TTab>[];
-    activeTab: TTab;
-    onTabChange: (tab: TTab) => void;
-    title?: string;
-    showFilterIcon?: boolean;
-    className?: string;
-}
 
 export function FilterTabs<TTab extends string | number = string>({
     tabs,
@@ -163,17 +126,7 @@ export function FilterTabs<TTab extends string | number = string>({
 
 // ─── 2. TOOLBAR COMPONENT (SEARCH + TABS + FILTERS + ACTIONS) ─────────────────
 
-export interface DataTableToolbarProps<TTab extends string | number = string> {
-    tabs?: FilterTabOption<TTab>[];
-    activeTab?: TTab;
-    onTabChange?: (tab: TTab) => void;
-    tabsTitle?: string;
-    showFilterIcon?: boolean;
-    search?: DataTableSearchConfig;
-    filters?: React.ReactNode;
-    actions?: React.ReactNode;
-    className?: string;
-}
+
 
 export function DataTableToolbar<TTab extends string | number = string>({
     tabs,
@@ -434,7 +387,7 @@ interface DataTableRowProps<T> {
     item: T;
     index: number;
     columns: DataTableColumn<T>[];
-    onRowClick?: (item: T) => void;
+    onRowClick?: (item: T, index: number) => void;
     rowClassName?: string | ((item: T, index: number) => string);
 }
 
@@ -451,8 +404,8 @@ function DataTableRowInternal<T>({
             : rowClassName;
 
     const handleClick = useCallback(() => {
-        onRowClick?.(item);
-    }, [onRowClick, item]);
+        onRowClick?.(item, index);
+    }, [onRowClick, item, index]);
 
     return (
         <tr
@@ -499,26 +452,16 @@ export const DataTableRow = React.memo(DataTableRowInternal) as typeof DataTable
 
 // ─── 5. BASE DATA TABLE COMPONENT ─────────────────────────────────────────────
 
-export interface DataTableProps<T> {
-    data: T[];
-    columns: DataTableColumn<T>[];
-    rowKey: (item: T, index: number) => string | number;
-    loading?: boolean;
-    loadingRowCount?: number;
-    emptyState?: DataTableEmptyStateConfig;
-    onRowClick?: (item: T) => void;
-    rowClassName?: string | ((item: T, index: number) => string);
-    tableClassName?: string;
-    containerClassName?: string;
-    sortConfig?: DataTableSortConfig;
-}
+
 
 export function DataTable<T>({
     data,
     columns,
     rowKey,
+    keyExtractor,
     loading = false,
     loadingRowCount = 5,
+    loadingRowsCount,
     emptyState,
     onRowClick,
     rowClassName,
@@ -526,7 +469,23 @@ export function DataTable<T>({
     containerClassName = "",
     sortConfig,
 }: DataTableProps<T>): React.JSX.Element {
+    const effectiveLoadingRowCount = loadingRowsCount ?? loadingRowCount ?? 5;
     const EmptyIcon = emptyState?.icon || Inbox;
+
+    const getRowKey = (item: T, index: number): string | number => {
+        if (rowKey) return rowKey(item, index);
+        if (keyExtractor) return keyExtractor(item, index);
+        if (
+            typeof item === "object" &&
+            item !== null &&
+            "id" in item &&
+            (typeof (item as { id: unknown }).id === "string" ||
+                typeof (item as { id: unknown }).id === "number")
+        ) {
+            return (item as { id: string | number }).id;
+        }
+        return index;
+    };
 
     const handleHeaderClick = useCallback(
         (col: DataTableColumn<T>) => {
@@ -610,7 +569,7 @@ export function DataTable<T>({
                     </thead>
                     <tbody className="divide-y divide-[#1a4a4a]/40">
                         {loading ? (
-                            Array.from({ length: loadingRowCount }).map((_, rIdx) => (
+                            Array.from({ length: effectiveLoadingRowCount }).map((_, rIdx) => (
                                 <tr key={`skeleton-row-${rIdx}`} className="animate-pulse">
                                     {columns.map((col, cIdx) => (
                                         <td
@@ -653,7 +612,7 @@ export function DataTable<T>({
                             </tr>
                         ) : (
                             data.map((item, index) => {
-                                const key = rowKey(item, index);
+                                const key = getRowKey(item, index);
                                 return (
                                     <DataTableRow
                                         key={key}
@@ -675,59 +634,31 @@ export function DataTable<T>({
 
 // ─── 6. ALL-IN-ONE COMPOSITE: PAGINATED DATA TABLE ─────────────────────────────
 
-export interface PaginatedDataTableProps<T, TTab extends string | number = string> {
-    // Data & Columns
-    data: T[];
-    columns: DataTableColumn<T>[];
-    rowKey: (item: T, index: number) => string | number;
 
-    // Optional Filter Tabs
-    tabs?: FilterTabOption<TTab>[];
-    activeTab?: TTab;
-    onTabChange?: (tab: TTab) => void;
-    tabsTitle?: string;
-    showFilterIcon?: boolean;
-
-    // Optional Search Toolbar & Filter Slots
-    search?: DataTableSearchConfig;
-    toolbarFilters?: React.ReactNode;
-    toolbarActions?: React.ReactNode;
-    toolbarClassName?: string;
-
-    // Optional Sorting Configuration
-    sortConfig?: DataTableSortConfig;
-
-    // Optional Pagination
-    pagination?: DataTablePaginationConfig;
-
-    // Table States & Customizations
-    loading?: boolean;
-    loadingRowCount?: number;
-    emptyState?: DataTableEmptyStateConfig;
-    onRowClick?: (item: T) => void;
-    rowClassName?: string | ((item: T, index: number) => string);
-    tableClassName?: string;
-    containerClassName?: string;
-    className?: string;
-}
 
 export function PaginatedDataTable<T, TTab extends string | number = string>({
     data,
     columns,
     rowKey,
+    keyExtractor,
     tabs,
     activeTab,
     onTabChange,
     tabsTitle,
     showFilterIcon,
     search,
+    searchConfig,
     toolbarFilters,
     toolbarActions,
     toolbarClassName,
+    filterContent,
+    actions,
     sortConfig,
     pagination,
+    paginationConfig,
     loading = false,
     loadingRowCount = 5,
+    loadingRowsCount,
     emptyState,
     onRowClick,
     rowClassName,
@@ -735,7 +666,12 @@ export function PaginatedDataTable<T, TTab extends string | number = string>({
     containerClassName,
     className = "space-y-4",
 }: PaginatedDataTableProps<T, TTab>): React.JSX.Element {
-    const hasToolbar = Boolean(tabs || search || toolbarFilters || toolbarActions);
+    const effectiveSearch = search ?? searchConfig;
+    const effectivePagination = pagination ?? paginationConfig;
+    const effectiveFilters = toolbarFilters ?? filterContent;
+    const effectiveActions = toolbarActions ?? actions;
+    const effectiveLoadingRowCount = loadingRowsCount ?? loadingRowCount ?? 5;
+    const hasToolbar = Boolean(tabs || effectiveSearch || effectiveFilters || effectiveActions);
 
     return (
         <div className={cn("w-full", className)}>
@@ -747,9 +683,9 @@ export function PaginatedDataTable<T, TTab extends string | number = string>({
                     onTabChange={onTabChange}
                     tabsTitle={tabsTitle}
                     showFilterIcon={showFilterIcon}
-                    search={search}
-                    filters={toolbarFilters}
-                    actions={toolbarActions}
+                    search={effectiveSearch}
+                    filters={effectiveFilters}
+                    actions={effectiveActions}
                     className={toolbarClassName}
                 />
             )}
@@ -765,8 +701,9 @@ export function PaginatedDataTable<T, TTab extends string | number = string>({
                     data={data}
                     columns={columns}
                     rowKey={rowKey}
+                    keyExtractor={keyExtractor}
                     loading={loading}
-                    loadingRowCount={loadingRowCount}
+                    loadingRowCount={effectiveLoadingRowCount}
                     emptyState={emptyState}
                     onRowClick={onRowClick}
                     rowClassName={rowClassName}
@@ -776,7 +713,7 @@ export function PaginatedDataTable<T, TTab extends string | number = string>({
                 />
 
                 {/* Bottom Pagination Bar */}
-                {pagination && <DataTablePagination {...pagination} />}
+                {effectivePagination && <DataTablePagination {...effectivePagination} />}
             </div>
         </div>
     );

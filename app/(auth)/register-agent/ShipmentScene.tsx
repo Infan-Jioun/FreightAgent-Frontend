@@ -8,6 +8,7 @@ import * as THREE from "three";
 import ShippingContainer from "./ShippingContainer";
 import ContainerEnvironment from "./ContainerEnvironment";
 import AgentCustomerDiscussion from "./AgentCustomerDiscussion";
+import type { ShipmentSceneProps } from "@/app/types/interface";
 
 const ORBIT_DURATION = 12; // seconds for one full slow loop: front-right -> side -> front-left -> back
 
@@ -47,10 +48,7 @@ function CameraRig({
     return null;
 }
 
-interface ShipmentSceneProps {
-    reducedMotion: boolean;
-    success?: boolean;
-}
+export type { ShipmentSceneProps };
 
 export default function ShipmentScene({ reducedMotion, success }: ShipmentSceneProps) {
     const pointer = useRef({ x: 0, y: 0 });

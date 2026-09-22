@@ -7,10 +7,10 @@ import api from "../lib/api";
 import { API } from "../constants/api";
 import { IApiResponse } from "../types/admin.types";
 import {
-    CreatePaymentIntentResponse,
     IShipmentCost,
 } from "../types/shipment.types";
 import {
+    CreatePaymentIntentResponse,
     IVerifyPaymentStatusResult,
     IAgentEarningsResponse,
     IAgentWithdrawPayload,
@@ -22,28 +22,17 @@ import {
     IAdminFinancialOverview,
     IAgentEarningsSummary,
     IAgentEarningItem,
+    ICalculatePricingParams,
+    ICalculatePricingResult,
+    IRefundPaymentResult,
 } from "../types/payment.types";
 import { AppError } from "../errorHelper/appError";
 
-export interface ICalculatePricingParams {
-    origin: string;
-    destination: string;
-    weightKg: number;
-    declaredCargoValueUSD?: number;
-}
-
-export interface ICalculatePricingResult {
-    costBreakdown: IShipmentCost;
-    totalUSD: number;
-    currency: string;
-}
-
-export interface IRefundPaymentResult {
-    success: boolean;
-    refundId: string;
-    status: string;
-    amountUSD: number;
-}
+export type {
+    ICalculatePricingParams,
+    ICalculatePricingResult,
+    IRefundPaymentResult,
+};
 
 export const paymentService = {
     /**

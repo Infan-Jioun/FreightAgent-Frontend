@@ -1,9 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { Phone, Mail, X, ArrowRight, KeyRound, CheckCircle2, ChevronDown, AlertCircle } from "lucide-react";
+import { Phone, Mail, ArrowRight, KeyRound, CheckCircle2, ChevronDown, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ICountry, COUNTRIES } from "@/app/constants/countries";
+import { Modal } from "@/components/ui/Modal";
 
 interface PhoneVerificationModalProps {
     isOpen: boolean;
@@ -49,44 +49,23 @@ export default function PhoneVerificationModal({
     onVerifyOtp,
 }: PhoneVerificationModalProps) {
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="w-full max-w-md p-6 rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-2xl relative overflow-hidden flex flex-col gap-5"
-                    >
-                        {/* Close Button */}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={isSendingOtp || isVerifyingOtp}
-                            className="absolute top-5 right-5 p-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7] transition-colors cursor-pointer"
-                        >
-                            <X size={15} />
-                        </button>
-
-                        {/* Modal Header */}
-                        <div className="flex items-center gap-3 pr-8">
-                            <div className="w-10 h-10 rounded-2xl bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
-                                <Phone size={18} />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-[#e0faf5]">
-                                    {phoneStep === "input"
-                                        ? "Verify Contact Phone"
-                                        : "Enter Verification OTP"}
-                                </h3>
-                                <p className="text-[11px] text-[#7ecfc4] mt-0.5">
-                                    {phoneStep === "input"
-                                        ? "Select your country and enter your national number."
-                                        : `Code dispatched to ${userEmail || "your registered email"}`}
-                                </p>
-                            </div>
-                        </div>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            maxWidth="md"
+            icon={<Phone size={18} />}
+            title={
+                phoneStep === "input"
+                    ? "Verify Contact Phone"
+                    : "Enter Verification OTP"
+            }
+            description={
+                phoneStep === "input"
+                    ? "Select your country and enter your national number."
+                    : `Code dispatched to ${userEmail || "your registered email"}`
+            }
+        >
+            <div className="space-y-5">
 
                         {/* Rate Limit Warning Banner */}
                         {isPhoneRateLimited && (
@@ -266,9 +245,7 @@ export default function PhoneVerificationModal({
                                 </div>
                             </form>
                         )}
-                    </motion.div>
-                </div>
-            )}
-        </AnimatePresence>
+            </div>
+        </Modal>
     );
 }

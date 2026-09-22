@@ -1,17 +1,11 @@
-export interface IUser {
-    id: string;
-    name: string;
-    email: string;
-    role: "ADMIN" | "AGENT" | "CUSTOMER";
-    image: string | null;
-    phone?: string | null;
-    address?: string | null;
-    emailVerified: boolean;
-    isBlocked?: boolean;
-    twoFactorEnabled?: boolean;
-    createdAt: string;
-    updatedAt?: string;
-}
+export type {
+    IUser,
+    UserRole,
+    RateLimitInfo,
+    IApiResponseWithRateLimit,
+} from "./interface";
+
+import type { IUser } from "./interface";
 
 export interface IRegisterInput {
     name: string;
@@ -80,8 +74,4 @@ export interface IChangePasswordInput {
     otp: string;
 }
 
-export interface IApiResponse<T> {
-    success: boolean;
-    message: string;
-    data: T | null;
-}
+export type { IApiResponse } from "./interface";

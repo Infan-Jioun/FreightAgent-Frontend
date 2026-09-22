@@ -2,17 +2,9 @@
 
 import React from "react";
 import { Loader2 } from "lucide-react";
+import type { CtaButtonProps } from "@/app/types/interface";
 
-export interface CtaButtonProps {
-    children: React.ReactNode;
-    onClick?: () => void;
-    icon?: React.ReactNode;
-    disabled?: boolean;
-    loading?: boolean;
-    type?: "button" | "submit" | "reset";
-    className?: string;
-    variant?: "primary" | "secondary" | "danger";
-}
+export type { CtaButtonProps };
 
 const VARIANT_CLASSES = {
     primary:
@@ -33,6 +25,23 @@ export function CtaButton({
     className = "",
     variant = "primary",
 }: CtaButtonProps) {
+    const renderIcon = () => {
+        if (!icon) return null;
+        if (React.isValidElement(icon)) return icon;
+        if (
+            typeof icon === "function" ||
+            (typeof icon === "object" && icon !== null && "$$typeof" in icon)
+        ) {
+            const IconComponent = icon as unknown as React.ComponentType<{
+                size?: number;
+                className?: string;
+            }>;
+            return <IconComponent size={15} />;
+        }
+        if (typeof icon === "string" || typeof icon === "number") return icon;
+        return null;
+    };
+
     return (
         <button
             type={type}
@@ -43,7 +52,7 @@ export function CtaButton({
             {loading ? (
                 <Loader2 size={15} className="animate-spin" />
             ) : (
-                icon
+                renderIcon()
             )}
             <span>{children}</span>
         </button>

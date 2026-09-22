@@ -1,20 +1,9 @@
 "use client";
 
 import React from "react";
+import type { FilterSelectOption, FilterSelectProps } from "@/app/types/interface";
 
-export interface FilterSelectOption {
-    label: string;
-    value: string | number;
-}
-
-export interface FilterSelectProps {
-    value: string | number;
-    onChange: (val: string) => void;
-    options: FilterSelectOption[];
-    placeholder?: string;
-    title?: string;
-    className?: string;
-}
+export type { FilterSelectOption, FilterSelectProps };
 
 export function FilterSelect({
     value,

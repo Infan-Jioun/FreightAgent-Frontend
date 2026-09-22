@@ -1,5 +1,10 @@
 import * as React from "react";
-import { ShipmentStatus, PaymentStatus } from "@/app/types/shipment.types";
+import type {
+    ShipmentStatus,
+    PaymentStatus,
+    StatusBadgeProps,
+    PaymentStatusBadgeProps,
+} from "@/app/types/interface";
 import { cn } from "@/lib/utils";
 import {
     Clock,
@@ -15,11 +20,7 @@ import {
     RotateCcw,
 } from "lucide-react";
 
-interface StatusBadgeProps {
-    status: ShipmentStatus | string;
-    className?: string;
-    showIcon?: boolean;
-}
+export type { StatusBadgeProps, PaymentStatusBadgeProps };
 
 export function StatusBadge({ status, className, showIcon = true }: StatusBadgeProps) {
     const normalized = (status || "").toUpperCase() as ShipmentStatus;
@@ -124,11 +125,7 @@ export function StatusBadge({ status, className, showIcon = true }: StatusBadgeP
     }
 }
 
-interface PaymentStatusBadgeProps {
-    status?: PaymentStatus | string | null;
-    className?: string;
-    showIcon?: boolean;
-}
+
 
 export function PaymentStatusBadge({
     status,

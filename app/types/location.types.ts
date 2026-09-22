@@ -1,47 +1,13 @@
-// ─── Enums ────────────────────────────────────────────────
-export type LocationType =
-    | "SEA_PORT"
-    | "AIR_PORT"
-    | "INLAND_PORT"
-    | "RAIL_TERMINAL"
-    | "ROAD_HUB";
+// ─── Shared Interfaces from interface.ts ──────────────────────
+export type {
+    LocationType,
+    ILocation,
+    ILocationOption,
+    LocationOption,
+    LocationHint,
+} from "./interface";
 
-// ─── Core Location ────────────────────────────────────────
-export interface ILocation {
-    [x: string]: any;
-    id: string;
-    name: string;
-    code: string;
-    country: string;
-    countryCode: string;
-    city: string;
-    region: string;
-    latitude: number;
-    longitude: number;
-    type: LocationType;
-    isBlocked: boolean;
-    blockedReason: string | null;
-    createdAt: string;
-    updatedAt: string;
-    createdBy?: {
-        id: string;
-        name: string;
-        email: string;
-    } | null;
-}
-
-// ─── Autocomplete (search endpoint) ──────────────────────
-export interface ILocationOption {
-    id: string;
-    name: string;
-    code: string;
-    city: string;
-    country: string;
-    countryCode: string;
-    type: LocationType;
-    latitude: number;
-    longitude: number;
-}
+import type { LocationType, ILocation, ILocationOption } from "./interface";
 
 // ─── Create Payload ───────────────────────────────────────
 export interface ICreateLocationPayload {

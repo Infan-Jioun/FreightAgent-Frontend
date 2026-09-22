@@ -1,3 +1,4 @@
+// This needs 'use client' because: it renders interactive user table rows, pagination controls, and RBAC-gated account mutation actions.
 "use client";
 
 import {
@@ -11,11 +12,13 @@ import {
     UserCheck,
     Edit3,
     Phone,
+    Laptop,
 } from "lucide-react";
 import { IAdminUser } from "@/app/types/admin.types";
 import { ActionBtn } from "@/components/ui/ActionBtn";
 import { DataTableWrapper } from "@/components/ui/DataTableWrapper";
 import { PaginationBar } from "@/components/ui/PaginationBar";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 interface UsersTableProps {
     users: IAdminUser[];
@@ -30,6 +33,7 @@ interface UsersTableProps {
     onChangeRole: (user: IAdminUser) => void;
     onToggleStatus: (user: IAdminUser) => void;
     onDelete: (user: IAdminUser) => void;
+    onManageSessions?: (user: IAdminUser) => void;
 }
 
 export default function UsersTable({
@@ -45,6 +49,7 @@ export default function UsersTable({
     onChangeRole,
     onToggleStatus,
     onDelete,
+    onManageSessions,
 }: UsersTableProps) {
     const getRoleBadge = (role: IAdminUser["role"]) => {
         switch (role) {
@@ -264,45 +269,63 @@ export default function UsersTable({
                                     <td className="py-3 px-4 text-right">
                                         <div className="flex items-center justify-end gap-1.5">
                                             {/* View Details */}
-                                            <ActionBtn
-                                                icon={<Eye size={13} />}
-                                                label="View full profile & shipments"
-                                                variant="info"
-                                                onClick={() => onViewDetails(u)}
-                                            />
+                                            <PermissionGate permission="users:read">
+                                                <ActionBtn
+                                                    icon={<Eye size={13} />}
+                                                    label="View full profile & shipments"
+                                                    variant="info"
+                                                    onClick={() => onViewDetails(u)}
+                                                />
+                                            </PermissionGate>
+
+                                            {/* Active Devices / Sessions */}
+                                            <PermissionGate permission="users:read">
+                                                <ActionBtn
+                                                    icon={<Laptop size={13} />}
+                                                    label="Manage active devices & sessions"
+                                                    variant="primary"
+                                                    onClick={() => onManageSessions?.(u)}
+                                                />
+                                            </PermissionGate>
 
                                             {/* Change Role Button */}
-                                            <ActionBtn
-                                                icon={<Shield size={13} />}
-                                                label={isSelf ? "Cannot change own role" : "Change user role"}
-                                                variant="warning"
-                                                disabled={isSelf}
-                                                onClick={() => onChangeRole(u)}
-                                            />
+                                            <PermissionGate permission="users:change_role">
+                                                <ActionBtn
+                                                    icon={<Shield size={13} />}
+                                                    label={isSelf ? "Cannot change own role" : "Change user role"}
+                                                    variant="warning"
+                                                    disabled={isSelf}
+                                                    onClick={() => onChangeRole(u)}
+                                                />
+                                            </PermissionGate>
 
                                             {/* Suspend / Reactivate Button */}
-                                            <ActionBtn
-                                                icon={blocked ? <UserCheck size={13} /> : <UserX size={13} />}
-                                                label={
-                                                    isSelf
-                                                        ? "Cannot suspend own account"
-                                                        : blocked
-                                                        ? "Reactivate user account"
-                                                        : "Suspend / block user"
-                                                }
-                                                variant={blocked ? "success" : "danger"}
-                                                disabled={isSelf}
-                                                onClick={() => onToggleStatus(u)}
-                                            />
+                                            <PermissionGate permission="users:suspend">
+                                                <ActionBtn
+                                                    icon={blocked ? <UserCheck size={13} /> : <UserX size={13} />}
+                                                    label={
+                                                        isSelf
+                                                            ? "Cannot suspend own account"
+                                                            : blocked
+                                                            ? "Reactivate user account"
+                                                            : "Suspend / block user"
+                                                    }
+                                                    variant={blocked ? "success" : "danger"}
+                                                    disabled={isSelf}
+                                                    onClick={() => onToggleStatus(u)}
+                                                />
+                                            </PermissionGate>
 
                                             {/* Delete Button */}
-                                            <ActionBtn
-                                                icon={<Trash2 size={13} />}
-                                                label={isSelf ? "Cannot delete own account" : "Delete user permanently"}
-                                                variant="danger"
-                                                disabled={isSelf}
-                                                onClick={() => onDelete(u)}
-                                            />
+                                            <PermissionGate permission="users:delete">
+                                                <ActionBtn
+                                                    icon={<Trash2 size={13} />}
+                                                    label={isSelf ? "Cannot delete own account" : "Delete user permanently"}
+                                                    variant="danger"
+                                                    disabled={isSelf}
+                                                    onClick={() => onDelete(u)}
+                                                />
+                                            </PermissionGate>
                                         </div>
                                     </td>
                                 </tr>

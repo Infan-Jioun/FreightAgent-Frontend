@@ -1,3 +1,4 @@
+// This needs 'use client' because: it manages interactive user directory filters, search debounce, account creation, role update, and suspension modals.
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
@@ -20,10 +21,12 @@ import SuspendUserModal from "./SuspendUserModal";
 import DeleteUserModal from "./DeleteUserModal";
 import UserDetailsModal from "./UserDetailsModal";
 import AddUserModal from "./AddUserModal";
+import UserSessionsModal from "./UserSessionsModal";
 
 // Centralized Reusable UI Components
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CtaButton } from "@/components/ui/CtaButton";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 interface AdminUsersClientProps {
     initialUsers?: IAdminUser[];
@@ -47,6 +50,7 @@ export default function AdminUsersClient({ initialUsers = [] }: AdminUsersClient
 
     // ── Modals & Action Target States ───────────────────────────────────
     const [selectedUserForDetails, setSelectedUserForDetails] = useState<IAdminUser | null>(null);
+    const [selectedUserForSessions, setSelectedUserForSessions] = useState<IAdminUser | null>(null);
 
     const [editingUserForRole, setEditingUserForRole] = useState<IAdminUser | null>(null);
     const [updatingRole, setUpdatingRole] = useState(false);
@@ -306,12 +310,14 @@ export default function AdminUsersClient({ initialUsers = [] }: AdminUsersClient
                             <RefreshCw size={16} className={refreshing ? "animate-spin text-[#00c9a7]" : ""} />
                         </button>
 
-                        <CtaButton
-                            onClick={() => setIsAddUserOpen(true)}
-                            icon={<UserPlus size={15} />}
-                        >
-                            Add User / Agent
-                        </CtaButton>
+                        <PermissionGate permission="users:create">
+                            <CtaButton
+                                onClick={() => setIsAddUserOpen(true)}
+                                icon={<UserPlus size={15} />}
+                            >
+                                Add User / Agent
+                            </CtaButton>
+                        </PermissionGate>
                     </>
                 }
             />
@@ -354,6 +360,7 @@ export default function AdminUsersClient({ initialUsers = [] }: AdminUsersClient
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
                 onViewDetails={setSelectedUserForDetails}
+                onManageSessions={setSelectedUserForSessions}
                 onChangeRole={setEditingUserForRole}
                 onToggleStatus={setTargetUserForStatus}
                 onDelete={setDeletingUser}
@@ -405,6 +412,15 @@ export default function AdminUsersClient({ initialUsers = [] }: AdminUsersClient
                 creating={creatingUser}
                 onClose={() => setIsAddUserOpen(false)}
                 onSubmit={handleCreateUser}
+            />
+
+            {/* User Active Devices & Sessions Management Modal */}
+            <UserSessionsModal
+                userId={selectedUserForSessions?.id ?? null}
+                userName={selectedUserForSessions?.name}
+                userEmail={selectedUserForSessions?.email}
+                isOpen={Boolean(selectedUserForSessions)}
+                onClose={() => setSelectedUserForSessions(null)}
             />
         </div>
     );

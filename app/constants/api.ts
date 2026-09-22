@@ -62,6 +62,10 @@ export const API = {
         DELETE_USER: (id: string) => `/admin/users/${id}`,
         GET_AGENTS: "/admin/agents",
         ASSIGN_SHIPMENT: (id: string) => `/admin/shipments/${id}/assign`,
+        GET_USER_SESSIONS: (id: string) => `/admin/users/${id}/sessions`,
+        REVOKE_USER_SESSION: (userId: string, sessionId: string) =>
+            `/admin/users/${userId}/sessions/${sessionId}`,
+        REVOKE_ALL_USER_SESSIONS: (userId: string) => `/admin/users/${userId}/sessions`,
     },
     // Location
  
