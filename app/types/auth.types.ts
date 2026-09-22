@@ -42,6 +42,15 @@ export interface ILoginInput {
     revokeOthers?: boolean;
 }
 
+export interface ILoginResponseData {
+    user: IUser;
+    accessToken?: string;
+    refreshToken?: string;
+    token?: string;
+    access_token?: string;
+    refresh_token?: string;
+}
+
 export interface IVerifyOtpInput {
     email: string;
     otp: string;

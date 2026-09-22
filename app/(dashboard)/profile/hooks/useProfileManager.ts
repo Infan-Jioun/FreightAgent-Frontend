@@ -258,7 +258,7 @@ export function useProfileManager(
 
         try {
             setIsUploadingAvatar(true);
-            const toastId = toast.loading("Uploading avatar to Cloudinary...");
+            const toastId = toast.loading("Uploading avatar to freightagent...");
             const res = await userService.uploadAvatar(file);
 
             setProfile((prev) => (prev ? { ...prev, image: res.image } : prev));

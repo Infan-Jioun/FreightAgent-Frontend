@@ -556,14 +556,14 @@ const onSubmit = async (data: RegisterAgentInput) => {
 
 return (
     <div
-        className="min-h-screen w-full flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8 py-8 sm:py-12"
+        className="min-h-screen w-full flex flex-col items-center justify-start lg:justify-center p-4 sm:p-6 lg:p-8 py-6 sm:py-10 lg:py-12"
         style={{ background: "var(--bg-primary)" }}
     >
         <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="w-full max-w-5xl my-auto rounded-[2rem] overflow-hidden shadow-2xl grid lg:grid-cols-2 min-h-[560px] sm:min-h-[620px] lg:min-h-[720px]"
+            className="w-full max-w-5xl my-auto rounded-[2rem] overflow-hidden shadow-2xl grid lg:grid-cols-2 lg:min-h-[720px]"
             style={{
                 border: "1px solid var(--border-primary)",
                 background: "var(--bg-card)",
@@ -581,10 +581,9 @@ return (
                 />
             </div>
 
-            {/* Right: Stepped Agent Registration Form with Stable Min-Height */}
+            {/* Right: Stepped Agent Registration Form */}
             <div
-                data-lenis-prevent
-                className="p-5 sm:p-6 md:p-10 flex flex-col justify-between h-full min-h-[560px] sm:min-h-[620px] lg:min-h-[720px] overflow-y-auto overscroll-contain custom-modal-scrollbar"
+                className="p-5 sm:p-6 md:p-10 flex flex-col justify-between h-auto lg:h-full lg:min-h-[720px] lg:overflow-y-auto custom-modal-scrollbar"
             >
                 <div>
                     <h1
@@ -1084,8 +1083,7 @@ return (
 
                                         {/* Dynamic Route Cards Grid */}
                                         <div
-                                            data-lenis-prevent
-                                            className="flex flex-col gap-1.5 overflow-y-auto overscroll-contain pr-1 flex-1 my-1.5 custom-modal-scrollbar"
+                                            className="flex flex-col gap-1.5 overflow-y-auto pr-1 flex-1 my-1.5 custom-modal-scrollbar"
                                         >
                                             {configuredRoutes.map((route, idx) => (
                                                 <div

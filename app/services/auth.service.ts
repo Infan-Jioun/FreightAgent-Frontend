@@ -11,9 +11,11 @@ import {
     IChangePasswordInput,
     IUser,
     IApiResponse,
+    ILoginResponseData,
 } from "../types/auth.types";
 import api from "../lib/api";
-import { clearClientCookies } from "../lib/cookie";
+import { clearClientCookies, setAuthCookies } from "../lib/cookie";
+import { useAuthStore } from "../store/authStore";
 import { AppError, getErrorMessage } from "../errorHelper/appError";
 
 export interface RateLimitInfo {
@@ -39,6 +41,65 @@ function extractRateLimit(headers: any): RateLimitInfo | null {
         remaining: Number(remaining),
         resetSeconds: Number(reset),
     };
+}
+
+/**
+ * Parses and persists authentication tokens and user info into browser cookies,
+ * localStorage, and global Axios defaults so Next.js middleware and SSR can immediately recognize the session.
+ */
+export function saveAuthSession(resData: any): { user?: IUser; accessToken?: string } {
+    if (typeof window === "undefined" || !resData) return {};
+
+    const raw = resData?.data || resData;
+    const accessToken =
+        raw?.accessToken ||
+        raw?.token ||
+        raw?.access_token ||
+        resData?.accessToken ||
+        resData?.token;
+    const refreshToken =
+        raw?.refreshToken ||
+        raw?.refresh_token ||
+        resData?.refreshToken ||
+        resData?.refresh_token;
+    let user = raw?.user || resData?.user || (raw?.id && raw?.role ? (raw as IUser) : null);
+
+    // Fallback: If user is missing from response payload, decode user claims from JWT accessToken
+    if (!user && accessToken && typeof accessToken === "string") {
+        try {
+            const parts = accessToken.split(".");
+            if (parts.length === 3) {
+                let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+                while (base64.length % 4) {
+                    base64 += "=";
+                }
+                const payload = JSON.parse(decodeURIComponent(escape(atob(base64))));
+                const jwtUser = payload?.data || payload?.user || payload;
+                if (jwtUser && typeof jwtUser === "object" && (jwtUser.id || jwtUser.email || jwtUser.role)) {
+                    user = jwtUser as IUser;
+                }
+            }
+        } catch {
+            // Ignore JWT decode errors
+        }
+    }
+
+    if (accessToken && typeof accessToken === "string") {
+        setAuthCookies({ accessToken, refreshToken });
+        api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    if (user) {
+        useAuthStore.getState().setUser(user);
+        try {
+            localStorage.setItem(
+                "auth-storage",
+                JSON.stringify({ state: { user, isAuthenticated: true }, version: 0 })
+            );
+        } catch {}
+    }
+
+    return { user: user || undefined, accessToken };
 }
 
 export const authService = {
@@ -67,9 +128,9 @@ export const authService = {
 
     login: async (
         payload: ILoginInput
-    ): Promise<IApiResponseWithRateLimit<{ user: IUser }>> => {
+    ): Promise<IApiResponseWithRateLimit<ILoginResponseData>> => {
         try {
-            const res = await api.post<IApiResponse<{ user: IUser }>>(
+            const res = await api.post<IApiResponse<ILoginResponseData>>(
                 API.AUTH.LOGIN,
                 payload
             );

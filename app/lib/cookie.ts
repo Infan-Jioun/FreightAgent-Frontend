@@ -42,6 +42,21 @@ export function setClientCookie(name: string, value: string, days = 1): void {
     document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secureFlag}`;
 }
 
+export function setAuthCookies(tokens: {
+    accessToken?: string;
+    refreshToken?: string;
+}): void {
+    if (typeof document === "undefined") return;
+
+    if (tokens.accessToken) {
+        setClientCookie("accessToken", tokens.accessToken, 1);
+        setClientCookie("freightagent.accessToken", tokens.accessToken, 1);
+    }
+    if (tokens.refreshToken) {
+        setClientCookie("refreshToken", tokens.refreshToken, 7);
+    }
+}
+
 export function getClientCookie(name: string): string | null {
     if (typeof document === "undefined") return null;
 

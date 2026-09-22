@@ -1,28 +1,26 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
     Truck,
-    Search,
     RefreshCw,
-    Calendar,
-    Loader2,
-    Filter,
     ArrowRight,
     User,
     CheckSquare,
     X,
-    ChevronLeft,
-    ChevronRight,
     Eye,
+    Loader2,
 } from "lucide-react";
 import { agentService } from "@/app/services/agent.service";
 import { IShipment, ShipmentStatus } from "@/app/types/shipment.types";
 import { IPaginationMeta } from "@/app/types/admin.types";
-import { PaymentSocketPayload } from "@/app/types/socket.types";
 import { StatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+    PaginatedDataTable,
+    DataTableColumn,
+    FilterTabOption,
+} from "@/components/ui/PaginatedDataTable";
 import { toast } from "sonner";
 import { AppError } from "@/app/errorHelper/appError";
 import { useDebounce } from "@/app/hooks/useDebounce";
@@ -30,13 +28,13 @@ import { useSocketEvent, useSocketContext } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
 import { AgentShipmentDetailsModal } from "./components/AgentShipmentDetailsModal";
 
-const AGENT_STATUS_FILTERS: { label: string; value: ShipmentStatus | "ALL" }[] = [
-    { label: "All Assigned", value: "ALL" },
-    { label: "Assigned", value: "ASSIGNED" },
-    { label: "Accepted", value: "ACCEPTED" },
-    { label: "Picked Up", value: "PICKED_UP" },
-    { label: "In Transit", value: "IN_TRANSIT" },
-    { label: "Delivered", value: "DELIVERED" },
+const AGENT_STATUS_TABS: FilterTabOption<ShipmentStatus | "ALL">[] = [
+    { key: "ALL", label: "All Assigned" },
+    { key: "ASSIGNED", label: "Assigned" },
+    { key: "ACCEPTED", label: "Accepted" },
+    { key: "PICKED_UP", label: "Picked Up" },
+    { key: "IN_TRANSIT", label: "In Transit" },
+    { key: "DELIVERED", label: "Delivered" },
 ];
 
 export default function AgentShipmentsPage() {
@@ -148,6 +146,138 @@ export default function AgentShipmentsPage() {
         }
     };
 
+    // Define Table Columns
+    const columns = useMemo<DataTableColumn<IShipment>[]>(
+        () => [
+            {
+                id: "waybill",
+                header: "Tracking Waybill",
+                cell: (s) => (
+                    <div className="flex flex-col min-w-0">
+                        <span
+                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
+                            title={`Waybill: ${s.trackingId}`}
+                        >
+                            {s.trackingId.length > 20
+                                ? `${s.trackingId.slice(0, 10)}...${s.trackingId.slice(-6)}`
+                                : s.trackingId}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/70 truncate max-w-[190px] mt-0.5">
+                            <User size={11} className="text-[#7ecfc4]/60 shrink-0" />
+                            <span className="truncate">{s.user?.name || "Merchant Shipper"}</span>
+                        </div>
+                    </div>
+                ),
+            },
+            {
+                id: "route",
+                header: "Route Corridor",
+                cell: (s) => (
+                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[240px]">
+                        <span className="truncate" title={s.origin}>
+                            {s.origin}
+                        </span>
+                        <span className="text-[#00c9a7] shrink-0 font-bold">→</span>
+                        <span className="truncate" title={s.destination}>
+                            {s.destination}
+                        </span>
+                    </div>
+                ),
+            },
+            {
+                id: "cargo",
+                header: "Cargo",
+                cell: (s) => (
+                    <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-[#e0faf5] text-xs">
+                            {s.weight} <span className="text-[11px] font-normal text-[#7ecfc4]">kg</span>
+                        </span>
+                        {s.declaredCargoValue ? (
+                            <span className="text-[10px] text-amber-300 font-mono">
+                                ${s.declaredCargoValue.toFixed(0)} USD
+                            </span>
+                        ) : s.description ? (
+                            <span className="text-[10px] text-[#7ecfc4]/60 truncate max-w-[140px]" title={s.description}>
+                                {s.description}
+                            </span>
+                        ) : null}
+                    </div>
+                ),
+            },
+            {
+                id: "status",
+                header: "Status",
+                cell: (s) => <StatusBadge status={s.status} />,
+            },
+            {
+                id: "payment",
+                header: "Payment & Commission",
+                cell: (s) => (
+                    <div className="flex flex-col gap-1 min-w-0">
+                        <PaymentStatusBadge status={s.paymentStatus} />
+                        <div className="flex items-center gap-1 text-[11px] font-mono">
+                            <span className="text-[#7ecfc4]">Comm:</span>
+                            <span className="font-bold text-[#00e5c0]">
+                                ${(s.cost?.agencyFee ?? 0).toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                ),
+            },
+            {
+                id: "actions",
+                header: "Actions",
+                align: "right",
+                cell: (s) => (
+                    <div
+                        className="inline-flex items-center gap-1.5 justify-end"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Details Button */}
+                        <button
+                            type="button"
+                            onClick={() => setDetailsModalShipment(s)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors cursor-pointer"
+                            title="View consignment details & payment"
+                        >
+                            <Eye size={13} />
+                            <span>Details</span>
+                        </button>
+
+                        {/* Accept Button for ASSIGNED status */}
+                        {s.status === "ASSIGNED" && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setAcceptModalShipment(s);
+                                    setAcceptLocation(s.origin || "");
+                                    setAcceptNote("");
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                                title="Accept Consignment"
+                            >
+                                <CheckSquare size={12} />
+                                <span>Accept</span>
+                            </button>
+                        )}
+
+                        {/* Manage / Update link */}
+                        <Link
+                            href={`/dashboard/agent/shipments/${s.id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] text-xs font-bold transition-colors cursor-pointer"
+                            title="Manage Checkpoint Tracking"
+                        >
+                            <Truck size={13} />
+                            <span className="hidden lg:inline">Update</span>
+                            <ArrowRight size={12} />
+                        </Link>
+                    </div>
+                ),
+            },
+        ],
+        []
+    );
+
     return (
         <div className="space-y-6 pb-12">
             {/* Page Header */}
@@ -186,67 +316,44 @@ export default function AgentShipmentsPage() {
                 </button>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="p-4 rounded-2xl bg-[#0d1f1f] border border-[#1a4a4a] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-md">
-                <div className="relative flex-1 max-w-md">
-                    <Search
-                        size={15}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7ecfc4]/70"
-                    />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => handleSearchChange(e.target.value)}
-                        placeholder="Search tracking ID, customer, city..."
-                        className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#7ecfc4]/50 focus:outline-hidden focus:border-[#00c9a7] focus:ring-3 focus:ring-[#00c9a7]/20 transition-all"
-                    />
-                </div>
-
-                {/* Status Filter Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-                    <span className="text-[11px] font-bold text-[#7ecfc4] uppercase mr-1 flex items-center gap-1 shrink-0">
-                        <Filter size={12} />
-                        Filter:
-                    </span>
-                    {AGENT_STATUS_FILTERS.map((tab) => {
-                        const active = statusFilter === tab.value;
-                        return (
-                            <button
-                                key={tab.value}
-                                type="button"
-                                onClick={() => handleStatusFilterChange(tab.value)}
-                                className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                                    active
-                                        ? "bg-[#00c9a7] text-[#0a0f0f] shadow-xs"
-                                        : "bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] hover:border-[#00c9a7]/40"
-                                }`}
-                            >
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Assigned Deliveries Table */}
-            <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden">
-                {loading ? (
-                    <div className="p-16 flex flex-col items-center justify-center gap-2.5">
-                        <Loader2 className="w-7 h-7 text-[#00c9a7] animate-spin" />
-                        <span className="text-xs font-semibold text-[#7ecfc4]">
-                            Loading assigned freight from carrier network...
-                        </span>
-                    </div>
-                ) : shipments.length === 0 ? (
-                    <div className="p-16 text-center">
-                        <Truck className="w-12 h-12 mx-auto text-[#7ecfc4]/40 mb-3" />
-                        <h3 className="text-sm font-bold text-[#e0faf5]">No assigned shipments found</h3>
-                        <p className="text-xs text-[#7ecfc4] mt-1 max-w-sm mx-auto mb-4">
-                            {searchTerm || statusFilter !== "ALL"
-                                ? "No shipments matched your search criteria."
-                                : "You do not have any shipments assigned currently. Incoming dispatches will appear here automatically."}
-                        </p>
-                        {(statusFilter !== "ALL" || searchTerm) && (
+            {/* Unified Reusable Paginated Data Table with Filter Tabs */}
+            <PaginatedDataTable
+                data={shipments}
+                columns={columns}
+                rowKey={(s) => s.id}
+                onRowClick={(s) => setDetailsModalShipment(s)}
+                loading={loading}
+                tabs={AGENT_STATUS_TABS}
+                activeTab={statusFilter}
+                onTabChange={handleStatusFilterChange}
+                showFilterIcon
+                tabsTitle="Filter:"
+                search={{
+                    value: searchTerm,
+                    onChange: handleSearchChange,
+                    placeholder: "Search tracking ID, customer, city...",
+                }}
+                pagination={
+                    meta && totalPages > 1
+                        ? {
+                              currentPage: page,
+                              totalPages,
+                              totalCount: meta.total,
+                              pageSize: limit,
+                              itemName: "consignments",
+                              onPageChange: (p) => setPage(p),
+                          }
+                        : undefined
+                }
+                emptyState={{
+                    icon: Truck,
+                    title: "No assigned shipments found",
+                    description:
+                        searchTerm || statusFilter !== "ALL"
+                            ? "No shipments matched your search criteria."
+                            : "You do not have any shipments assigned currently. Incoming dispatches will appear here automatically.",
+                    action:
+                        statusFilter !== "ALL" || searchTerm ? (
                             <button
                                 type="button"
                                 onClick={() => {
@@ -258,170 +365,9 @@ export default function AgentShipmentsPage() {
                             >
                                 Reset Filter
                             </button>
-                        )}
-                    </div>
-                ) : (
-                    <>
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="border-b border-[#1a4a4a] bg-[#0a1a1a]/50 text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider">
-                                    <TableHead className="py-3.5 px-4">Tracking Waybill</TableHead>
-                                    <TableHead className="py-3.5 px-4">Route Corridor</TableHead>
-                                    <TableHead className="py-3.5 px-4">Cargo</TableHead>
-                                    <TableHead className="py-3.5 px-4">Status</TableHead>
-                                    <TableHead className="py-3.5 px-4">Payment & Commission</TableHead>
-                                    <TableHead className="py-3.5 px-4 text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-[#1a4a4a]/40">
-                                {shipments.map((s) => (
-                                    <TableRow
-                                        key={s.id}
-                                        onClick={() => setDetailsModalShipment(s)}
-                                        className="hover:bg-[#112a2a]/40 transition-colors group cursor-pointer"
-                                    >
-                                        {/* 1. Tracking Waybill & Customer */}
-                                        <TableCell className="py-3.5 px-4">
-                                            <div className="flex flex-col min-w-0">
-                                                <span
-                                                    className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
-                                                    title={`Waybill: ${s.trackingId}`}
-                                                >
-                                                    {s.trackingId.length > 20
-                                                        ? `${s.trackingId.slice(0, 10)}...${s.trackingId.slice(-6)}`
-                                                        : s.trackingId}
-                                                </span>
-                                                <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/70 truncate max-w-[190px] mt-0.5">
-                                                    <User size={11} className="text-[#7ecfc4]/60 shrink-0" />
-                                                    <span className="truncate">{s.user?.name || "Merchant Shipper"}</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-
-                                        {/* 2. Route Corridor */}
-                                        <TableCell className="py-3.5 px-4">
-                                            <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[240px]">
-                                                <span className="truncate" title={s.origin}>
-                                                    {s.origin}
-                                                </span>
-                                                <span className="text-[#00c9a7] shrink-0 font-bold">→</span>
-                                                <span className="truncate" title={s.destination}>
-                                                    {s.destination}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-
-                                        {/* 3. Cargo Spec */}
-                                        <TableCell className="py-3.5 px-4">
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="font-bold text-[#e0faf5] text-xs">
-                                                    {s.weight} <span className="text-[11px] font-normal text-[#7ecfc4]">kg</span>
-                                                </span>
-                                                {s.declaredCargoValue ? (
-                                                    <span className="text-[10px] text-amber-300 font-mono">
-                                                        ${s.declaredCargoValue.toFixed(0)} USD
-                                                    </span>
-                                                ) : s.description ? (
-                                                    <span className="text-[10px] text-[#7ecfc4]/60 truncate max-w-[140px]" title={s.description}>
-                                                        {s.description}
-                                                    </span>
-                                                ) : null}
-                                            </div>
-                                        </TableCell>
-
-                                        {/* 4. Status */}
-                                        <TableCell className="py-3.5 px-4">
-                                            <StatusBadge status={s.status} />
-                                        </TableCell>
-
-                                        {/* 5. Payment & Commission */}
-                                        <TableCell className="py-3.5 px-4">
-                                            <div className="flex flex-col gap-1 min-w-0">
-                                                <PaymentStatusBadge status={s.paymentStatus} />
-                                                <div className="flex items-center gap-1 text-[11px] font-mono">
-                                                    <span className="text-[#7ecfc4]">Comm:</span>
-                                                    <span className="font-bold text-[#00e5c0]">
-                                                        ${(s.cost?.agencyFee ?? 0).toFixed(2)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-
-                                        {/* 6. Actions */}
-                                        <TableCell className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                            <div className="inline-flex items-center gap-1.5 justify-end">
-                                                {/* Details Button */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setDetailsModalShipment(s)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors cursor-pointer"
-                                                    title="View consignment details & payment"
-                                                >
-                                                    <Eye size={13} />
-                                                    <span>Details</span>
-                                                </button>
-
-                                                {/* Accept Button for ASSIGNED status */}
-                                                {s.status === "ASSIGNED" && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setAcceptModalShipment(s);
-                                                            setAcceptLocation(s.origin || "");
-                                                            setAcceptNote("");
-                                                        }}
-                                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs"
-                                                        title="Accept Consignment"
-                                                    >
-                                                        <CheckSquare size={12} />
-                                                        <span>Accept</span>
-                                                    </button>
-                                                )}
-
-                                                {/* Manage / Update link */}
-                                                <Link
-                                                    href={`/dashboard/agent/shipments/${s.id}`}
-                                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-[#e0faf5] border border-[#1a4a4a] text-xs font-bold transition-colors cursor-pointer"
-                                                    title="Manage Checkpoint Tracking"
-                                                >
-                                                    <Truck size={13} />
-                                                    <span className="hidden lg:inline">Update</span>
-                                                    <ArrowRight size={12} />
-                                                </Link>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-
-                        {/* Pagination Footer */}
-                        {meta && totalPages > 1 && (
-                            <div className="p-4 border-t border-[#1a4a4a] flex items-center justify-between text-xs text-[#7ecfc4]">
-                                <span>
-                                    Page {meta.page ?? page} of {totalPages} ({meta.total ?? 0} total)
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                        disabled={page <= 1}
-                                        className="p-1.5 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-[#7ecfc4] hover:text-[#e0faf5] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                                    >
-                                        <ChevronLeft size={14} />
-                                    </button>
-                                    <button
-                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                        disabled={page >= totalPages}
-                                        className="p-1.5 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-[#7ecfc4] hover:text-[#e0faf5] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                                    >
-                                        <ChevronRight size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
+                        ) : null,
+                }}
+            />
 
             {/* CONSIGNMENT DETAILS MODAL */}
             <AgentShipmentDetailsModal

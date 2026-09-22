@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { ROUTES } from "../../constants/routes";
 import LoginVisual, { MobileShipmentSummary } from "./LoginVisual";
-import { authService } from "@/app/services/auth.service";
+import { authService, saveAuthSession } from "@/app/services/auth.service";
 import { useAuthStore } from "@/app/store/authStore";
 import { Button } from "@/components/ui/button";
 
@@ -154,9 +154,12 @@ export default function LoginForm() {
                 revokeOthers: true,
             });
 
-            if (res.data?.user) {
-                setUser(res.data.user);
-                setUserName(res.data.user?.name);
+            // Save tokens into browser cookies, localStorage & Axios authorization
+            const session = saveAuthSession(res);
+
+            const displayName = session.user?.name || res.data?.user?.name;
+            if (displayName) {
+                setUserName(displayName);
             }
 
             setShowDeviceLimitModal(false);
@@ -182,9 +185,12 @@ export default function LoginForm() {
         try {
             const res = await authService.login(data);
 
-            if (res.data?.user) {
-                setUser(res.data.user);
-                setUserName(res.data.user?.name);
+            // Save tokens into browser cookies, localStorage & Axios authorization
+            const session = saveAuthSession(res);
+
+            const displayName = session.user?.name || res.data?.user?.name;
+            if (displayName) {
+                setUserName(displayName);
             }
 
             toast.success("Welcome back!");
@@ -290,6 +296,7 @@ export default function LoginForm() {
                 ? callbackUrl
                 : roleDashboard;
 
+        router.refresh();
         router.push(targetUrl);
     };
 
