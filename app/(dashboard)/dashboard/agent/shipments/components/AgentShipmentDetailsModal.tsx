@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { IShipment } from "@/app/types/shipment.types";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { PaymentStatusBadge, StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/Modal";
 
 export interface AgentShipmentDetailsModalProps {

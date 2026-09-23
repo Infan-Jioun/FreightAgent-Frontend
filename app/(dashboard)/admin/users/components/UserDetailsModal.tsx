@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import {
     X,
@@ -19,6 +19,7 @@ import {
     Route,
     Laptop,
     UserCheck,
+    UserX,
     ChevronDown,
     ChevronUp,
     Copy,
@@ -148,6 +149,8 @@ export default function UserDetailsModal({
     const [availableAgents, setAvailableAgents] = useState<IRoadAgent[]>([]);
     const [expandedShipmentId, setExpandedShipmentId] = useState<string | null>(null);
     const [copiedTrackingId, setCopiedTrackingId] = useState<string | null>(null);
+    const [imageError, setImageError] = useState(false);
+    const [copiedUserId, setCopiedUserId] = useState(false);
     const [shipmentTab, setShipmentTab] = useState<"ALL" | "ASSIGNED" | "BOOKED">("ALL");
     const [shipmentSearch, setShipmentSearch] = useState("");
 
@@ -165,12 +168,17 @@ export default function UserDetailsModal({
     const [isDeviceSessionsModalOpen, setIsDeviceSessionsModalOpen] = useState(false);
 
     useEffect(() => {
+        setImageError(false);
+    }, [user?.id]);
+
+    useEffect(() => {
         if (isOpen && user?.id) {
             let isMounted = true;
             setLoadingDetails(true);
             setLoadingShipments(true);
+            setImageError(false);
 
-            // Fetch available agent fleet to resolve carrier details
+            // 1. Fetch available agent fleet to resolve carrier details
             adminService
                 .getAvailableAgents()
                 .then((agents) => {
@@ -180,6 +188,7 @@ export default function UserDetailsModal({
                     if (isMounted) setAvailableAgents([]);
                 });
 
+            // 2. Fetch full user details from admin service
             adminService
                 .getUserById(user.id)
                 .then((data) => {
@@ -189,6 +198,7 @@ export default function UserDetailsModal({
                             raw.user && typeof raw.user === "object"
                                 ? (raw.user as Record<string, unknown>)
                                 : raw;
+
                         const rawShipments: IAdminUserShipment[] = Array.isArray(raw.shipments)
                             ? (raw.shipments as IAdminUserShipment[])
                             : Array.isArray(userEntity.shipments)
@@ -218,45 +228,80 @@ export default function UserDetailsModal({
                             setUserShipments(Array.from(combinedMap.values()));
                         }
 
-                        // Query all shipments as resilient fallback / enrichment
-                        shipmentService
-                            .getAllShipments({ limit: 100 })
-                            .then((sRes) => {
-                                if (isMounted && sRes?.shipments && Array.isArray(sRes.shipments)) {
-                                    const targetUserId = user.id.trim();
-                                    const targetUserEmail = (user.email || "").toLowerCase().trim();
+                        // 3. Query all platform shipments + agent assigned consignments
+                        const targetUserId = user.id.trim();
+                        const targetUserEmail = (user.email || "").toLowerCase().trim();
+                        const targetUserName = (user.name || "").toLowerCase().trim();
 
-                                    sRes.shipments.forEach((s) => {
-                                        const isShipper =
-                                            (s.userId && s.userId.trim() === targetUserId) ||
-                                            (s.user?.id && s.user.id.trim() === targetUserId) ||
-                                            Boolean(
-                                                targetUserEmail &&
-                                                    s.user?.email?.toLowerCase().trim() === targetUserEmail
-                                            );
+                        const fetchShipmentPromises: [
+                            Promise<{ shipments?: IAdminUserShipment[] } | null>,
+                            Promise<{ shipments?: IAdminUserShipment[] } | null>
+                        ] = [
+                            shipmentService
+                                .getAllShipments({ limit: 100 })
+                                .then((res) => ({ shipments: (res?.shipments as IAdminUserShipment[]) || [] }))
+                                .catch(() => null),
+                            user.role === "AGENT"
+                                ? shipmentService
+                                      .getAssignedShipments({ limit: 100 })
+                                      .then((res) => ({ shipments: (res?.shipments as IAdminUserShipment[]) || [] }))
+                                      .catch(() => null)
+                                : Promise.resolve(null),
+                        ];
 
-                                        const isCarrier =
-                                            (s.assignedAgentId && s.assignedAgentId.trim() === targetUserId) ||
-                                            (s.assignedAgent?.id && s.assignedAgent.id.trim() === targetUserId) ||
-                                            Boolean(
-                                                targetUserEmail &&
-                                                    s.assignedAgent?.email?.toLowerCase().trim() ===
-                                                        targetUserEmail
-                                            );
+                        Promise.allSettled(fetchShipmentPromises)
+                            .then((results) => {
+                                if (!isMounted) return;
 
-                                        if (isShipper || isCarrier) {
-                                            const key = s.id || s.trackingId;
-                                            const existing = combinedMap.get(key);
-                                            combinedMap.set(key, {
-                                                ...(existing || {}),
-                                                ...s,
-                                                assignedAgent: s.assignedAgent || existing?.assignedAgent,
-                                            } as IAdminUserShipment);
-                                        }
-                                    });
+                                results.forEach((r) => {
+                                    if (r.status === "fulfilled" && r.value?.shipments) {
+                                        r.value.shipments.forEach((s) => {
+                                            const rawS = s as unknown as Record<string, unknown>;
+                                            const sUserObj = (s.user || rawS.shipper || rawS.customer) as Record<string, unknown> | undefined;
+                                            const sAgentObj = (s.assignedAgent || rawS.agent || rawS.carrier || rawS.carrierAgent) as Record<string, unknown> | undefined;
 
-                                    setUserShipments(Array.from(combinedMap.values()));
-                                }
+                                            const sUserId = (s.userId || rawS.shipperId || sUserObj?.id || "").toString().trim();
+                                            const sUserEmail = (sUserObj?.email || rawS.shipperEmail || "").toString().toLowerCase().trim();
+                                            const isShipper =
+                                                (sUserId && sUserId === targetUserId) ||
+                                                Boolean(targetUserEmail && sUserEmail === targetUserEmail);
+
+                                            const sAgentId = (
+                                                s.assignedAgentId ||
+                                                rawS.agentId ||
+                                                rawS.carrierId ||
+                                                sAgentObj?.id ||
+                                                ""
+                                            ).toString().trim();
+                                            const sAgentUserId = (sAgentObj?.userId || (sAgentObj?.user as Record<string, unknown>)?.id || "").toString().trim();
+                                            const sAgentEmail = (
+                                                sAgentObj?.email ||
+                                                rawS.agentEmail ||
+                                                (sAgentObj?.user as Record<string, unknown>)?.email ||
+                                                ""
+                                            ).toString().toLowerCase().trim();
+                                            const sAgentName = (sAgentObj?.name || rawS.agentName || "").toString().toLowerCase().trim();
+
+                                            const isCarrier =
+                                                (sAgentId && sAgentId === targetUserId) ||
+                                                (sAgentUserId && sAgentUserId === targetUserId) ||
+                                                Boolean(targetUserEmail && sAgentEmail === targetUserEmail) ||
+                                                Boolean(targetUserName && sAgentName === targetUserName);
+
+                                            if (isShipper || isCarrier) {
+                                                const key = s.id || s.trackingId;
+                                                const existing = combinedMap.get(key);
+                                                combinedMap.set(key, {
+                                                    ...(existing || {}),
+                                                    ...s,
+                                                    assignedAgent: s.assignedAgent || existing?.assignedAgent,
+                                                } as IAdminUserShipment);
+                                            }
+                                        });
+                                    }
+                                });
+
+                                setUserShipments(Array.from(combinedMap.values()));
                             })
                             .catch(() => {})
                             .finally(() => {
@@ -300,7 +345,7 @@ export default function UserDetailsModal({
                     if (isMounted) setLoadingDetails(false);
                 });
 
-            // If user is an AGENT, fetch locations created by or assigned to them
+            // 4. If user is an AGENT, fetch operational locations & route terminals
             if (user.role === "AGENT") {
                 setLoadingLocations(true);
                 locationService
@@ -309,17 +354,28 @@ export default function UserDetailsModal({
                         if (isMounted && res?.data && Array.isArray(res.data)) {
                             const userId = user.id.trim();
                             const userEmail = (user.email || "").toLowerCase().trim();
+                            const agentAreaText = (user.assignedArea || user.address || "").toLowerCase();
+
                             const matched = res.data.filter((loc) => {
-                                const creatorId = loc.createdBy?.id
-                                    ? String(loc.createdBy.id).trim()
-                                    : "";
-                                const creatorEmail = loc.createdBy?.email
-                                    ? loc.createdBy.email.toLowerCase().trim()
-                                    : "";
-                                return (
-                                    (creatorId && creatorId === userId) ||
-                                    (creatorEmail && creatorEmail === userEmail)
-                                );
+                                const rawLoc = loc as unknown as Record<string, unknown>;
+                                const creator = loc.createdBy;
+                                const creatorId = (typeof creator === "string" ? creator : creator?.id || rawLoc.createdById || rawLoc.creatorId || "").toString().trim();
+                                const creatorEmail = (typeof creator === "object" && creator?.email ? creator.email : rawLoc.creatorEmail || "").toString().toLowerCase().trim();
+
+                                const isCreator = (creatorId && creatorId === userId) || (creatorEmail && creatorEmail === userEmail);
+                                if (isCreator) return true;
+
+                                const locCode = (loc.code || "").toUpperCase();
+                                const locName = (loc.name || "").toLowerCase();
+                                const locCity = (loc.city || "").toLowerCase();
+
+                                if (agentAreaText) {
+                                    if (locCode && locCode.length >= 3 && agentAreaText.includes(locCode.toLowerCase())) return true;
+                                    if (locName && locName.length >= 4 && agentAreaText.includes(locName)) return true;
+                                    if (locCity && locCity.length >= 4 && agentAreaText.includes(locCity)) return true;
+                                }
+
+                                return false;
                             });
                             setAgentCreatedLocations(matched);
                         }
@@ -334,7 +390,7 @@ export default function UserDetailsModal({
                 setAgentCreatedLocations([]);
             }
 
-            // Fetch user's active login sessions
+            // 5. Fetch user's active login sessions
             const isSelfUser = Boolean(
                 currentAdminId && user.id && user.id.trim() === currentAdminId.trim()
             );
@@ -376,6 +432,8 @@ export default function UserDetailsModal({
             setAvailableAgents([]);
             setExpandedShipmentId(null);
             setCopiedTrackingId(null);
+            setImageError(false);
+            setCopiedUserId(false);
             setShipmentTab("ALL");
             setShipmentSearch("");
         }
@@ -384,12 +442,26 @@ export default function UserDetailsModal({
     if (!isOpen || !user) return null;
 
     const displayUser: IAdminUserDetail = detailedUser || user;
+    const rawDisplay = displayUser as unknown as Record<string, unknown>;
+    const rawUser = user as unknown as Record<string, unknown>;
+
+    // Robust user avatar resolver
+    const userImage = (
+        displayUser.image ||
+        user.image ||
+        (rawDisplay?.avatar as string) ||
+        (rawUser?.avatar as string) ||
+        (rawDisplay?.profileImage as string) ||
+        (rawUser?.profileImage as string) ||
+        (rawDisplay?.photoURL as string) ||
+        (rawUser?.photoURL as string)
+    );
+
     const isSelf = currentAdminId && user.id ? user.id.trim() === currentAdminId.trim() : false;
     const isBlocked = Boolean(displayUser.isBlocked || displayUser.status === "SUSPENDED");
-    const isAgent = displayUser.role === "AGENT";
+    const isAgent = displayUser.role === "AGENT" || user.role === "AGENT";
 
     // Extract phone safely from any backend property
-    const rawDisplay = displayUser as unknown as Record<string, unknown>;
     const phone =
         displayUser.phone ||
         (rawDisplay?.phoneNumber as string) ||
@@ -449,23 +521,102 @@ export default function UserDetailsModal({
         }
     };
 
+    const targetUserId = (displayUser.id || user.id || "").trim();
+    const targetUserEmail = (displayUser.email || user.email || "").toLowerCase().trim();
+    const targetUserName = (displayUser.name || user.name || "").toLowerCase().trim();
+
+    // Find agent profile in fleet
+    const matchedAgent = availableAgents.find((a) => {
+        const rawA = a as unknown as Record<string, unknown>;
+        const aUserId = (rawA.userId || (rawA.user as Record<string, unknown>)?.id || "").toString().trim();
+        const aEmail = (a.email || (rawA.user as Record<string, unknown>)?.email || "").toString().toLowerCase().trim();
+        const aName = (a.name || "").toString().toLowerCase().trim();
+        return (
+            (a.id && a.id.trim() === targetUserId) ||
+            (aUserId && aUserId === targetUserId) ||
+            (targetUserEmail && aEmail === targetUserEmail) ||
+            (targetUserName && aName === targetUserName)
+        );
+    });
+
+    const agentIdSet = new Set<string>();
+    if (targetUserId) agentIdSet.add(targetUserId);
+    if (matchedAgent?.id) agentIdSet.add(matchedAgent.id.trim());
+
+    // Resolve Operating Hub / Coverage Area
+    const effectiveAssignedArea = (
+        displayUser.assignedArea ||
+        user.assignedArea ||
+        (rawDisplay?.agent as Record<string, unknown>)?.assignedArea ||
+        (rawDisplay?.agentProfile as Record<string, unknown>)?.assignedArea ||
+        (rawDisplay?.operatingArea as string) ||
+        matchedAgent?.assignedArea ||
+        displayUser.address ||
+        user.address ||
+        ""
+    ) as string;
+
     // Corridors list parsing
     let corridorList: string[] = [];
-    if (Array.isArray(displayUser.corridors)) {
-        corridorList = displayUser.corridors;
-    } else if (typeof displayUser.corridors === "string") {
+    const rawCorridors =
+        displayUser.corridors ||
+        user.corridors ||
+        (rawDisplay?.agent as Record<string, unknown>)?.corridors ||
+        (rawDisplay?.agentProfile as Record<string, unknown>)?.corridors ||
+        (rawDisplay?.routes as unknown[]) ||
+        (matchedAgent as unknown as Record<string, unknown>)?.corridors;
+
+    if (Array.isArray(rawCorridors)) {
+        corridorList = rawCorridors.map((c) => {
+            if (typeof c === "string") return c;
+            if (typeof c === "object" && c !== null) {
+                const obj = c as Record<string, unknown>;
+                const origin = (obj.origin as Record<string, unknown>)?.code || obj.origin || "";
+                const dest = (obj.destination as Record<string, unknown>)?.code || obj.destination || "";
+                if (origin && dest) return `${origin} → ${dest}`;
+                return (obj.name as string) || (obj.title as string) || JSON.stringify(c);
+            }
+            return String(c);
+        });
+    } else if (typeof rawCorridors === "string") {
         try {
-            const parsed = JSON.parse(displayUser.corridors);
-            if (Array.isArray(parsed)) corridorList = parsed;
-            else corridorList = [displayUser.corridors];
+            const parsed = JSON.parse(rawCorridors);
+            if (Array.isArray(parsed)) {
+                corridorList = parsed.map((c) => {
+                    if (typeof c === "string") return c;
+                    if (typeof c === "object" && c !== null) {
+                        const obj = c as Record<string, unknown>;
+                        const origin = (obj.origin as Record<string, unknown>)?.code || obj.origin || "";
+                        const dest = (obj.destination as Record<string, unknown>)?.code || obj.destination || "";
+                        if (origin && dest) return `${origin} → ${dest}`;
+                        return (obj.name as string) || (obj.title as string) || JSON.stringify(c);
+                    }
+                    return String(c);
+                });
+            } else {
+                corridorList = [rawCorridors];
+            }
         } catch {
-            corridorList = [displayUser.corridors];
+            corridorList = [rawCorridors];
+        }
+    }
+
+    if (corridorList.length === 0 && effectiveAssignedArea) {
+        if (effectiveAssignedArea.includes("→") || effectiveAssignedArea.includes("->")) {
+            corridorList = effectiveAssignedArea
+                .split(",")
+                .map((s) => s.trim().replace("->", "→"))
+                .filter(Boolean);
         }
     }
 
     // Merge locations attached on displayUser with database created locations
     const attachedLocations: ILocation[] = Array.isArray(displayUser.locations)
         ? (displayUser.locations.filter(
+              (l) => typeof l === "object" && l !== null && "id" in (l as Record<string, unknown>)
+          ) as ILocation[])
+        : Array.isArray(user.locations)
+        ? (user.locations.filter(
               (l) => typeof l === "object" && l !== null && "id" in (l as Record<string, unknown>)
           ) as ILocation[])
         : [];
@@ -477,38 +628,76 @@ export default function UserDetailsModal({
         }
     });
 
-    const isTargetAgent = displayUser.role === "AGENT";
-    const targetUserId = (displayUser.id || user.id || "").trim();
-    const targetUserEmail = (displayUser.email || user.email || "").toLowerCase().trim();
+    const isTargetAgent = displayUser.role === "AGENT" || user.role === "AGENT";
 
-    const isShipmentAssignedToThisUser = useCallback(
-        (s: IAdminUserShipment): boolean => {
-            if (!isTargetAgent) return false;
-            const agentId = (s.assignedAgentId || s.assignedAgent?.id || "").trim();
-            const agentEmail = (s.assignedAgent?.email || "").toLowerCase().trim();
-            return Boolean(
-                (targetUserId && agentId === targetUserId) ||
-                (targetUserEmail && agentEmail === targetUserEmail)
-            );
-        },
-        [isTargetAgent, targetUserId, targetUserEmail]
-    );
+    const isShipmentAssignedToThisUser = (s: IAdminUserShipment): boolean => {
+        if (!isTargetAgent) return false;
+        const rawS = s as unknown as Record<string, unknown>;
+        const sAgentObj = (s.assignedAgent || rawS.agent || rawS.carrier || rawS.carrierAgent) as Record<string, unknown> | undefined;
+        const sAgentId = (
+            s.assignedAgentId ||
+            rawS.agentId ||
+            rawS.carrierId ||
+            sAgentObj?.id ||
+            sAgentObj?._id ||
+            ""
+        ).toString().trim();
+        const sAgentUserId = (sAgentObj?.userId || (sAgentObj?.user as Record<string, unknown>)?.id || "").toString().trim();
+        const sAgentEmail = (
+            sAgentObj?.email ||
+            rawS.agentEmail ||
+            (sAgentObj?.user as Record<string, unknown>)?.email ||
+            ""
+        ).toString().toLowerCase().trim();
+        const sAgentName = (sAgentObj?.name || rawS.agentName || "").toString().toLowerCase().trim();
 
-    const isShipmentBookedByThisUser = useCallback(
-        (s: IAdminUserShipment): boolean => {
-            const shipperId = (s.userId || s.user?.id || "").trim();
-            const shipperEmail = (s.user?.email || "").toLowerCase().trim();
-            return Boolean(
-                (targetUserId && shipperId === targetUserId) ||
-                (targetUserEmail && shipperEmail === targetUserEmail)
-            );
-        },
-        [targetUserId, targetUserEmail]
-    );
+        return Boolean(
+            (sAgentId && agentIdSet.has(sAgentId)) ||
+            (sAgentUserId && targetUserId && sAgentUserId === targetUserId) ||
+            (targetUserEmail && sAgentEmail && sAgentEmail === targetUserEmail) ||
+            (targetUserName && sAgentName && sAgentName === targetUserName)
+        );
+    };
 
-    const effectiveShipments = userShipments.length > 0 ? userShipments : displayUser.shipments ?? [];
+    const isShipmentBookedByThisUser = (s: IAdminUserShipment): boolean => {
+        const rawS = s as unknown as Record<string, unknown>;
+        const sUserObj = (s.user || rawS.shipper || rawS.customer) as Record<string, unknown> | undefined;
+        const shipperId = (
+            s.userId ||
+            rawS.shipperId ||
+            rawS.customerId ||
+            sUserObj?.id ||
+            sUserObj?._id ||
+            ""
+        ).toString().trim();
+        const shipperEmail = (
+            sUserObj?.email ||
+            rawS.shipperEmail ||
+            rawS.customerEmail ||
+            ""
+        ).toString().toLowerCase().trim();
+
+        return Boolean(
+            (targetUserId && shipperId === targetUserId) ||
+            (targetUserEmail && shipperEmail === targetUserEmail)
+        );
+    };
+
+    const effectiveShipments =
+        userShipments.length > 0
+            ? userShipments
+            : displayUser.shipments ?? user.shipments ?? [];
+
     const assignedCount = effectiveShipments.filter(isShipmentAssignedToThisUser).length;
     const bookedCount = effectiveShipments.filter(isShipmentBookedByThisUser).length;
+
+    const handleCopyUserId = (id: string) => {
+        if (!id) return;
+        navigator.clipboard.writeText(id);
+        setCopiedUserId(true);
+        toast.success(`User ID "${id}" copied to clipboard`);
+        setTimeout(() => setCopiedUserId(false), 2000);
+    };
 
     const filteredShipments = effectiveShipments.filter((s) => {
         if (shipmentTab === "ASSIGNED" && !isShipmentAssignedToThisUser(s)) return false;
@@ -623,9 +812,20 @@ export default function UserDetailsModal({
             <div className="space-y-5">
                 {/* Header */}
                     <div className="flex items-center gap-3.5 mb-5 shrink-0">
-                        <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-[#00c9a7]/30 to-[#00b4d8]/30 border border-[#00c9a7]/40 flex items-center justify-center font-black text-sm text-[#00e5c0] shrink-0">
-                            {initials}
-                        </div>
+                        {userImage && !imageError ? (
+                            <div className="w-12 h-12 rounded-2xl border border-[#00c9a7]/40 shrink-0 overflow-hidden bg-[#0d1f1f]">
+                                <img
+                                    src={userImage}
+                                    alt={userName}
+                                    className="w-full h-full object-cover"
+                                    onError={() => setImageError(true)}
+                                />
+                            </div>
+                        ) : (
+                            <div className="w-12 h-12 rounded-2xl bg-linear-to-tr from-[#00c9a7]/30 to-[#00b4d8]/30 border border-[#00c9a7]/40 flex items-center justify-center font-black text-sm text-[#00e5c0] shrink-0">
+                                {initials}
+                            </div>
+                        )}
                         <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-base font-bold text-[#e0faf5] truncate">
@@ -665,14 +865,16 @@ export default function UserDetailsModal({
                             /* Full Skeleton Loader when details are fetching */
                             <div className="space-y-4 animate-pulse">
                                 {/* Account Details Grid Skeleton */}
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                                     {Array.from({ length: 5 }).map((_, i) => (
                                         <div
                                             key={i}
-                                            className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/50 space-y-2"
+                                            className={`h-[74px] p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]/50 flex flex-col justify-between ${
+                                                i === 4 ? "col-span-2 sm:col-span-1" : ""
+                                            }`}
                                         >
                                             <div className="w-12 h-2.5 rounded-sm bg-[#1a4a4a]/40" />
-                                            <div className="w-20 h-4.5 rounded-full bg-[#1a4a4a]/30" />
+                                            <div className="w-20 h-5 rounded-full bg-[#1a4a4a]/30" />
                                         </div>
                                     ))}
                                 </div>
@@ -755,90 +957,138 @@ export default function UserDetailsModal({
                                     </div>
                                 )}
 
-                                {/* Account Details Grid */}
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
-                                    <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
-                                        <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                {/* Account Details Grid - Uniform Equal-Height Cards */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                                    {/* 1. ROLE */}
+                                    <div className="h-[74px] p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex flex-col justify-between">
+                                        <span className="text-[10px] font-semibold text-[#7ecfc4]/70 uppercase tracking-wider block truncate">
                                             Role
                                         </span>
-                                        <span
-                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getRoleBadge(
-                                                displayUser.role
-                                            )} inline-block`}
-                                        >
-                                            {displayUser.role}
-                                        </span>
+                                        <div>
+                                            <span
+                                                className={`h-6 inline-flex items-center text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getRoleBadge(
+                                                    displayUser.role
+                                                )}`}
+                                            >
+                                                {displayUser.role}
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
-                                        <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                    {/* 2. STATUS */}
+                                    <div className="h-[74px] p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex flex-col justify-between">
+                                        <span className="text-[10px] font-semibold text-[#7ecfc4]/70 uppercase tracking-wider block truncate">
                                             Status
                                         </span>
-                                        <span
-                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
-                                                isBlocked
-                                                    ? "bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/30"
-                                                    : "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30"
-                                            }`}
-                                        >
-                                            {isBlocked ? "Suspended" : "Active"}
-                                        </span>
+                                        <div>
+                                            <span
+                                                className={`h-6 inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                                    isBlocked
+                                                        ? "bg-[#e11d48]/15 text-[#f43f5e] border-[#e11d48]/30"
+                                                        : "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30"
+                                                }`}
+                                            >
+                                                {isBlocked ? (
+                                                    <>
+                                                        <UserX size={11} className="shrink-0" />
+                                                        <span>Suspended</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle2 size={11} className="shrink-0" />
+                                                        <span>Active</span>
+                                                    </>
+                                                )}
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
-                                        <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                    {/* 3. VERIFICATION */}
+                                    <div className="h-[74px] p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex flex-col justify-between">
+                                        <span className="text-[10px] font-semibold text-[#7ecfc4]/70 uppercase tracking-wider block truncate">
                                             Verification
                                         </span>
-                                        <span
-                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                                                displayUser.emailVerified
-                                                    ? "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/40"
-                                                    : "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/40"
-                                            } inline-flex items-center gap-1`}
-                                        >
-                                            {displayUser.emailVerified ? (
-                                                <CheckCircle2 size={10} />
-                                            ) : (
-                                                <AlertCircle size={10} />
-                                            )}
-                                            <span>
-                                                {displayUser.emailVerified ? "Verified" : "Unverified"}
+                                        <div>
+                                            <span
+                                                className={`h-6 inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                                    displayUser.emailVerified
+                                                        ? "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/40"
+                                                        : "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/40"
+                                                }`}
+                                            >
+                                                {displayUser.emailVerified ? (
+                                                    <>
+                                                        <CheckCircle2 size={11} className="shrink-0" />
+                                                        <span>Verified</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <AlertCircle size={11} className="shrink-0" />
+                                                        <span>Unverified</span>
+                                                    </>
+                                                )}
                                             </span>
-                                        </span>
+                                        </div>
                                     </div>
 
+                                    {/* 4. ACTIVE SESSIONS */}
                                     <div
                                         onClick={() => setIsDeviceSessionsModalOpen(true)}
-                                        className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] hover:border-[#00c9a7]/50 transition-colors cursor-pointer group"
+                                        className="h-[74px] p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] hover:border-[#00c9a7]/50 transition-colors cursor-pointer group flex flex-col justify-between"
                                         title="Click to manage active devices and sessions"
                                     >
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                                            <span className="text-[10px] font-semibold text-[#7ecfc4]/70 uppercase tracking-wider block truncate">
                                                 Active Sessions
                                             </span>
-                                            <span className="text-[9px] text-[#00c9a7] opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Manage
+                                            <span className="text-[9px] font-semibold text-[#00c9a7] opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Manage →
                                             </span>
                                         </div>
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30 inline-flex items-center gap-1">
-                                            <Laptop size={10} />
-                                            <span>
-                                                {loadingSessions
-                                                    ? "Checking..."
-                                                    : `${sessions.length} Active`}
+                                        <div>
+                                            <span className="h-6 inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30">
+                                                <Laptop size={11} className="shrink-0" />
+                                                <span>
+                                                    {loadingSessions
+                                                        ? "Checking..."
+                                                        : `${sessions.length} Active`}
+                                                </span>
                                             </span>
-                                        </span>
+                                        </div>
                                     </div>
 
-                                    <div className="p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
-                                        <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
-                                            User ID
-                                        </span>
-                                        <span className="text-xs font-mono text-[#e0faf5] truncate block">
-                                            {(displayUser.id || user.id || "").length > 10
-                                                ? `${(displayUser.id || user.id).slice(0, 10)}...`
-                                                : displayUser.id || user.id || "—"}
-                                        </span>
+                                    {/* 5. USER ID */}
+                                    <div
+                                        onClick={() => handleCopyUserId((displayUser.id || user.id || "").trim())}
+                                        className="col-span-2 sm:col-span-1 h-[74px] p-3 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] hover:border-[#00c9a7]/40 transition-colors cursor-pointer group flex flex-col justify-between"
+                                        title="Click to copy User ID"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-semibold text-[#7ecfc4]/70 uppercase tracking-wider block truncate">
+                                                User ID
+                                            </span>
+                                            <span className="text-[9px] text-[#7ecfc4]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+                                                {copiedUserId ? (
+                                                    <span className="text-[#00e5c0] font-bold">Copied!</span>
+                                                ) : (
+                                                    <span>Copy</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span className="h-6 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold text-[#e0faf5] bg-[#112a2a]/60 border border-[#1a4a4a] group-hover:border-[#00c9a7]/40 transition-colors max-w-full">
+                                                <span className="truncate">
+                                                    {(displayUser.id || user.id || "").length > 8
+                                                        ? `${(displayUser.id || user.id).slice(0, 8)}...`
+                                                        : displayUser.id || user.id || "—"}
+                                                </span>
+                                                {copiedUserId ? (
+                                                    <Check size={11} className="text-[#00e5c0] shrink-0" />
+                                                ) : (
+                                                    <Copy size={11} className="text-[#3a6b66] group-hover:text-[#00c9a7] shrink-0" />
+                                                )}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -902,23 +1152,7 @@ export default function UserDetailsModal({
                                     </div>
                                 </div>
 
-                                {/* Active Device Sign-in Sessions Section (Reusable Component) */}
-                                <ActiveSessionsSection
-                                    sessions={sessions}
-                                    breakdown={sessionsBreakdown}
-                                    isLoadingSessions={loadingSessions}
-                                    revokingSessionId={revokingSessionId}
-                                    isRevokingAll={isRevokingAll}
-                                    onRevokeSession={handleRevokeSession}
-                                    onRevokeAllOther={handleRevokeAllSessions}
-                                    onRefreshSessions={handleRefreshSessions}
-                                    isAdminView={true}
-                                    isSelf={isSelf}
-                                    targetUserName={userName}
-                                    compact={true}
-                                />
-
-                                {/* Agent Added Locations & Operating Coverage (AGENT ONLY) */}
+                                {/* Agent Operational Locations & Operating Coverage (AGENT ONLY) */}
                                 {isAgent && (
                                     <div className="space-y-3 p-4 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
                                         <div className="flex items-center justify-between">
@@ -930,136 +1164,140 @@ export default function UserDetailsModal({
                                                     <h4 className="text-xs font-bold text-[#e0faf5] flex items-center gap-2">
                                                         Agent Operational Locations & Added Routes
                                                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-[#0284c7]/20 text-[#38bdf8] border border-[#0284c7]/30">
-                                                            Agent Only
-                                                        </span>
-                                                    </h4>
-                                                </div>
-                                            </div>
-                                            {loadingLocations && (
-                                                <Loader2
-                                                    size={13}
-                                                    className="animate-spin text-[#00c9a7]"
-                                                />
-                                            )}
-                                        </div>
+                            Agent Only
+                        </span>
+                    </h4>
+                </div>
+            </div>
+            {loadingLocations && (
+                <Loader2
+                    size={13}
+                    className="animate-spin text-[#00c9a7]"
+                />
+            )}
+        </div>
 
-                                        {/* Operating Coverage Area / Hub */}
-                                        {displayUser.assignedArea && (
-                                            <div className="p-3 rounded-xl bg-[#0d2626]/40 border border-[#1a4a4a] text-xs">
-                                                <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
-                                                    Coverage Area / Operating Hub
-                                                </span>
-                                                <p className="text-xs font-semibold text-[#00e5c0] flex items-center gap-1.5">
-                                                    <MapPin size={13} className="text-[#00c9a7] shrink-0" />
-                                                    <span>{displayUser.assignedArea}</span>
-                                                </p>
-                                            </div>
-                                        )}
+        {/* Operating Coverage Area / Hub */}
+        <div className="p-3 rounded-xl bg-[#0d2626]/40 border border-[#1a4a4a] text-xs">
+            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1">
+                Coverage Area / Operating Hub
+            </span>
+            <p className="text-xs font-semibold text-[#00e5c0] flex items-center gap-1.5">
+                <MapPin size={13} className="text-[#00c9a7] shrink-0" />
+                <span>{effectiveAssignedArea || "Global Multimodal Freight Corridor"}</span>
+            </p>
+        </div>
 
-                                        {/* Configured Trade Corridors */}
-                                        {corridorList.length > 0 && (
-                                            <div>
-                                                <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1.5">
-                                                    Configured Trade Corridors ({corridorList.length})
-                                                </span>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {corridorList.map((corridor, idx) => (
-                                                        <span
-                                                            key={idx}
-                                                            className="text-[11px] font-mono font-medium px-2.5 py-1 rounded-lg bg-[#0284c7]/10 text-[#38bdf8] border border-[#0284c7]/30 flex items-center gap-1.5"
-                                                        >
-                                                            <Route size={11} className="shrink-0" />
-                                                            <span>{corridor}</span>
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+        {/* Configured Trade Corridors */}
+        <div>
+            <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block mb-1.5">
+                Configured Trade Corridors ({corridorList.length})
+            </span>
+            {corridorList.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                    {corridorList.map((corridor, idx) => (
+                        <span
+                            key={idx}
+                            className="text-[11px] font-mono font-medium px-2.5 py-1 rounded-lg bg-[#0284c7]/10 text-[#38bdf8] border border-[#0284c7]/30 flex items-center gap-1.5"
+                        >
+                            <Route size={11} className="shrink-0" />
+                            <span>{corridor}</span>
+                        </span>
+                    ))}
+                </div>
+            ) : (
+                <div className="p-2.5 rounded-xl bg-[#081414] border border-[#1a4a4a] text-[11px] text-[#7ecfc4]/80 flex items-center gap-2">
+                    <Route size={12} className="text-[#0284c7] shrink-0" />
+                    <span>Operating across regional freight hubs and dynamic corridor routing.</span>
+                </div>
+            )}
+        </div>
 
-                                        {/* Locations Added in System by Agent */}
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1.5">
-                                                <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block">
-                                                    Locations Added by Agent{" "}
-                                                    {allAgentLocations.length > 0
-                                                        ? `(${allAgentLocations.length})`
-                                                        : ""}
-                                                </span>
-                                            </div>
+        {/* Locations Added in System by Agent / Operational Terminals */}
+        <div>
+            <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-[#7ecfc4]/70 uppercase tracking-wider block">
+                    Operational Ports & Terminals{" "}
+                    {allAgentLocations.length > 0
+                        ? `(${allAgentLocations.length})`
+                        : ""}
+                </span>
+            </div>
 
-                                            {loadingLocations ? (
-                                                <div className="space-y-1.5">
-                                                    {Array.from({ length: 3 }).map((_, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="p-2.5 rounded-xl bg-[#081414] border border-[#1a4a4a]/60 flex items-center justify-between gap-3 animate-pulse"
-                                                        >
-                                                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                                <div className="w-7 h-7 rounded-lg bg-[#1a4a4a]/40 shrink-0" />
-                                                                <div className="space-y-1.5 flex-1">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="w-28 h-3.5 rounded-sm bg-[#1a4a4a]/50" />
-                                                                        <div className="w-10 h-3 rounded-sm bg-[#1a4a4a]/30" />
-                                                                    </div>
-                                                                    <div className="w-36 h-3 rounded-sm bg-[#1a4a4a]/30" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="w-14 h-5 rounded-full bg-[#1a4a4a]/40 shrink-0" />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            ) : allAgentLocations.length === 0 ? (
-                                                <div className="p-3 text-center text-[11px] text-[#7ecfc4]/60 rounded-xl bg-[#081414] border border-[#1a4a4a]">
-                                                    No locations directly added by this agent yet.
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                                                    {allAgentLocations.map((loc) => (
-                                                        <div
-                                                            key={loc.id}
-                                                            className="p-2.5 rounded-xl bg-[#081414] border border-[#1a4a4a] hover:border-[#00c9a7]/40 transition-colors flex items-center justify-between gap-3 text-xs"
-                                                        >
-                                                            <div className="flex items-center gap-2.5 min-w-0">
-                                                                <div className="w-7 h-7 rounded-lg bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
-                                                                    <MapPin size={13} />
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="font-bold text-[#e0faf5] truncate">
-                                                                            {loc.name}
-                                                                        </span>
-                                                                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-sm bg-[#112a2a] text-[#7ecfc4] border border-[#1a4a4a]">
-                                                                            {loc.code}
-                                                                        </span>
-                                                                    </div>
-                                                                    <span className="text-[11px] text-[#7ecfc4]/70 truncate block">
-                                                                        {[loc.city, loc.country]
-                                                                            .filter(Boolean)
-                                                                            .join(", ")}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-right shrink-0">
-                                                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30 uppercase">
-                                                                    {loc.type
-                                                                        ? loc.type.replace(/_/g, " ")
-                                                                        : "HUB"}
-                                                                </span>
-                                                                {loc.createdAt && (
-                                                                    <span className="text-[10px] text-[#3a6b66] block mt-0.5">
-                                                                        {new Date(
-                                                                            loc.createdAt
-                                                                        ).toLocaleDateString()}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
+            {loadingLocations ? (
+                <div className="space-y-1.5">
+                    {Array.from({ length: 2 }).map((_, idx) => (
+                        <div
+                            key={idx}
+                            className="p-2.5 rounded-xl bg-[#081414] border border-[#1a4a4a]/60 flex items-center justify-between gap-3 animate-pulse"
+                        >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="w-7 h-7 rounded-lg bg-[#1a4a4a]/40 shrink-0" />
+                                <div className="space-y-1.5 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-28 h-3.5 rounded-sm bg-[#1a4a4a]/50" />
+                                        <div className="w-10 h-3 rounded-sm bg-[#1a4a4a]/30" />
                                     </div>
+                                    <div className="w-36 h-3 rounded-sm bg-[#1a4a4a]/30" />
+                                </div>
+                            </div>
+                            <div className="w-14 h-5 rounded-full bg-[#1a4a4a]/40 shrink-0" />
+                        </div>
+                    ))}
+                </div>
+            ) : allAgentLocations.length === 0 ? (
+                <div className="p-3 text-center text-[11px] text-[#7ecfc4]/70 rounded-xl bg-[#081414] border border-[#1a4a4a] flex items-center justify-center gap-2">
+                    <MapPin size={13} className="text-[#00c9a7]/60" />
+                    <span>Direct operational access configured for: {effectiveAssignedArea || "Registered Cargo Hub"}</span>
+                </div>
+            ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {allAgentLocations.map((loc) => (
+                        <div
+                            key={loc.id}
+                            className="p-2.5 rounded-xl bg-[#081414] border border-[#1a4a4a] hover:border-[#00c9a7]/40 transition-colors flex items-center justify-between gap-3 text-xs"
+                        >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] shrink-0">
+                                    <MapPin size={13} />
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-[#e0faf5] truncate">
+                                            {loc.name}
+                                        </span>
+                                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-sm bg-[#112a2a] text-[#7ecfc4] border border-[#1a4a4a]">
+                                            {loc.code}
+                                        </span>
+                                    </div>
+                                    <span className="text-[11px] text-[#7ecfc4]/70 truncate block">
+                                        {[loc.city, loc.country]
+                                            .filter(Boolean)
+                                            .join(", ")}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#00c9a7]/15 text-[#00e5c0] border border-[#00c9a7]/30 uppercase">
+                                    {loc.type
+                                        ? loc.type.replace(/_/g, " ")
+                                        : "HUB"}
+                                </span>
+                                {loc.createdAt && (
+                                    <span className="text-[10px] text-[#3a6b66] block mt-0.5">
+                                        {new Date(
+                                            loc.createdAt
+                                        ).toLocaleDateString()}
+                                    </span>
                                 )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+)}
 
                                 {/* User Consignments & Carrier Assignment Section */}
                                 <div className="space-y-3">
@@ -1070,7 +1308,7 @@ export default function UserDetailsModal({
                                             </div>
                                             <div>
                                                 <h4 className="text-xs font-bold text-[#e0faf5] flex items-center gap-2">
-                                                    User Consignments & Carrier Assignments
+                                                    Customer Consignments & Carrier Assignments
                                                     <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#00c9a7]/10 text-[#00e5c0] border border-[#00c9a7]/30">
                                                         {effectiveShipments.length} {effectiveShipments.length === 1 ? "Shipment" : "Shipments"}
                                                     </span>
@@ -1416,6 +1654,22 @@ export default function UserDetailsModal({
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Active Device Sign-in Sessions Section (Reusable Component) */}
+                                <ActiveSessionsSection
+                                    sessions={sessions}
+                                    breakdown={sessionsBreakdown}
+                                    isLoadingSessions={loadingSessions}
+                                    revokingSessionId={revokingSessionId}
+                                    isRevokingAll={isRevokingAll}
+                                    onRevokeSession={handleRevokeSession}
+                                    onRevokeAllOther={handleRevokeAllSessions}
+                                    onRefreshSessions={handleRefreshSessions}
+                                    isAdminView={true}
+                                    isSelf={isSelf}
+                                    targetUserName={userName}
+                                    compact={true}
+                                />
                             </>
                         )}
                     </div>

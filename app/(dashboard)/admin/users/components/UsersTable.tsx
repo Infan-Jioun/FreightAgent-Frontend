@@ -1,6 +1,7 @@
 // This needs 'use client' because: it renders interactive user table rows, pagination controls, and RBAC-gated account mutation actions.
 "use client";
 
+import React, { useState } from "react";
 import {
     Users,
     CheckCircle2,
@@ -34,6 +35,37 @@ interface UsersTableProps {
     onToggleStatus: (user: IAdminUser) => void;
     onDelete: (user: IAdminUser) => void;
     onManageSessions?: (user: IAdminUser) => void;
+}
+
+function UserAvatar({
+    image,
+    name,
+    initials,
+}: {
+    image?: string | null;
+    name?: string | null;
+    initials: string;
+}) {
+    const [imageError, setImageError] = useState(false);
+
+    if (image && !imageError) {
+        return (
+            <div className="w-8 h-8 rounded-xl border border-[#00c9a7]/40 shrink-0 overflow-hidden bg-[#0d1f1f]">
+                <img
+                    src={image}
+                    alt={name || "User"}
+                    className="w-full h-full object-cover"
+                    onError={() => setImageError(true)}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-[#00c9a7]/20 to-[#00b4d8]/20 border border-[#00c9a7]/40 flex items-center justify-center font-bold text-[11px] text-[#00e5c0] shrink-0">
+            {initials}
+        </div>
+    );
 }
 
 export default function UsersTable({
@@ -90,11 +122,11 @@ export default function UsersTable({
                 <thead>
                     <tr className="border-b border-[#1a4a4a] bg-[#0a1a1a]/50 text-[10px] font-bold text-[#3a6b66] uppercase tracking-wider">
                         <th className="py-3.5 px-4">User</th>
-                        <th className="py-3.5 px-4">Phone</th>
+                        {/* <th className="py-3.5 px-4">Phone</th> */}
                         <th className="py-3.5 px-4">Role</th>
                         <th className="py-3.5 px-4">Status</th>
                         <th className="py-3.5 px-4">Email Verified</th>
-                        <th className="py-3.5 px-4">Last Login</th>
+                        <th className="py-3.5 px-4 hidden lg:table-cell">Last Login</th>
                         <th className="py-3.5 px-4 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -104,15 +136,12 @@ export default function UsersTable({
                             <tr key={i} className="animate-pulse">
                                 <td className="py-3.5 px-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-xl bg-[#1a4a4a]/40" />
+                                        <div className="w-8 h-8 rounded-xl bg-[#1a4a4a]/40 shrink-0" />
                                         <div className="space-y-1.5">
                                             <div className="w-28 h-3.5 rounded-sm bg-[#1a4a4a]/40" />
                                             <div className="w-40 h-3 rounded-sm bg-[#1a4a4a]/20" />
                                         </div>
                                     </div>
-                                </td>
-                                <td className="py-3.5 px-4">
-                                    <div className="w-24 h-4 rounded-sm bg-[#1a4a4a]/30" />
                                 </td>
                                 <td className="py-3.5 px-4">
                                     <div className="w-16 h-5 rounded-full bg-[#1a4a4a]/30" />
@@ -123,7 +152,7 @@ export default function UsersTable({
                                 <td className="py-3.5 px-4">
                                     <div className="w-20 h-5 rounded-full bg-[#1a4a4a]/30" />
                                 </td>
-                                <td className="py-3.5 px-4">
+                                <td className="py-3.5 px-4 hidden lg:table-cell">
                                     <div className="w-24 h-3.5 rounded-sm bg-[#1a4a4a]/30" />
                                 </td>
                                 <td className="py-3.5 px-4 text-right">
@@ -133,7 +162,7 @@ export default function UsersTable({
                         ))
                     ) : users.length === 0 ? (
                         <tr>
-                            <td colSpan={7} className="py-12 text-center">
+                            <td colSpan={6} className="py-12 text-center">
                                 <Users size={36} className="mx-auto text-[#3a6b66] mb-2" />
                                 <p className="text-xs font-bold text-[#e0faf5]">No users found</p>
                                 <p className="text-[11px] text-[#7ecfc4]/70 mt-0.5">
@@ -161,9 +190,11 @@ export default function UsersTable({
                                     {/* User Name & Email */}
                                     <td className="py-3 px-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-[#00c9a7]/20 to-[#00b4d8]/20 border border-[#00c9a7]/40 flex items-center justify-center font-bold text-[11px] text-[#00e5c0] shrink-0">
-                                                {initials}
-                                            </div>
+                                            <UserAvatar
+                                                image={u.image}
+                                                name={u.name}
+                                                initials={initials}
+                                            />
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="font-bold text-[#e0faf5] truncate">
@@ -183,7 +214,7 @@ export default function UsersTable({
                                     </td>
 
                                     {/* Phone Number */}
-                                    <td className="py-3 px-4 whitespace-nowrap">
+                                    {/* <td className="py-3 px-4 whitespace-nowrap">
                                         {(() => {
                                             const rawUser = u as unknown as Record<string, unknown>;
                                             const phoneVal =
@@ -202,7 +233,7 @@ export default function UsersTable({
                                                 </span>
                                             );
                                         })()}
-                                    </td>
+                                    </td> */}
 
                                     {/* Role with Quick-Edit Button */}
                                     <td className="py-3 px-4">
@@ -261,7 +292,7 @@ export default function UsersTable({
                                     </td>
 
                                     {/* Last Login Date / Time */}
-                                    <td className="py-3 px-4 text-[#7ecfc4]">
+                                    <td className="py-3 px-4 text-[#7ecfc4] hidden lg:table-cell">
                                         {formatDateTime(u.lastLoginAt || u.createdAt)}
                                     </td>
 

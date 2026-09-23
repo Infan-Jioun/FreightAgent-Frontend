@@ -556,14 +556,14 @@ const onSubmit = async (data: RegisterAgentInput) => {
 
 return (
     <div
-        className="min-h-screen w-full flex flex-col items-center justify-start lg:justify-center p-4 sm:p-6 lg:p-8 py-6 sm:py-10 lg:py-12"
+        className="min-h-screen w-full overflow-x-hidden flex flex-col items-center justify-start lg:justify-center p-3 sm:p-6 lg:p-8 py-4 sm:py-10 lg:py-12"
         style={{ background: "var(--bg-primary)" }}
     >
         <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="w-full max-w-5xl my-auto rounded-[2rem] overflow-hidden shadow-2xl grid lg:grid-cols-2 lg:min-h-[720px]"
+            className="w-full max-w-5xl my-auto rounded-2xl sm:rounded-[2rem] overflow-hidden shadow-2xl grid lg:grid-cols-2 lg:min-h-[720px]"
             style={{
                 border: "1px solid var(--border-primary)",
                 background: "var(--bg-card)",
@@ -583,7 +583,7 @@ return (
 
             {/* Right: Stepped Agent Registration Form */}
             <div
-                className="p-5 sm:p-6 md:p-10 flex flex-col justify-between h-auto lg:h-full lg:min-h-[720px] lg:overflow-y-auto custom-modal-scrollbar"
+                className="p-4 sm:p-6 md:p-10 flex flex-col justify-between h-auto lg:h-full lg:min-h-[720px] lg:overflow-y-auto custom-modal-scrollbar"
             >
                 <div>
                     <h1
@@ -677,7 +677,7 @@ return (
                                         Full Name <span className="text-rose-400">*</span>
                                     </label>
                                     <div
-                                        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                                        className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all focus-within:ring-1 focus-within:ring-teal-400/50"
                                         style={{
                                             background: "var(--bg-input)",
                                             border: `1px solid ${errors.name
@@ -690,6 +690,7 @@ return (
                                     >
                                         <User
                                             size={16}
+                                            className="shrink-0"
                                             style={{
                                                 color: name ? "var(--accent-primary)" : "var(--text-muted)",
                                             }}
@@ -698,7 +699,7 @@ return (
                                             {...register("name")}
                                             type="text"
                                             placeholder="e.g. Infan Jioun"
-                                            className="flex-1 bg-transparent text-sm outline-hidden"
+                                            className="flex-1 min-w-0 bg-transparent text-base sm:text-sm outline-hidden"
                                             style={{ color: "var(--text-primary)" }}
                                         />
                                     </div>
@@ -725,7 +726,7 @@ return (
                                         Business Email <span className="text-rose-400">*</span>
                                     </label>
                                     <div
-                                        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                                        className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all focus-within:ring-1 focus-within:ring-teal-400/50"
                                         style={{
                                             background: "var(--bg-input)",
                                             border: `1px solid ${errors.email
@@ -738,6 +739,7 @@ return (
                                     >
                                         <Mail
                                             size={16}
+                                            className="shrink-0"
                                             style={{
                                                 color: email ? "var(--accent-primary)" : "var(--text-muted)",
                                             }}
@@ -746,7 +748,7 @@ return (
                                             {...register("email")}
                                             type="email"
                                             placeholder="agent@freightlogistics.com"
-                                            className="flex-1 bg-transparent text-sm outline-hidden"
+                                            className="flex-1 min-w-0 bg-transparent text-base sm:text-sm outline-hidden"
                                             style={{ color: "var(--text-primary)" }}
                                         />
                                     </div>
@@ -777,7 +779,7 @@ return (
                                     </div>
 
                                     <div
-                                        className="flex items-center gap-1.5 p-1.5 rounded-xl transition-all"
+                                        className="flex items-center gap-1.5 p-1.5 rounded-xl transition-all focus-within:ring-1 focus-within:ring-teal-400/50"
                                         style={{
                                             background: "var(--bg-input)",
                                             border: `1px solid ${errors.phone || phoneCheckStatus === "taken" || phoneCheckStatus === "invalid"
@@ -796,7 +798,7 @@ return (
                                                     const found = COUNTRIES.find((c) => c.code === e.target.value);
                                                     if (found) handleCountryChange(found);
                                                 }}
-                                                className="h-9 pl-2 pr-6 rounded-lg bg-black/40 border border-gray-800 text-[10px] sm:text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-teal-400 appearance-none cursor-pointer transition-colors max-w-[100px] sm:max-w-none"
+                                                className="h-9 pl-2 pr-6 rounded-lg bg-black/40 border border-gray-800 text-base sm:text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-teal-400 appearance-none cursor-pointer transition-colors max-w-[105px] sm:max-w-none"
                                             >
                                                 {COUNTRIES.map((c) => (
                                                     <option key={c.code} value={c.code} className="bg-[#0d1f1f] text-gray-200 cursor-pointer">
@@ -811,26 +813,26 @@ return (
                                         <div className="flex items-center gap-2 flex-1 px-2 min-w-0">
                                             <Phone
                                                 size={15}
-                                                className={
+                                                className={`shrink-0 ${
                                                     phoneCheckStatus === "available"
                                                         ? "text-teal-400"
                                                         : phoneCheckStatus === "taken" || phoneCheckStatus === "invalid"
                                                             ? "text-rose-400"
                                                             : "text-gray-500"
-                                                }
+                                                }`}
                                             />
                                             <input
                                                 type="tel"
                                                 value={nationalPhone}
                                                 onChange={(e) => handlePhoneChange(e.target.value)}
                                                 placeholder="e.g. 1712-345678"
-                                                className="flex-1 min-w-0 bg-transparent text-sm font-mono outline-hidden text-gray-100 placeholder:text-gray-600"
+                                                className="flex-1 min-w-0 bg-transparent text-base sm:text-sm font-mono outline-hidden text-gray-100 placeholder:text-gray-600"
                                             />
                                             {nationalPhone && (
                                                 <button
                                                     type="button"
                                                     onClick={() => handlePhoneChange("")}
-                                                    className="text-gray-500 hover:text-gray-300 transition-colors cursor-pointer p-1"
+                                                    className="text-gray-500 hover:text-gray-300 transition-colors cursor-pointer p-1 shrink-0"
                                                 >
                                                     <X size={13} className="cursor-pointer" />
                                                 </button>
@@ -885,7 +887,7 @@ return (
                                         Password <span className="text-rose-400">*</span>
                                     </label>
                                     <div
-                                        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                                        className="flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl transition-all focus-within:ring-1 focus-within:ring-teal-400/50"
                                         style={{
                                             background: "var(--bg-input)",
                                             border: `1px solid ${errors.password
@@ -898,6 +900,7 @@ return (
                                     >
                                         <Lock
                                             size={16}
+                                            className="shrink-0"
                                             style={{
                                                 color: password ? "var(--accent-primary)" : "var(--text-muted)",
                                             }}
@@ -906,7 +909,7 @@ return (
                                             {...register("password")}
                                             type={showPassword ? "text" : "password"}
                                             placeholder="Min 8 characters"
-                                            className="flex-1 bg-transparent text-sm outline-hidden"
+                                            className="flex-1 min-w-0 bg-transparent text-base sm:text-sm outline-hidden"
                                             style={{ color: "var(--text-primary)" }}
                                         />
                                         <button
@@ -914,7 +917,7 @@ return (
                                             onClick={() => setShowPassword(!showPassword)}
                                             style={{ color: "var(--text-muted)" }}
                                             aria-label={showPassword ? "Hide password" : "Show password"}
-                                            className="cursor-pointer"
+                                            className="cursor-pointer shrink-0 p-1"
                                         >
                                             {showPassword ? <EyeOff size={16} className="cursor-pointer" /> : <Eye size={16} className="cursor-pointer" />}
                                         </button>

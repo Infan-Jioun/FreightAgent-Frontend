@@ -10,6 +10,8 @@ const BADGE_COLOR_MAP = {
     teal: "bg-[#00c9a7]/15 text-[#00e5c0] border-[#00c9a7]/30",
     blue: "bg-[#00b4d8]/15 text-[#00b4d8] border-[#00b4d8]/30",
     amber: "bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30",
+    emerald: "bg-[#10b981]/15 text-[#10b981] border-[#10b981]/30",  
+    purple: "bg-[#8b5cf6]/15 text-[#8b5cf6] border-[#8b5cf6]/30", 
 };
 
 export function PageHeader({

@@ -10,45 +10,20 @@ export type {
     IPaginationMeta,
     IApiResponse,
     IAdminUser,
+    IAdminUserShipment,
+    ISessionItem,
+    ISessionsData,
+    ISessionsBreakdown,
 } from "./interface";
 
 import type {
     UserRole,
     IAdminUser,
+    IAdminUserShipment,
     IApiResponse,
     IPaginationMeta,
     ISessionItem,
-    ISessionsData,
-    ISessionsBreakdown,
-    IRoadAgent,
-    IAdminAssignee,
-    IShipmentCost,
-    IShipmentSender,
-    PaymentStatus,
 } from "./interface";
-
-export type { ISessionItem, ISessionsData, ISessionsBreakdown };
-
-// ── Admin User Detailed Shipments ──────────────────────────────────
-export interface IAdminUserShipment {
-    id: string;
-    trackingId: string;
-    origin: string;
-    destination: string;
-    status: string;
-    createdAt: string;
-    weight?: number;
-    paymentStatus?: PaymentStatus | string;
-    cost?: IShipmentCost | null;
-    assignedAgentId?: string | null;
-    assignedAgent?: IRoadAgent | null;
-    assignedById?: string | null;
-    assignedBy?: IAdminAssignee | null;
-    user?: IShipmentSender;
-    userId?: string;
-    description?: string | null;
-    estimatedDate?: string | null;
-}
 
 export interface IAdminUserDetail extends IAdminUser {
     shipments?: IAdminUserShipment[];

@@ -71,25 +71,85 @@ export const adminService = {
             const res = await api.get<IApiResponse<Record<string, unknown>>>(API.ADMIN.GET_USER_BY_ID(id));
             const rawData = res.data?.data;
             if (rawData && typeof rawData === "object") {
-                // Check if backend returned { user: {...}, shipments: [...], sessions: [...] }
-                if ("user" in rawData && rawData.user && typeof rawData.user === "object") {
-                    const userObj = rawData.user as Record<string, unknown>;
-                    const shipmentsObj = rawData.shipments;
-                    const sessionsObj = rawData.sessions || userObj.sessions;
-                    return {
-                        ...userObj,
-                        id: (userObj.id || userObj._id || id) as string,
-                        shipments: Array.isArray(shipmentsObj) ? shipmentsObj : [],
-                        sessions: Array.isArray(sessionsObj) ? (sessionsObj as ISessionItem[]) : [],
-                    } as unknown as IAdminUserDetail;
-                }
-                // Flat structure { ...user, shipments: [...], sessions: [...] }
                 const rawObj = rawData as Record<string, unknown>;
+                const userObj =
+                    "user" in rawObj && rawObj.user && typeof rawObj.user === "object"
+                        ? (rawObj.user as Record<string, unknown>)
+                        : rawObj;
+
+                const agentObj = (
+                    rawObj.agent ||
+                    userObj.agent ||
+                    rawObj.agentProfile ||
+                    userObj.agentProfile ||
+                    {}
+                ) as Record<string, unknown>;
+
+                const rawShipments = Array.isArray(rawObj.shipments)
+                    ? rawObj.shipments
+                    : Array.isArray(userObj.shipments)
+                    ? userObj.shipments
+                    : Array.isArray(agentObj.shipments)
+                    ? agentObj.shipments
+                    : [];
+
+                const rawAssigned = Array.isArray(rawObj.assignedShipments)
+                    ? rawObj.assignedShipments
+                    : Array.isArray(userObj.assignedShipments)
+                    ? userObj.assignedShipments
+                    : Array.isArray(agentObj.assignedShipments)
+                    ? agentObj.assignedShipments
+                    : [];
+
+                const combinedShipments = [...rawShipments, ...rawAssigned];
+                const sessionsObj = rawObj.sessions || userObj.sessions;
+
+                const corridors =
+                    userObj.corridors ||
+                    rawObj.corridors ||
+                    agentObj.corridors ||
+                    userObj.routes ||
+                    rawObj.routes ||
+                    agentObj.routes;
+
+                const assignedArea =
+                    userObj.assignedArea ||
+                    rawObj.assignedArea ||
+                    agentObj.assignedArea ||
+                    userObj.operatingArea ||
+                    rawObj.operatingArea ||
+                    agentObj.operatingArea ||
+                    userObj.coverageArea ||
+                    rawObj.coverageArea;
+
+                const locations =
+                    userObj.locations ||
+                    rawObj.locations ||
+                    agentObj.locations ||
+                    userObj.operatingLocations ||
+                    rawObj.operatingLocations;
+
+                const image =
+                    userObj.image ||
+                    rawObj.image ||
+                    userObj.avatar ||
+                    rawObj.avatar ||
+                    userObj.profileImage ||
+                    rawObj.profileImage ||
+                    userObj.photoURL ||
+                    rawObj.photoURL;
+
                 return {
                     ...rawObj,
-                    id: (rawObj.id || rawObj._id || id) as string,
-                    shipments: Array.isArray(rawObj.shipments) ? rawObj.shipments : [],
-                    sessions: Array.isArray(rawObj.sessions) ? (rawObj.sessions as ISessionItem[]) : [],
+                    ...userObj,
+                    id: (userObj.id || userObj._id || rawObj.id || id) as string,
+                    image: image as string | undefined,
+                    shipments: combinedShipments,
+                    assignedShipments: rawAssigned,
+                    sessions: Array.isArray(sessionsObj) ? (sessionsObj as ISessionItem[]) : [],
+                    corridors: corridors as string[] | undefined,
+                    locations: locations as unknown[] | undefined,
+                    assignedArea: assignedArea as string | undefined,
                 } as unknown as IAdminUserDetail;
             }
             return { id } as IAdminUserDetail;

@@ -313,7 +313,7 @@ export function CorridorRouteModal({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder={`Search ${locations.length > 0 ? `${locations.length} hubs` : "trade hubs"} (e.g. Chittagong, Singapore, Dubai, Rotterdam)...`}
-                                className="flex-1 bg-transparent text-xs outline-hidden text-gray-100 placeholder:text-gray-500"
+                                className="flex-1 min-w-0 bg-transparent text-base sm:text-xs outline-hidden text-gray-100 placeholder:text-gray-500"
                             />
                             {searchQuery && (
                                 <button
