@@ -1,2 +1,7 @@
-// app/(auth)/register/agent/page.tsx
-export { default, metadata } from "../../register-agent/page";
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default function RegisterAgentAliasPage() {
+    redirect("/register-agent");
+}

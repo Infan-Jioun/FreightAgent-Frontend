@@ -52,7 +52,7 @@ export const SITE_CONFIG = {
     "https://linkedin.com/company/freightagent",
     "https://github.com/freightagent",
   ],
-} as const;
+};
 
 export interface PageMetadataOptions {
   title: string;

@@ -1,6 +1,7 @@
 // app/contact/page.tsx
 import type { Metadata } from "next";
-import ContactClient, { OFFICES } from "./ContactClient";
+import ContactClient from "./ContactClient";
+import { OFFICES } from "./officesData";
 import { createPageMetadata, SITE_CONFIG } from "@/app/config/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 

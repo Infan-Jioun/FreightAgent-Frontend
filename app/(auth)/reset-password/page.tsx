@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/(auth)/reset-password/page.tsx
 import type { Metadata } from "next";
 import ResetPasswordClient from "./ResetPasswordClient";

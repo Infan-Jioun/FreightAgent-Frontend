@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/(auth)/register-agent/page.tsx
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -96,3 +98,4 @@ export default function RegisterAgentPage(): React.JSX.Element {
         </main>
     );
 }
+

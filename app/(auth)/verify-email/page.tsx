@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/(auth)/verify-email/page.tsx
 import type { Metadata } from "next";
 import VerifyEmailClient from "./VerifyEmailClient";

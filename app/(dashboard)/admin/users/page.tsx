@@ -1,6 +1,8 @@
 import { Metadata } from "next";
 import AdminUsersClient from "./components/AdminUsersClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "User & Agent Directory | Admin Console | FreightAgent",
     description: "Manage platform user accounts, certified freight agents, role permissions, and security statuses.",

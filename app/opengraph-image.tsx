@@ -46,8 +46,9 @@ export default function Image() {
             >
               FA
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.5px" }}>
-              Freight<span style={{ color: "#00c9a7" }}>Agent</span>
+            <div style={{ display: "flex", alignItems: "center", fontSize: "28px", fontWeight: 800, letterSpacing: "-0.5px" }}>
+              <span>Freight</span>
+              <span style={{ color: "#00c9a7" }}>Agent</span>
             </div>
           </div>
 
@@ -74,6 +75,7 @@ export default function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: "18px", maxWidth: "980px" }}>
           <div
             style={{
+              display: "flex",
               fontSize: "52px",
               fontWeight: 900,
               lineHeight: 1.15,
@@ -85,6 +87,7 @@ export default function Image() {
           </div>
           <div
             style={{
+              display: "flex",
               fontSize: "22px",
               lineHeight: 1.45,
               color: "#7ecfc4",
@@ -122,6 +125,7 @@ export default function Image() {
 
           <div
             style={{
+              display: "flex",
               fontSize: "16px",
               color: "#00c9a7",
               fontWeight: 700,

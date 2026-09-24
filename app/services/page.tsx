@@ -1,6 +1,6 @@
-// app/services/page.tsx
 import type { Metadata } from "next";
-import ServicesClient, { SERVICES } from "./ServicesClient";
+import ServicesClient from "./ServicesClient";
+import { SERVICES_DATA } from "./servicesData";
 import { createPageMetadata, SITE_CONFIG } from "@/app/config/seo";
 import { JsonLd } from "@/components/seo/JsonLd";
 
@@ -26,7 +26,7 @@ export default function ServicesPage() {
     "@type": "ItemList",
     name: "FreightAgent Logistics Services",
     description: "Multi-modal international shipping and customs solutions.",
-    itemListElement: SERVICES.map((service, index) => ({
+    itemListElement: SERVICES_DATA.map((service, index) => ({
       "@type": "ListItem",
       position: index + 1,
       item: {

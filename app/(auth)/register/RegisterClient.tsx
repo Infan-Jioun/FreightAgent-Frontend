@@ -312,9 +312,9 @@ export default function RegisterClient() {
 
                     {/* Divider */}
                     <div className="flex items-center gap-3 my-4">
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent to-gray-700" />
+                        <div className="flex-1 h-px bg-linear-to-r from-transparent to-gray-700" />
                         <span className="text-xs uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>or</span>
-                        <div className="flex-1 h-px bg-gradient-to-l from-transparent to-gray-700" />
+                        <div className="flex-1 h-px bg-linear-to-l from-transparent to-gray-700" />
                     </div>
                     <button
                         type="button"

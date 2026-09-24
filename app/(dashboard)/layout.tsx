@@ -2,6 +2,8 @@
 import type { Metadata } from "next";
 import DashboardShell from "./DashboardShell";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: {
         default: "Freight Management Console",
