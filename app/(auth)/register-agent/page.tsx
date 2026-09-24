@@ -1,12 +1,14 @@
+// app/(auth)/register-agent/page.tsx
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RegisterAgentClient } from "./RegisterAgentClient";
+import { createPageMetadata, SITE_CONFIG } from "@/app/config/seo";
 
-// ─── SEO Metadata ─────────────────────────────────────────────────────────────
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
     title: "Register as Logistics Agent | FreightAgent Global Dispatch Network",
     description:
-        "Join FreightAgent as an accredited freight forwarding and logistics routing agent. Configure your operational shipping corridors across 225+ maritime sea ports and air terminals, claim freight manifests, and access real-time shipment radar.",
+        "Join FreightAgent as an accredited freight forwarding and logistics routing agent. Configure operational shipping corridors across 225+ maritime sea ports and air terminals.",
+    path: "/register-agent",
     keywords: [
         "freight agent registration",
         "logistics agent",
@@ -16,57 +18,23 @@ export const metadata: Metadata = {
         "ocean freight forwarder",
         "air cargo terminal dispatcher",
         "container tracking network",
-        "FreightAgent accreditation",
     ],
-    authors: [{ name: "FreightAgent Global Logistics Platform" }],
-    creator: "FreightAgent Global Logistics",
-    publisher: "FreightAgent",
-    robots: {
-        index: true,
-        follow: true,
-        googleBot: {
-            index: true,
-            follow: true,
-            "max-video-preview": -1,
-            "max-image-preview": "large",
-            "max-snippet": -1,
-        },
-    },
-    alternates: {
-        canonical: "/register-agent",
-    },
-    openGraph: {
-        title: "Register as Logistics Agent | FreightAgent Global Dispatch",
-        description:
-            "Become an accredited logistics agent on the FreightAgent network. Define your operational shipping lanes across 225+ global shipping hubs and access live consignment radar.",
-        url: "/register-agent",
-        siteName: "FreightAgent Logistics Platform",
-        locale: "en_US",
-        type: "website",
-    },
-    twitter: {
-        card: "summary_large_image",
-        title: "Register as Logistics Agent | FreightAgent",
-        description:
-            "Join FreightAgent's global logistics routing network. Set up operational trade corridors across 225+ sea and air terminals.",
-    },
-};
+});
 
-// ─── JSON-LD Structured Data Schema for Search Engines ───────────────────────
 const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
         {
             "@type": "WebPage",
-            "@id": "/register-agent#webpage",
-            "url": "/register-agent",
+            "@id": `${SITE_CONFIG.url}/register-agent#webpage`,
+            "url": `${SITE_CONFIG.url}/register-agent`,
             "name": "Register as Logistics Agent | FreightAgent",
             "description":
                 "Accredited logistics agent registration portal for FreightAgent Global Freight & Consignment Manifest.",
             "isPartOf": {
                 "@type": "WebSite",
-                "name": "FreightAgent Logistics Platform",
-                "url": "/",
+                "name": SITE_CONFIG.name,
+                "url": SITE_CONFIG.url,
             },
             "breadcrumb": {
                 "@type": "BreadcrumbList",
@@ -75,13 +43,13 @@ const jsonLd = {
                         "@type": "ListItem",
                         "position": 1,
                         "name": "Home",
-                        "item": "/",
+                        "item": `${SITE_CONFIG.url}/`,
                     },
                     {
                         "@type": "ListItem",
                         "position": 2,
                         "name": "Register as Agent",
-                        "item": "/register-agent",
+                        "item": `${SITE_CONFIG.url}/register-agent`,
                     },
                 ],
             },
@@ -92,9 +60,9 @@ const jsonLd = {
             "serviceType": "Freight Forwarding & Cargo Dispatch Network",
             "provider": {
                 "@type": "Organization",
-                "name": "FreightAgent Global Logistics Platform",
+                "name": SITE_CONFIG.name,
+                "url": SITE_CONFIG.url,
             },
-            "termsOfService": "/terms",
         },
     ],
 };
@@ -118,7 +86,6 @@ function RegisterLoadingFallback(): React.JSX.Element {
 export default function RegisterAgentPage(): React.JSX.Element {
     return (
         <main className="min-h-screen w-full">
-            {/* Structured data injection for Rich Snippets */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
