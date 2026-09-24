@@ -146,8 +146,8 @@ export const useNotificationSocket = ({
 
         if (!globalSocket) {
           globalSocket = io(socketUrl, {
-            query: { userId, role },
-            auth: { userId, role },
+            query: { userId: userId as string, role: role as string },
+            auth: { userId: userId as string, role: role as string },
             withCredentials: true,
             transports: ["websocket", "polling"],
           });
