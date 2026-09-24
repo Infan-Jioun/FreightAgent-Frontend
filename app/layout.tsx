@@ -103,7 +103,7 @@ export default function RootLayout({
           <div className="min-h-screen bg-[#0a0f0f]">{children}</div>
         </LenisProvider>
         <Toaster
-          position="top-right"
+          position="top-center"
           toastOptions={{
             style: {
               background: "var(--bg-card)",

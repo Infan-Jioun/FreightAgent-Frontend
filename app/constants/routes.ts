@@ -44,6 +44,8 @@ export const ROUTES = {
     TRACKING: (trackingId: string) => `/dashboard/customer/tracking?trackingId=${encodeURIComponent(trackingId)}`,
     PROFILE: "/profile",
     SETTINGS: "/settings",
+    NOTIFICATIONS: "/dashboard/notifications",
+    NOTIFICATION_DETAIL: (id: string) => `/dashboard/notifications/${id}`,
 
     // Admin Legacy Aliases
     ADMIN_USERS: "/dashboard/admin/users",

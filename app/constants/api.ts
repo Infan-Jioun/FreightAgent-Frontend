@@ -93,4 +93,13 @@ export const API = {
         ADMIN_STATS: "/payment/admin/stats",
         ADMIN_WITHDRAWALS: "/payment/admin/withdrawals",
     },
+    // Notification
+    NOTIFICATION: {
+        GET_ALL: "/notifications",
+        GET_BY_ID: (id: string) => `/notifications/${id}`,
+        GET_UNREAD_COUNT: "/notifications/unread-count",
+        MARK_READ: (id: string) => `/notifications/${id}/read`,
+        MARK_ALL_READ: "/notifications/read-all",
+        DELETE: (id: string) => `/notifications/${id}`,
+    },
 } as const;
