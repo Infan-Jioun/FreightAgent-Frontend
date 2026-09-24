@@ -242,31 +242,40 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         onToggle={() => setIsOpen((prev) => !prev)}
       />
 
-      {/* Dropdown Notification Center */}
+      {/* Mobile Backdrop Overlay */}
       {isOpen && (
         <div
-          className={`absolute ${
-            align === "right" ? "right-0" : "left-0"
-          } mt-2.5 w-[360px] sm:w-[420px] max-w-[calc(100vw-24px)] bg-[#0d1f1f] rounded-3xl shadow-2xl shadow-black/80 border border-[#1a4a4a] z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150`}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 sm:hidden animate-in fade-in duration-150"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Responsive Dropdown / Modal */}
+      {isOpen && (
+        <div
+          className={`fixed inset-x-2 top-[64px] sm:inset-auto sm:top-full sm:mt-2.5 ${
+            align === "right" ? "sm:right-0" : "sm:left-0"
+          } z-50 w-auto sm:w-[420px] max-w-[calc(100vw-16px)] sm:max-w-none mx-auto sm:mx-0 max-h-[calc(100vh-80px)] sm:max-h-[580px] flex flex-col bg-[#0d1f1f] rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/80 border border-[#1a4a4a] overflow-hidden animate-in fade-in zoom-in-95 sm:zoom-in-100 sm:slide-in-from-top-2 duration-150`}
         >
           {/* Header */}
-          <div className="p-4 border-b border-[#1a4a4a]/80 bg-[#0a1a1a]/70 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-black text-[#e0faf5] tracking-tight">
+          <div className="p-3.5 sm:p-4 border-b border-[#1a4a4a]/80 bg-[#0a1a1a]/70 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-black text-[#e0faf5] tracking-tight truncate">
                 Notifications
               </span>
               {unreadCount > 0 ? (
-                <span className="text-[10px] font-bold text-[#00e5c0] bg-[#00c9a7]/15 px-2 py-0.5 rounded-full border border-[#00c9a7]/30">
+                <span className="text-[10px] font-bold text-[#00e5c0] bg-[#00c9a7]/15 px-2 py-0.5 rounded-full border border-[#00c9a7]/30 shrink-0">
                   {unreadCount} New
                 </span>
               ) : (
-                <span className="text-[10px] font-semibold text-[#3a6b66] bg-[#0a0f0f] px-2 py-0.5 rounded-full border border-[#1a4a4a]">
+                <span className="text-[10px] font-semibold text-[#3a6b66] bg-[#0a0f0f] px-2 py-0.5 rounded-full border border-[#1a4a4a] shrink-0">
                   Caught up
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               {unreadCount > 0 && (
                 <button
                   type="button"
@@ -274,15 +283,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   className="flex items-center gap-1 text-xs text-[#00c9a7] hover:text-[#00e5c0] font-semibold px-2 py-1 rounded-lg hover:bg-[#112a2a] transition-colors cursor-pointer"
                   title="Mark all as read"
                 >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Mark all read</span>
+                  <CheckCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Mark all read</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-[#3a6b66] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg text-[#3a6b66] hover:text-[#e0faf5] hover:bg-[#112a2a] transition-colors cursor-pointer"
                 aria-label="Close notification panel"
               >
                 <X className="w-4 h-4" />
@@ -292,10 +301,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
           {/* Desktop Push Notification Permission Banner */}
           {permission === "default" && (
-            <div className="px-4 py-2.5 bg-linear-to-r from-[#00c9a7]/10 to-[#00b4d8]/10 border-b border-[#1a4a4a]/80 flex items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 text-[#e0faf5]">
+            <div className="px-3.5 sm:px-4 py-2.5 bg-linear-to-r from-[#00c9a7]/10 to-[#00b4d8]/10 border-b border-[#1a4a4a]/80 flex items-center justify-between gap-2.5 text-xs shrink-0">
+              <div className="flex items-center gap-2 text-[#e0faf5] min-w-0">
                 <Laptop className="w-4 h-4 text-[#00c9a7] shrink-0" />
-                <span className="text-[11px] text-[#7ecfc4]">
+                <span className="text-[11px] text-[#7ecfc4] truncate">
                   Enable Chrome & desktop alerts
                 </span>
               </div>
@@ -310,8 +319,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           )}
 
           {/* Category Filter Tabs */}
-          <div className="px-3 pt-2.5 pb-2 bg-[#0a1a1a]/40 border-b border-[#1a4a4a]/60 flex items-center justify-between gap-1 overflow-x-auto">
-            <div className="flex items-center gap-1">
+          <div className="px-2.5 sm:px-3 pt-2.5 pb-2 bg-[#0a1a1a]/40 border-b border-[#1a4a4a]/60 flex items-center justify-between gap-1 overflow-x-auto shrink-0 scrollbar-none">
+            <div className="flex items-center gap-1 shrink-0">
               {[
                 { label: "All", value: "ALL" as const, count: notifications.length },
                 { label: "Unread", value: "UNREAD" as const, count: unreadCount },
@@ -346,12 +355,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               className="text-[10px] text-[#3a6b66] hover:text-[#00c9a7] flex items-center gap-1 font-mono transition-colors shrink-0 px-2 py-0.5 rounded cursor-pointer"
             >
               <Sparkles className="w-3 h-3" />
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
 
           {/* Notification List Panel */}
-          <div className="max-h-[400px] overflow-y-auto divide-y divide-[#1a4a4a]/40 scrollbar-thin">
+          <div className="flex-1 min-h-0 max-h-[50vh] sm:max-h-[380px] overflow-y-auto divide-y divide-[#1a4a4a]/40 scrollbar-thin">
             {isLoading ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                 <div className="w-6 h-6 rounded-full border-2 border-[#1a4a4a] border-t-[#00c9a7] animate-spin" />
@@ -436,7 +445,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         <button
                           type="button"
                           onClick={(e) => handleDelete(e, item.id)}
-                          className="opacity-0 group-hover:opacity-100 text-[#3a6b66] hover:text-[#ff6b6b] transition-all p-1 cursor-pointer"
+                          className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-[#3a6b66] hover:text-[#ff6b6b] transition-all p-1.5 rounded-lg cursor-pointer"
                           aria-label="Delete notification"
                           title="Delete"
                         >
@@ -451,7 +460,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </div>
 
           {/* Footer Bar */}
-          <div className="p-3 bg-[#0a1a1a]/80 border-t border-[#1a4a4a]/80 flex items-center justify-between text-[11px]">
+          <div className="p-3 sm:p-3.5 bg-[#0a1a1a]/80 border-t border-[#1a4a4a]/80 flex items-center justify-between text-[11px] shrink-0">
             <span className="text-[#3a6b66] flex items-center gap-1.5 font-mono text-[10px]">
               <span className="w-1.5 h-1.5 rounded-full bg-[#00c9a7] animate-pulse" />
               Live Alerts
@@ -460,7 +469,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <Link
               href="/dashboard/notifications"
               onClick={() => setIsOpen(false)}
-              className="text-[#00c9a7] hover:text-[#00e5c0] font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+              className="text-[#00c9a7] hover:text-[#00e5c0] font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer py-0.5 px-1.5 rounded-md hover:bg-[#112a2a]"
             >
               <span>View all alerts</span>
               <ChevronRight className="w-3.5 h-3.5" />
