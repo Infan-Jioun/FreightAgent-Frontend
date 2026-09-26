@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { RagChatWidget } from "@/components/rag/RagChatWidget";
 import LenisProvider from "./providers/LenisProvider";
 import { SITE_CONFIG } from "./config/seo";
 import { JsonLd, getOrganizationSchema, getWebSiteSchema } from "@/components/seo/JsonLd";
@@ -112,6 +113,7 @@ export default function RootLayout({
             },
           }}
         />
+        <RagChatWidget />
       </body>
     </html>
   );

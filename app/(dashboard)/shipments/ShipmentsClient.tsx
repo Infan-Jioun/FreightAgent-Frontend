@@ -224,14 +224,14 @@ export default function ShipmentsClient() {
                 </div>
 
                 {/* Search */}
-                <div className="flex items-center gap-2 bg-[#0a1a1a] px-3.5 py-1.5 rounded-xl border border-[#1a4a4a] focus-within:border-[#00c9a7]">
+                <div className="flex items-center gap-2 bg-[#0a1a1a] px-3.5 py-1.5 rounded-xl border border-[#1a4a4a]">
                     <Search size={14} className="text-[#3a6b66]" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search consignments..."
-                        className="bg-transparent border-none outline-hidden text-xs text-[#e0faf5] placeholder:text-[#3a6b66] w-48"
+                        className="bg-transparent border-none outline-hidden text-xs text-[#e0faf5] w-48"
                     />
                 </div>
             </div>
@@ -518,7 +518,7 @@ export default function ShipmentsClient() {
                                 value={statusLocation}
                                 onChange={(e) => setStatusLocation(e.target.value)}
                                 placeholder="e.g. Dhaka Central Hub Gate 2"
-                                className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
+                                className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] focus:outline-hidden"
                             />
                         </div>
 
