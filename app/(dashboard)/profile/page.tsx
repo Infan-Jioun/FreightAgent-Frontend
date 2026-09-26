@@ -2,6 +2,8 @@ import { Metadata } from "next";
 import { getServerProfile, getServerSessions } from "@/app/services/user.server";
 import ProfileContainer from "./components/ProfileContainer";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "Profile & Account Settings | FreightAgent",
     description: "Manage personal details, verified credentials, and multi-device active sessions.",

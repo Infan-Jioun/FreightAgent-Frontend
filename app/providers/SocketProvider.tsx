@@ -178,6 +178,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                     if (isCancelled) return;
                     notifySubscribers("shipment_update", data);
                 });
+
+                // Real-time backend notification event
+                localSocket.on("notification", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("notification", data);
+                });
+
+                // Real-time unread count sync event
+                localSocket.on("unread_count_updated", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("unread_count_updated", data);
+                });
             } catch (err) {
                 console.warn("Socket initialization skipped:", err);
             }
@@ -196,6 +208,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 localSocket.off("new_shipment_request");
                 localSocket.off("new_shipment");
                 localSocket.off("shipment_update");
+                localSocket.off("notification");
+                localSocket.off("unread_count_updated");
                 localSocket.disconnect();
             }
             socketRef.current = null;

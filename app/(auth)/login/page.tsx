@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/(auth)/login/page.tsx
 import type { Metadata } from "next";
 import { Suspense } from "react";

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/(auth)/forgot-password/page.tsx
 import type { Metadata } from "next";
 import ForgotPasswordClient from "./ForgotPasswordClient";

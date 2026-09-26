@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 // app/(auth)/register/page.tsx
 import type { Metadata } from "next";
 import RegisterClient from "./RegisterClient";
