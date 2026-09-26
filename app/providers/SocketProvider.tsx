@@ -190,6 +190,27 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                     if (isCancelled) return;
                     notifySubscribers("unread_count_updated", data);
                 });
+
+                // Real-time Shipment Chat Events
+                localSocket.on("new_message", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("new_message", data);
+                });
+
+                localSocket.on("user_typing", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("user_typing", data);
+                });
+
+                localSocket.on("user_stop_typing", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("user_stop_typing", data);
+                });
+
+                localSocket.on("chat_error", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("chat_error", data);
+                });
             } catch (err) {
                 console.warn("Socket initialization skipped:", err);
             }
@@ -210,6 +231,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 localSocket.off("shipment_update");
                 localSocket.off("notification");
                 localSocket.off("unread_count_updated");
+                localSocket.off("new_message");
+                localSocket.off("user_typing");
+                localSocket.off("user_stop_typing");
+                localSocket.off("chat_error");
                 localSocket.disconnect();
             }
             socketRef.current = null;

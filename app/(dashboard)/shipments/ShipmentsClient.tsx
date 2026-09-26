@@ -22,6 +22,7 @@ import {
     ShipmentStatus,
     IUpdateShipmentStatusPayload,
 } from "@/app/types/shipment.types";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 import { useDebounce } from "@/app/hooks/useDebounce";
 import { usePermission } from "@/app/hooks/usePermission";
 import { PermissionGate } from "@/components/auth/PermissionGate";
@@ -321,6 +322,13 @@ export default function ShipmentsClient() {
                                         Details
                                     </button>
 
+                                    <ShipmentChatButton
+                                        shipmentId={item.id}
+                                        trackingId={item.trackingId}
+                                        routeTitle={`${item.origin} → ${item.destination}`}
+                                        variant="icon"
+                                    />
+
                                     <Link
                                         href={`/tracking?id=${encodeURIComponent(item.trackingId)}`}
                                         className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-colors"
@@ -438,19 +446,28 @@ export default function ShipmentsClient() {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between pt-2 border-t border-[#1a4a4a]">
-                            {canUpdateStatus && (
-                                <button
-                                    onClick={() => {
-                                        const current = selectedShipment;
-                                        setSelectedShipment(null);
-                                        handleOpenStatusModal(current);
-                                    }}
-                                    className="px-3.5 py-2 rounded-xl bg-[#00b4d8]/15 hover:bg-[#00b4d8]/25 text-[#00b4d8] border border-[#00b4d8]/30 text-xs font-bold transition-colors cursor-pointer"
-                                >
-                                    Update Status Checkpoint
-                                </button>
-                            )}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#1a4a4a]">
+                            <div className="flex items-center gap-2">
+                                <ShipmentChatButton
+                                    shipmentId={selectedShipment.id}
+                                    trackingId={selectedShipment.trackingId}
+                                    routeTitle={`${selectedShipment.origin} → ${selectedShipment.destination}`}
+                                    label="Live Dispatch Chat"
+                                />
+
+                                {canUpdateStatus && (
+                                    <button
+                                        onClick={() => {
+                                            const current = selectedShipment;
+                                            setSelectedShipment(null);
+                                            handleOpenStatusModal(current);
+                                        }}
+                                        className="px-3.5 py-2 rounded-xl bg-[#00b4d8]/15 hover:bg-[#00b4d8]/25 text-[#00b4d8] border border-[#00b4d8]/30 text-xs font-bold transition-colors cursor-pointer"
+                                    >
+                                        Update Status Checkpoint
+                                    </button>
+                                )}
+                            </div>
 
                             <div className="flex items-center gap-2 ml-auto">
                                 <button

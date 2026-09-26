@@ -46,6 +46,7 @@ export const ROUTES = {
     SETTINGS: "/settings",
     NOTIFICATIONS: "/dashboard/notifications",
     NOTIFICATION_DETAIL: (id: string) => `/dashboard/notifications/${id}`,
+    CHAT: "/dashboard/chat",
 
     // Admin Legacy Aliases
     ADMIN_USERS: "/dashboard/admin/users",

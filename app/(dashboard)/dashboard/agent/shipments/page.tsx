@@ -30,6 +30,7 @@ import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
 import { AgentShipmentDetailsModal } from "./components/AgentShipmentDetailsModal";
 import { Modal } from "@/components/ui/Modal";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 
 const AGENT_STATUS_TABS: FilterTabOption<ShipmentStatus | "ALL">[] = [
     { key: "ALL", label: "All Assigned" },
@@ -246,6 +247,20 @@ export default function AgentShipmentsPage() {
                             <Eye size={13} />
                             <span>Details</span>
                         </button>
+
+                        {/* Chat with Customer Action Button */}
+                        <ShipmentChatButton
+                            shipmentId={s.id}
+                            trackingId={s.trackingId}
+                            routeTitle={`${s.origin} → ${s.destination}`}
+                            counterpartyName={s.user?.name || "Customer"}
+                            counterpartyRole="Shipper / Customer"
+                            counterpartyPhone={s.user?.phone || undefined}
+                            counterpartyEmail={s.user?.email || undefined}
+                            variant="white"
+                            label="Chat"
+                            className="px-2.5 py-1.5 text-xs"
+                        />
 
                         {/* Accept Button for ASSIGNED status */}
                         {s.status === "ASSIGNED" && (

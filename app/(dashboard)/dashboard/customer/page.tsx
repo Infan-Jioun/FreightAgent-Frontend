@@ -22,6 +22,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ROUTES } from "@/app/constants/routes";
 import { StatCard, StatCardsGrid } from "@/components/ui/dashboard/StatCard";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 import { toast } from "sonner";
 import { AppError } from "@/app/errorHelper/appError";
 import { useAuthStore } from "@/app/store/authStore";
@@ -254,13 +255,29 @@ export default function CustomerOverviewPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Link
-                                            href={`/dashboard/customer/tracking?trackingId=${encodeURIComponent(s.trackingId)}`}
-                                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-xs font-semibold text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/40 transition-all"
-                                        >
-                                            <Search size={12} />
-                                            Track
-                                        </Link>
+                                        <div className="inline-flex items-center gap-1.5 justify-end">
+                                            {s.status !== "CANCELLED" && (
+                                                <ShipmentChatButton
+                                                    shipmentId={s.id}
+                                                    trackingId={s.trackingId}
+                                                    routeTitle={`${s.origin} → ${s.destination}`}
+                                                    counterpartyName={s.assignedAgent?.name || "Terminal Agent"}
+                                                    counterpartyRole="Assigned Carrier Agent"
+                                                    counterpartyPhone={s.assignedAgent?.phone || undefined}
+                                                    counterpartyEmail={s.assignedAgent?.email || undefined}
+                                                    variant="white"
+                                                    label="Chat"
+                                                    className="px-2.5 py-1 text-xs"
+                                                />
+                                            )}
+                                            <Link
+                                                href={`/dashboard/customer/tracking?trackingId=${encodeURIComponent(s.trackingId)}`}
+                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-[#1a4a4a] bg-[#0a1a1a] text-xs font-semibold text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/40 transition-all"
+                                            >
+                                                <Search size={12} />
+                                                Track
+                                            </Link>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

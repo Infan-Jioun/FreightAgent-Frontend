@@ -122,6 +122,31 @@ body {
   background: #00e5c0;
 }
 
+/* Sleek, Ultra-Modern Chat Scrollbar (Transparent Track, Thin Subtle Thumb) */
+.chat-sleek-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 201, 167, 0.3) transparent;
+}
+
+.chat-sleek-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.chat-sleek-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-sleek-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 201, 167, 0.25);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.chat-sleek-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 192, 0.6);
+}
+
 /* Selection */
 ::selection {
   background: rgba(0, 229, 192, 0.2);

@@ -108,4 +108,10 @@ export const API = {
         SESSION: (sessionId: string) => `/rag/session/${encodeURIComponent(sessionId)}`,
         PUBLIC_DIRECTORY: "/rag/public-directory",
     },
+    // Realtime Shipment Chat
+    CHAT: {
+        CONVERSATION: "/chat/conversation",
+        CONVERSATIONS: "/chat/conversations",
+        MESSAGES: (id: string) => `/chat/conversations/${encodeURIComponent(id)}/messages`,
+    },
 } as const;

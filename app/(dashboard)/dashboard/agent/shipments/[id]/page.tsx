@@ -30,6 +30,7 @@ import { Select } from "@/components/ui/select";
 import { ROUTES } from "@/app/constants/routes";
 import { AppError } from "@/app/errorHelper/appError";
 import { useSocketEvent } from "@/app/hooks/useSocket";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 
 const ALLOWED_AGENT_STATUSES: { label: string; value: AgentAllowedStatus }[] = [
     { label: "ACCEPTED - Carrier Accepted Cargo", value: "ACCEPTED" },
@@ -208,9 +209,24 @@ export default function AgentShipmentDetailPage({
                         Manage transit milestones and update checkpoint status for this freight assignment.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#7ecfc4]">Current Status:</span>
-                    <StatusBadge status={shipment.status} />
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-[#7ecfc4]">Current Status:</span>
+                        <StatusBadge status={shipment.status} />
+                    </div>
+
+                    <ShipmentChatButton
+                        shipmentId={shipment.id}
+                        trackingId={shipment.trackingId}
+                        routeTitle={`${shipment.origin} → ${shipment.destination}`}
+                        counterpartyName={shipment.user?.name || "Customer"}
+                        counterpartyRole="Shipper / Customer"
+                        counterpartyPhone={shipment.user?.phone || undefined}
+                        counterpartyEmail={shipment.user?.email || undefined}
+                        variant="button"
+                        label="Chat with Shipper"
+                        className="py-1.5 text-xs"
+                    />
                 </div>
             </div>
 
@@ -271,17 +287,33 @@ export default function AgentShipmentDetailPage({
                         <p className="text-xs font-bold text-[#00e5c0] mt-1">{shipment.weight} kg</p>
                     </div>
 
-                    <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a]">
-                        <span className="text-[11px] text-[#7ecfc4] flex items-center gap-1">
-                            <User size={12} className="text-[#00c9a7]" />
-                            Customer / Merchant
-                        </span>
-                        <p className="text-xs font-bold text-[#e0faf5] mt-1">
-                            {shipment.user?.name || "Merchant"}
-                        </p>
-                        {shipment.user?.phone && (
-                            <p className="text-[10px] text-[#7ecfc4]">{shipment.user.phone}</p>
-                        )}
+                    <div className="p-3.5 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] flex flex-col justify-between">
+                        <div>
+                            <span className="text-[11px] text-[#7ecfc4] flex items-center gap-1">
+                                <User size={12} className="text-[#00c9a7]" />
+                                Customer / Merchant
+                            </span>
+                            <p className="text-xs font-bold text-[#e0faf5] mt-1">
+                                {shipment.user?.name || "Merchant"}
+                            </p>
+                            {shipment.user?.phone && (
+                                <p className="text-[10px] text-[#7ecfc4] font-mono">{shipment.user.phone}</p>
+                            )}
+                        </div>
+                        <div className="mt-2.5 pt-2 border-t border-[#1a4a4a]/60">
+                            <ShipmentChatButton
+                                shipmentId={shipment.id}
+                                trackingId={shipment.trackingId}
+                                routeTitle={`${shipment.origin} → ${shipment.destination}`}
+                                counterpartyName={shipment.user?.name || "Customer"}
+                                counterpartyRole="Shipper / Customer"
+                                counterpartyPhone={shipment.user?.phone || undefined}
+                                counterpartyEmail={shipment.user?.email || undefined}
+                                variant="outline"
+                                label="Chat"
+                                className="w-full justify-center text-xs py-1"
+                            />
+                        </div>
                     </div>
                 </div>
 

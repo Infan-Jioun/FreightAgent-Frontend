@@ -40,6 +40,7 @@ import { useDebounce } from "@/app/hooks/useDebounce";
 import { useSocketEvent } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
 import { CustomerShipmentDetailsModal } from "./components/CustomerShipmentDetailsModal";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 
 const STATUS_FILTERS: FilterTabOption<ShipmentStatus | "ALL">[] = [
     { key: "ALL", label: "All Statuses" },
@@ -200,6 +201,22 @@ export default function CustomerShipmentsPage() {
                             <Eye size={13} />
                             <span>Details</span>
                         </button>
+
+                        {/* Shipment Live Chat Modal Trigger */}
+                        {s.status !== "CANCELLED" && (
+                            <ShipmentChatButton
+                                shipmentId={s.id}
+                                trackingId={s.trackingId}
+                                routeTitle={`${s.origin} → ${s.destination}`}
+                                counterpartyName={s.assignedAgent?.name || "Terminal Agent"}
+                                counterpartyRole="Assigned Carrier Agent"
+                                counterpartyPhone={s.assignedAgent?.phone || undefined}
+                                counterpartyEmail={s.assignedAgent?.email || undefined}
+                                variant="white"
+                                label="Chat"
+                                className="px-2.5 py-1.5 text-xs"
+                            />
+                        )}
 
                         {/* Pay Now Button (if unpaid) */}
                         {(s.paymentStatus === "UNPAID" || s.paymentStatus === "FAILED" || !s.paymentStatus) &&

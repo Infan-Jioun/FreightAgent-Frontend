@@ -56,6 +56,7 @@ export default function DashboardSidebar({ mobileOpen, onCloseMobile }: SidebarP
                 return [
                     { label: "Overview", href: ROUTES.DASHBOARD_ADMIN, icon: Home },
                     { label: "All Shipments", href: ROUTES.DASHBOARD_ADMIN_SHIPMENTS, icon: Package },
+                    { label: "Dispatch Chat", href: ROUTES.CHAT, icon: MessageSquare },
                     { label: "Financial Analytics", href: ROUTES.DASHBOARD_ADMIN_FINANCES, icon: Landmark },
                     { label: "User Management", href: ROUTES.DASHBOARD_ADMIN_USERS, icon: Users },
                     { label: "Freight Tracking", href: ROUTES.DASHBOARD_CUSTOMER_TRACKING, icon: MapPin },

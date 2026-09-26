@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { shipmentService } from "@/app/services/shipment.service";
 import { IShipment, IStatusLog } from "@/app/types/shipment.types";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 import { useSocketContext, useSocketEvent } from "@/app/hooks/useSocket";
 import { AppError } from "@/app/errorHelper/appError";
 
@@ -231,15 +232,29 @@ function TrackingContent() {
                                             </p>
                                         )}
                                     </div>
-                                    {shipment.assignedAgent.phone && (
-                                        <a
-                                            href={`tel:${shipment.assignedAgent.phone}`}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 text-xs font-bold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all w-fit shadow-xs"
-                                        >
-                                            <Phone size={13} />
-                                            <span>{shipment.assignedAgent.phone}</span>
-                                        </a>
-                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <ShipmentChatButton
+                                            shipmentId={shipment.id}
+                                            trackingId={shipment.trackingId}
+                                            routeTitle={`${shipment.origin} → ${shipment.destination}`}
+                                            counterpartyName={shipment.assignedAgent.name}
+                                            counterpartyRole="Assigned Carrier Agent"
+                                            counterpartyPhone={shipment.assignedAgent.phone || undefined}
+                                            counterpartyEmail={shipment.assignedAgent.email || undefined}
+                                            variant="outline"
+                                            label="Live Chat"
+                                            className="px-3 py-1.5 text-xs"
+                                        />
+                                        {shipment.assignedAgent.phone && (
+                                            <a
+                                                href={`tel:${shipment.assignedAgent.phone}`}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 text-xs font-bold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all w-fit shadow-xs"
+                                            >
+                                                <Phone size={13} />
+                                                <span>{shipment.assignedAgent.phone}</span>
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">

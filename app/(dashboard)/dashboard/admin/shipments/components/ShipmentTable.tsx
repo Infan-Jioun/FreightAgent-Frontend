@@ -16,6 +16,7 @@ import { PaymentStatusBadge } from "@/components/ui/status-badge";
 import { DataTableWrapper } from "@/components/ui/DataTableWrapper";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 
 export interface ShipmentTableProps {
     shipments: IShipment[];
@@ -283,9 +284,27 @@ export function ShipmentTable({
                                     })()}
                                 </td>
 
-                                {/* 6. Actions (Only Primary Details + Quick Status) */}
+                                {/* 6. Actions (Chat, Details, Quick Status) */}
                                 <td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                    <div className="inline-flex items-center gap-2 justify-end">
+                                    <div className="inline-flex items-center gap-1.5 justify-end">
+                                        {/* Shipment Live Chat Modal Trigger for Admin */}
+                                        <ShipmentChatButton
+                                            shipmentId={item.id}
+                                            trackingId={item.trackingId}
+                                            routeTitle={`${item.origin} → ${item.destination}`}
+                                            counterpartyName={
+                                                item.assignedAgent
+                                                    ? `${item.user?.name || "Merchant"} ↔ ${item.assignedAgent.name}`
+                                                    : item.user?.name || "Merchant"
+                                            }
+                                            counterpartyRole="Consignment Room"
+                                            counterpartyPhone={item.user?.phone || item.assignedAgent?.phone || undefined}
+                                            counterpartyEmail={item.user?.email || item.assignedAgent?.email || undefined}
+                                            variant="white"
+                                            label="Chat"
+                                            className="px-2.5 py-1.5 text-xs"
+                                        />
+
                                         <button
                                             type="button"
                                             onClick={() => onViewDetails(item)}

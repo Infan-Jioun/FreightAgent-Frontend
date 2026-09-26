@@ -31,6 +31,7 @@ import { AppError } from "@/app/errorHelper/appError";
 import { useAuthStore } from "@/app/store/authStore";
 import { useSocketEvent, useSocketContext } from "@/app/hooks/useSocket";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 
 export default function AgentOverviewPage() {
     const { user } = useAuthStore();
@@ -324,7 +325,12 @@ export default function AgentOverviewPage() {
                                         {s.trackingId}
                                     </TableCell>
                                     <TableCell className="text-xs text-[#e0faf5] font-medium">
-                                        {s.user?.name || "Merchant"}
+                                        <div className="flex flex-col">
+                                            <span className="font-semibold text-[#e0faf5]">{s.user?.name || "Merchant"}</span>
+                                            {s.user?.phone && (
+                                                <span className="text-[10px] text-[#7ecfc4]/70 font-mono">{s.user.phone}</span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-1.5 text-xs">
@@ -344,6 +350,20 @@ export default function AgentOverviewPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="inline-flex items-center gap-1.5">
+                                            {/* Chat with Customer Action Button */}
+                                            <ShipmentChatButton
+                                                shipmentId={s.id}
+                                                trackingId={s.trackingId}
+                                                routeTitle={`${s.origin} → ${s.destination}`}
+                                                counterpartyName={s.user?.name || "Customer"}
+                                                counterpartyRole="Shipper / Customer"
+                                                counterpartyPhone={s.user?.phone || undefined}
+                                                counterpartyEmail={s.user?.email || undefined}
+                                                variant="white"
+                                                label="Chat"
+                                                className="px-2.5 py-1 text-xs"
+                                            />
+
                                             {/* Accept Action Button for ASSIGNED status */}
                                             {s.status === "ASSIGNED" && (
                                                 <PermissionGate permission="shipments:accept">
