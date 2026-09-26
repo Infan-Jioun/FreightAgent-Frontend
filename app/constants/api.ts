@@ -102,4 +102,10 @@ export const API = {
         MARK_ALL_READ: "/notifications/read-all",
         DELETE: (id: string) => `/notifications/${id}`,
     },
+    // RAG AI Assistant
+    RAG: {
+        CHAT: "/rag/chat",
+        SESSION: (sessionId: string) => `/rag/session/${encodeURIComponent(sessionId)}`,
+        PUBLIC_DIRECTORY: "/rag/public-directory",
+    },
 } as const;
