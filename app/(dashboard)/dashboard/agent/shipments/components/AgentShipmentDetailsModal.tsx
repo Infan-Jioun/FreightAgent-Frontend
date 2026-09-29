@@ -26,6 +26,7 @@ import { IShipment } from "@/app/types/shipment.types";
 import { PaymentStatusBadge, StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/Modal";
 import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
+import { resolveInvoiceUrl } from "@/app/lib/invoice";
 
 export interface AgentShipmentDetailsModalProps {
     shipment: IShipment | null;
@@ -197,6 +198,7 @@ export function AgentShipmentDetailsModal({
                             <ShipmentChatButton
                                 shipmentId={shipment.id}
                                 trackingId={shipment.trackingId}
+                                status={shipment.status}
                                 routeTitle={`${shipment.origin} → ${shipment.destination}`}
                                 counterpartyName={shipment.user?.name || "Customer"}
                                 counterpartyRole="Shipper / Customer"
@@ -319,6 +321,19 @@ export function AgentShipmentDetailsModal({
                         Close
                     </button>
 
+                    {shipment.paymentStatus === "PAID" && (
+                        <a
+                            href={resolveInvoiceUrl(shipment.invoiceUrl, shipment.trackingId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#00c9a7]/20 hover:bg-[#00c9a7]/30 text-[#00e5c0] border border-[#00c9a7]/40 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                            title="View / Download Payment Invoice"
+                        >
+                            <FileText size={13} />
+                            <span>📄 Download Receipt (PDF)</span>
+                        </a>
+                    )}
+
                     {shipment.status === "ASSIGNED" && onOpenAcceptModal && (
                         <button
                             type="button"
@@ -336,6 +351,7 @@ export function AgentShipmentDetailsModal({
                     <ShipmentChatButton
                         shipmentId={shipment.id}
                         trackingId={shipment.trackingId}
+                        status={shipment.status}
                         routeTitle={`${shipment.origin} → ${shipment.destination}`}
                         counterpartyName={shipment.user?.name || "Customer"}
                         counterpartyRole="Shipper / Customer"

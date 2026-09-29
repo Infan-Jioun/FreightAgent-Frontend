@@ -291,6 +291,7 @@ export function ShipmentTable({
                                         <ShipmentChatButton
                                             shipmentId={item.id}
                                             trackingId={item.trackingId}
+                                            status={item.status}
                                             routeTitle={`${item.origin} → ${item.destination}`}
                                             counterpartyName={
                                                 item.assignedAgent

@@ -81,6 +81,51 @@ export const chatService = {
       throw AppError.fromAxios(err);
     }
   },
+
+  /**
+   * Edit previously sent message via REST fallback
+   */
+  editMessage: async (
+    conversationId: string,
+    messageId: string,
+    content: string
+  ): Promise<IChatMessage> => {
+    try {
+      const res = await api.patch<IApiResponse<IChatMessage>>(
+        API.CHAT.MESSAGE(conversationId, messageId),
+        { content }
+      );
+      return res.data.data;
+    } catch (err: unknown) {
+      throw AppError.fromAxios(err);
+    }
+  },
+
+  /**
+   * Upload file attachment (max 10MB) to conversation via multipart/form-data
+   */
+  uploadAttachment: async (
+    conversationId: string,
+    file: File
+  ): Promise<IChatMessage> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await api.post<IApiResponse<IChatMessage>>(
+        API.CHAT.UPLOAD(conversationId),
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return res.data.data;
+    } catch (err: unknown) {
+      throw AppError.fromAxios(err);
+    }
+  },
 };
 
 export default chatService;

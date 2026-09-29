@@ -38,7 +38,7 @@ const NAV_LINKS = [
   { label: "Home", href: "/", icon: Home, subtitle: "Autonomous freight" },
   { label: "About", href: "/about", icon: Info, subtitle: "Global presence & vision" },
   { label: "Services", href: "/services", icon: Layers, subtitle: "Ocean, air & ground" },
-  { label: "All Shipments", href: "/shipments", icon: Package, subtitle: "Live cargo telemetry" },
+  { label: "All Shipments", href: "/dashboard/shipments", icon: Package, subtitle: "Live cargo telemetry" },
   { label: "Quote", href: "/quote", icon: Calculator, subtitle: "Instant rate calculator" },
   { label: "Contact", href: "/contact", icon: PhoneCall, subtitle: "24/7 Dispatch desk" },
 ];

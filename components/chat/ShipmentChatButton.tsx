@@ -2,11 +2,16 @@
 
 import React, { useState } from "react";
 import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ShipmentChatModal } from "./ShipmentChatModal";
+import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/app/store/authStore";
 
-interface ShipmentChatButtonProps {
+export interface ShipmentChatButtonProps {
   shipmentId: string;
   trackingId?: string;
+  status?: string;
+  shipmentStatus?: string;
   routeTitle?: string;
   counterpartyName?: string;
   counterpartyRole?: string;
@@ -21,6 +26,8 @@ interface ShipmentChatButtonProps {
 export function ShipmentChatButton({
   shipmentId,
   trackingId,
+  status,
+  shipmentStatus,
   routeTitle,
   counterpartyName,
   counterpartyRole,
@@ -30,73 +37,129 @@ export function ShipmentChatButton({
   variant = "button",
   className = "",
   label = "Dispatch Chat",
-}: ShipmentChatButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
+}: ShipmentChatButtonProps): React.JSX.Element {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === "ADMIN";
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  const currentStatus = shipmentStatus || status;
+  const isDelivered = currentStatus === "DELIVERED";
+
+  const handleOpen = (e: React.MouseEvent<HTMLButtonElement>): void => {
+    e.stopPropagation();
+    setIsOpen(true);
+  };
+
+  const titleText = `Open chat with ${counterpartyName || "carrier / customer"} for #${trackingId || shipmentId}`;
+
+  if (isDelivered) {
+    const deliveredText = isAdmin
+      ? "Successfully Delivered"
+      : "Your shipment already delivered";
+    const titleTextDelivered = isAdmin
+      ? "Successfully Delivered. Chat is closed for this consignment."
+      : "Your shipment already delivered. Chat is closed.";
+
+    if (variant === "icon") {
+      return (
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          title={titleTextDelivered}
+          aria-label={titleTextDelivered}
+          className={cn(
+            "relative inline-flex size-8 items-center justify-center rounded-lg bg-gray-800 text-gray-500 border border-gray-700/60 cursor-not-allowed opacity-80 select-none",
+            className
+          )}
+        >
+          <span className="text-xs">🔒</span>
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        title={titleTextDelivered}
+        className={cn(
+          "px-3 py-1.5 bg-gray-800 text-gray-400 border border-gray-700 rounded-lg text-xs cursor-not-allowed inline-flex items-center gap-2 opacity-80 select-none font-medium",
+          className
+        )}
+      >
+        <span>🔒</span>
+        <span>{deliveredText}</span>
+      </button>
+    );
+  }
 
   return (
     <>
       {variant === "icon" ? (
-        <button
+        <Button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-          title={`Open chat with ${counterpartyName || "customer"} for #${trackingId || shipmentId}`}
-          className={`relative flex size-8 items-center justify-center rounded-xl bg-[#0d1f1f] text-[#7ecfc4] hover:text-[#00e5c0] hover:bg-[#112a2a] border border-[#1a4a4a] hover:border-[#00c9a7]/50 transition-all outline-hidden cursor-pointer ${className}`}
+          variant="secondary"
+          size="icon-sm"
+          shape="box"
+          onClick={handleOpen}
+          title={titleText}
+          aria-label={titleText}
+          className={cn("relative hover:border-[#00c9a7]/50", className)}
         >
-          <MessageSquare className="size-4" />
+          <MessageSquare className="size-3.5" />
           {unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-[#00c9a7] text-[9px] font-bold text-[#0a0f0f] shadow-xs">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
-        </button>
+        </Button>
       ) : variant === "white" ? (
-        <button
+        <Button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-          title={`Open chat with ${counterpartyName || "customer"} for #${trackingId || shipmentId}`}
-          className={`relative inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-100 text-[#091b1b] font-bold shadow-sm hover:shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] outline-hidden cursor-pointer px-3 py-1.5 text-xs ${className}`}
+          variant="white"
+          size="sm"
+          shape="default"
+          onClick={handleOpen}
+          title={titleText}
+          className={cn("relative", className)}
         >
           <MessageSquare className="size-3.5 text-[#091b1b]" />
           <span>{label}</span>
           {unreadCount > 0 && (
-            <span className="ml-1 rounded-full bg-[#00c9a7] px-1.5 py-0.5 text-[10px] font-bold text-[#0a0f0f]">
+            <span className="ml-1 rounded-full bg-[#00c9a7] px-1.5 py-0.2 text-[10px] font-bold text-[#0a0f0f]">
               {unreadCount}
             </span>
           )}
-        </button>
+        </Button>
       ) : variant === "outline" ? (
-        <button
+        <Button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-          title={`Open chat with ${counterpartyName || "customer"} for #${trackingId || shipmentId}`}
-          className={`relative inline-flex items-center gap-1.5 rounded-xl border border-[#1a4a4a] bg-[#0d1f1f] px-3 py-1.5 text-xs font-semibold text-[#7ecfc4] hover:text-[#00e5c0] hover:border-[#00c9a7]/50 hover:bg-[#112a2a] transition-all outline-hidden cursor-pointer ${className}`}
+          variant="outline"
+          size="sm"
+          shape="default"
+          onClick={handleOpen}
+          title={titleText}
+          className={cn("relative", className)}
         >
           <MessageSquare className="size-3.5" />
           <span>{label}</span>
           {unreadCount > 0 && (
-            <span className="ml-1 rounded-full bg-[#00c9a7] px-1.5 py-0.5 text-[10px] font-bold text-[#0a0f0f]">
+            <span className="ml-1 rounded-full bg-[#00c9a7] px-1.5 py-0.2 text-[10px] font-bold text-[#0a0f0f]">
               {unreadCount}
             </span>
           )}
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-          title={`Open chat with ${counterpartyName || "customer"} for #${trackingId || shipmentId}`}
-          className={`relative inline-flex items-center gap-2 rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] px-3.5 py-2 text-xs font-bold text-[#0a0f0f] shadow-[0_2px_10px_rgba(0,201,167,0.25)] hover:shadow-[0_4px_15px_rgba(0,201,167,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] outline-hidden cursor-pointer ${className}`}
+          variant="gradient"
+          size="sm"
+          shape="default"
+          onClick={handleOpen}
+          title={titleText}
+          className={cn("relative", className)}
         >
           <MessageSquare className="size-3.5" />
           <span>{label}</span>
@@ -105,7 +168,7 @@ export function ShipmentChatButton({
               {unreadCount}
             </span>
           )}
-        </button>
+        </Button>
       )}
 
       {isOpen && (
@@ -114,6 +177,7 @@ export function ShipmentChatButton({
           onClose={() => setIsOpen(false)}
           shipmentId={shipmentId}
           trackingId={trackingId}
+          status={currentStatus}
           routeTitle={routeTitle}
           counterpartyName={counterpartyName}
           counterpartyRole={counterpartyRole}

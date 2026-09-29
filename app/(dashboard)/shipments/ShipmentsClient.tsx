@@ -325,6 +325,7 @@ export default function ShipmentsClient() {
                                     <ShipmentChatButton
                                         shipmentId={item.id}
                                         trackingId={item.trackingId}
+                                        status={item.status}
                                         routeTitle={`${item.origin} → ${item.destination}`}
                                         variant="icon"
                                     />
@@ -451,6 +452,7 @@ export default function ShipmentsClient() {
                                 <ShipmentChatButton
                                     shipmentId={selectedShipment.id}
                                     trackingId={selectedShipment.trackingId}
+                                    status={selectedShipment.status}
                                     routeTitle={`${selectedShipment.origin} → ${selectedShipment.destination}`}
                                     label="Live Dispatch Chat"
                                 />

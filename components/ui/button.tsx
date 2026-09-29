@@ -60,6 +60,10 @@ const buttonVariants = cva(
                 // Link styled button
                 link:
                     "text-[#00c9a7] underline-offset-4 hover:underline hover:text-[#00e5c0] p-0 h-auto border-none",
+
+                // White high-contrast button for dark backgrounds or clean modal surfaces
+                white:
+                    "bg-white hover:bg-slate-100 text-[#091b1b] font-bold shadow-md shadow-white/10 hover:shadow-lg border border-slate-200/50",
             },
             size: {
                 xs: "h-6 px-2.5 text-[10px] gap-1",

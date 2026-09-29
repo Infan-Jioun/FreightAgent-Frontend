@@ -63,6 +63,7 @@ export interface IUser {
     email: string;
     role: UserRole;
     image: string | null;
+    avatar?: string | null;
     phone?: string | null;
     address?: string | null;
     emailVerified: boolean;

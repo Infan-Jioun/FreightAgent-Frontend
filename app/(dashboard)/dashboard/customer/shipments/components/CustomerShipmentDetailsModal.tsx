@@ -20,12 +20,15 @@ import {
     Receipt,
     Loader2,
     ShieldAlert,
+    Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { IShipment } from "@/app/types/shipment.types";
 import { StatusBadge, PaymentStatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/Modal";
 import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
+import { resolveInvoiceUrl, downloadInvoicePdf } from "@/app/lib/invoice";
+
 
 export interface CustomerShipmentDetailsModalProps {
     shipment: IShipment | null;
@@ -171,6 +174,7 @@ export function CustomerShipmentDetailsModal({
                                 <ShipmentChatButton
                                     shipmentId={shipment.id}
                                     trackingId={shipment.trackingId}
+                                    status={shipment.status}
                                     routeTitle={`${shipment.origin} → ${shipment.destination}`}
                                     counterpartyName={shipment.assignedAgent.name}
                                     counterpartyRole="Assigned Agent"
@@ -223,6 +227,7 @@ export function CustomerShipmentDetailsModal({
                                     <ShipmentChatButton
                                         shipmentId={shipment.id}
                                         trackingId={shipment.trackingId}
+                                        status={shipment.status}
                                         routeTitle={`${shipment.origin} → ${shipment.destination}`}
                                         counterpartyName={shipment.assignedAgent.name}
                                         counterpartyRole="Assigned Carrier Agent"
@@ -323,21 +328,34 @@ export function CustomerShipmentDetailsModal({
                     </div>
 
                     {/* Receipt Download Action Banner if Paid */}
-                    {shipment.paymentStatus === "PAID" && shipment.invoiceUrl && (
-                        <div className="p-3 rounded-xl bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 text-xs text-[#e0faf5]">
-                                <FileText size={16} className="text-[#00e5c0] shrink-0" />
-                                <span className="font-semibold">Official invoice receipt generated for this booking</span>
+                    {shipment.paymentStatus === "PAID" && (
+                        <div className="p-3.5 rounded-xl bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5 text-xs text-[#e0faf5]">
+                                <FileText size={18} className="text-[#00e5c0] shrink-0" />
+                                <div>
+                                    <span className="font-bold block text-white">Official Tax Invoice & Payment Receipt</span>
+                                    <span className="text-[11px] text-[#7ecfc4]/80">Generated on local dispatch server for #{shipment.trackingId}</span>
+                                </div>
                             </div>
-                            <a
-                                href={shipment.invoiceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] text-xs font-black transition-all shadow-xs shrink-0"
-                            >
-                                <FileText size={13} />
-                                <span>📄 Download Receipt</span>
-                            </a>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <a
+                                    href={resolveInvoiceUrl(shipment.invoiceUrl, shipment.trackingId)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] text-xs font-black transition-all shadow-xs shrink-0 cursor-pointer"
+                                >
+                                    <FileText size={13} />
+                                    <span>📄 View & Download Invoice</span>
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => void downloadInvoicePdf(resolveInvoiceUrl(shipment.invoiceUrl, shipment.trackingId), shipment.trackingId)}
+                                    className="p-1.5 rounded-xl bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-white border border-[#1a4a4a] transition-colors cursor-pointer"
+                                    title="Direct PDF Download"
+                                >
+                                    <Download size={14} />
+                                </button>
+                            </div>
                         </div>
                     )}
 
@@ -366,15 +384,15 @@ export function CustomerShipmentDetailsModal({
                         Close
                     </button>
 
-                    {shipment.paymentStatus === "PAID" && shipment.invoiceUrl && (
+                    {shipment.paymentStatus === "PAID" && (
                         <a
-                            href={shipment.invoiceUrl}
+                            href={resolveInvoiceUrl(shipment.invoiceUrl, shipment.trackingId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#00c9a7]/20 hover:bg-[#00c9a7]/30 text-[#00e5c0] border border-[#00c9a7]/40 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                         >
                             <FileText size={13} />
-                            <span>📄 Download Receipt</span>
+                            <span>📄 Download Receipt (PDF)</span>
                         </a>
                     )}
 
@@ -382,6 +400,7 @@ export function CustomerShipmentDetailsModal({
                         <ShipmentChatButton
                             shipmentId={shipment.id}
                             trackingId={shipment.trackingId}
+                            status={shipment.status}
                             routeTitle={`${shipment.origin} → ${shipment.destination}`}
                             counterpartyName={shipment.assignedAgent.name}
                             counterpartyRole="Assigned Agent"

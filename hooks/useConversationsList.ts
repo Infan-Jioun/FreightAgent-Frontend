@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { IConversation, IChatMessage } from "@/app/types/chat.types";
+import { IConversation, IChatMessage, IConversationClosedSocketPayload } from "@/app/types/chat.types";
 import { chatService } from "@/app/services/chat.service";
 import { useSocketEvent } from "@/app/providers/SocketProvider";
 import { useAuthStore } from "@/app/store/authStore";
@@ -62,6 +62,45 @@ export function useConversationsList(activeConversationId?: string) {
       updated.splice(index, 1);
       return [target, ...updated];
     });
+  });
+
+  // Update conversation list real-time when a message is edited
+  useSocketEvent<IChatMessage>("message_edited", (updatedMsg) => {
+    if (!updatedMsg) return;
+
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv.id === updatedMsg.conversationId) {
+          return {
+            ...conv,
+            lastMessage: updatedMsg.content,
+          };
+        }
+        return conv;
+      })
+    );
+  });
+
+  // Update conversation status in real-time when a shipment is marked DELIVERED
+  useSocketEvent<IConversationClosedSocketPayload>("conversation_closed", (data) => {
+    if (!data) return;
+
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (
+          conv.id === data.conversationId ||
+          (data.shipmentId && conv.shipmentId === data.shipmentId)
+        ) {
+          return {
+            ...conv,
+            shipment: conv.shipment
+              ? { ...conv.shipment, status: "DELIVERED" }
+              : conv.shipment,
+          };
+        }
+        return conv;
+      })
+    );
   });
 
   return {

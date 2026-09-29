@@ -7,6 +7,7 @@ import {
   IChatMessage,
   IUserTypingSocketPayload,
   IChatErrorSocketPayload,
+  IConversationClosedSocketPayload,
 } from "@/app/types/chat.types";
 import { chatService } from "@/app/services/chat.service";
 import { useSocketContext, useSocketEvent } from "@/app/providers/SocketProvider";
@@ -16,15 +17,18 @@ import { getErrorMessage } from "@/app/errorHelper/appError";
 interface UseShipmentChatOptions {
   conversationId?: string;
   shipmentId?: string;
+  shipmentStatus?: string;
   autoJoin?: boolean;
 }
 
 export function useShipmentChat({
   conversationId: initialConversationId,
   shipmentId,
+  shipmentStatus,
   autoJoin = true,
 }: UseShipmentChatOptions = {}) {
   const { user } = useAuthStore();
+  const isAdmin = user?.role === "ADMIN";
   const { socket, isConnected, emit } = useSocketContext();
 
   const [conversation, setConversation] = useState<IConversation | null>(null);
@@ -36,9 +40,25 @@ export function useShipmentChat({
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isCounterpartyTyping, setIsCounterpartyTyping] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [isChatClosed, setIsChatClosed] = useState<boolean>(() => shipmentStatus === "DELIVERED");
+
+  // Keep isChatClosed in sync when shipmentStatus changes
+  useEffect(() => {
+    if (shipmentStatus === "DELIVERED") {
+      setIsChatClosed(true);
+    }
+  }, [shipmentStatus]);
+
+  // Keep isChatClosed in sync when conversation payload loads
+  useEffect(() => {
+    if (conversation?.shipment?.status === "DELIVERED") {
+      setIsChatClosed(true);
+    }
+  }, [conversation?.shipment?.status]);
 
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingSentRef = useRef<number>(0);
+  const localStopTypingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sync if initialConversationId changes
   useEffect(() => {
@@ -127,6 +147,23 @@ export function useShipmentChat({
     }
   });
 
+  // Socket: message_edited handler
+  useSocketEvent<IChatMessage>("message_edited", (updatedMsg) => {
+    if (!updatedMsg || updatedMsg.conversationId !== activeConversationId) return;
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === updatedMsg.id
+          ? {
+              ...msg,
+              ...updatedMsg,
+              isEdited: true,
+            }
+          : msg
+      )
+    );
+  });
+
   // Socket: user_typing handler
   useSocketEvent<IUserTypingSocketPayload>("user_typing", (data) => {
     if (!data || data.conversationId !== activeConversationId) return;
@@ -155,9 +192,33 @@ export function useShipmentChat({
     }
   });
 
+  // Socket: conversation_closed handler
+  useSocketEvent<IConversationClosedSocketPayload>("conversation_closed", (data) => {
+    if (!data) return;
+    if (data.conversationId === activeConversationId || (data.shipmentId && data.shipmentId === shipmentId)) {
+      setIsChatClosed(true);
+      setConversation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          shipment: prev.shipment ? { ...prev.shipment, status: "DELIVERED" } : prev.shipment,
+        };
+      });
+      toast.info(
+        data.message ||
+          (isAdmin
+            ? "Successfully Delivered. Chat is closed."
+            : "Your shipment already delivered. Chat is closed.")
+      );
+    }
+  });
+
   // Socket: chat_error handler
   useSocketEvent<IChatErrorSocketPayload>("chat_error", (data) => {
     if (!data) return;
+    if (data.message && data.message.toLowerCase().includes("already delivered")) {
+      setIsChatClosed(true);
+    }
     toast.error(data.message || "Chat operation encountered an error");
     setError(data.message);
   });
@@ -165,13 +226,25 @@ export function useShipmentChat({
   // Send Message with WebSocket primary & REST fallback
   const sendMessage = useCallback(
     async (content: string) => {
+      if (isChatClosed) {
+        toast.error(
+          isAdmin
+            ? "Successfully Delivered. Chat is closed for this consignment."
+            : "Your shipment already delivered. Chat is closed for this consignment."
+        );
+        return;
+      }
+
       const trimmed = content.trim();
       if (!trimmed || !activeConversationId || isSending) return;
 
       setIsSending(true);
       setError(null);
 
-      // Stop typing state locally
+      // Stop typing state locally and notify socket room
+      if (localStopTypingTimerRef.current) {
+        clearTimeout(localStopTypingTimerRef.current);
+      }
       if (isConnected) {
         emit("stop_typing", { conversationId: activeConversationId });
       }
@@ -202,18 +275,28 @@ export function useShipmentChat({
         setIsSending(false);
       }
     },
-    [activeConversationId, isConnected, isSending, socket, emit]
+    [activeConversationId, isConnected, isSending, isChatClosed, socket, emit]
   );
 
-  // Send typing event throttled to once every 2 seconds
+  // Send typing event throttled to once every 1.5s, with 2s inactivity auto stop
   const sendTyping = useCallback(() => {
-    if (!activeConversationId || !isConnected) return;
+    if (!activeConversationId || !isConnected || isChatClosed) return;
     const now = Date.now();
-    if (now - lastTypingSentRef.current > 2000) {
+    if (now - lastTypingSentRef.current > 1500) {
       lastTypingSentRef.current = now;
       emit("typing", { conversationId: activeConversationId });
     }
-  }, [activeConversationId, isConnected, emit]);
+
+    if (localStopTypingTimerRef.current) {
+      clearTimeout(localStopTypingTimerRef.current);
+    }
+
+    localStopTypingTimerRef.current = setTimeout(() => {
+      if (activeConversationId && isConnected) {
+        emit("stop_typing", { conversationId: activeConversationId });
+      }
+    }, 2000);
+  }, [activeConversationId, isConnected, isChatClosed, emit]);
 
   // Clean up timers
   useEffect(() => {
@@ -221,8 +304,75 @@ export function useShipmentChat({
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
+      if (localStopTypingTimerRef.current) {
+        clearTimeout(localStopTypingTimerRef.current);
+      }
     };
   }, []);
+
+  // Edit Message with WebSocket primary & REST fallback
+  const editMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      if (isChatClosed) {
+        toast.error(
+          isAdmin
+            ? "Successfully Delivered. Chat is closed for this consignment."
+            : "Your shipment already delivered. Chat is closed for this consignment."
+        );
+        return;
+      }
+
+      const trimmed = newContent.trim();
+      if (!trimmed || !activeConversationId) return;
+
+      try {
+        if (isConnected && socket) {
+          emit(
+            "edit_message",
+            {
+              conversationId: activeConversationId,
+              messageId,
+              content: trimmed,
+            },
+            (response?: { success: boolean; data?: IChatMessage; error?: string }) => {
+              if (response && !response.success) {
+                toast.error(response.error || "Failed to edit message");
+              }
+            }
+          );
+
+          // Optimistically update local message state for immediate UI feedback
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    content: trimmed,
+                    isEdited: true,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : m
+            )
+          );
+        } else {
+          // REST API fallback
+          const updated = await chatService.editMessage(
+            activeConversationId,
+            messageId,
+            trimmed
+          );
+          setMessages((prev) =>
+            prev.map((m) => (m.id === messageId ? { ...m, ...updated, isEdited: true } : m))
+          );
+        }
+      } catch (err) {
+        const msg = getErrorMessage(err, "Failed to edit message");
+        toast.error(msg);
+        throw err;
+      }
+    },
+    [activeConversationId, isConnected, isChatClosed, socket, emit]
+  );
 
   return {
     conversation,
@@ -233,7 +383,10 @@ export function useShipmentChat({
     isCounterpartyTyping,
     error,
     isConnected,
+    isChatClosed,
+    setIsChatClosed,
     sendMessage,
+    editMessage,
     sendTyping,
     reloadMessages: () => activeConversationId && loadMessages(activeConversationId),
   };

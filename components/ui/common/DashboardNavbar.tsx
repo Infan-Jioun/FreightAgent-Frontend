@@ -11,6 +11,8 @@ interface NavbarProps {
 
 const PAGE_TITLES: Record<string, string> = {
     "/dashboard": "Dashboard",
+    "/dashboard/shipments": "Shipments",
+    "/dashboard/notifications": "Notifications",
     "/shipments": "Shipments",
     "/shipments/create": "New Shipment",
     "/profile": "Profile",

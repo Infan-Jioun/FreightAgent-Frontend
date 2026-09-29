@@ -218,6 +218,7 @@ export default function AgentShipmentDetailPage({
                     <ShipmentChatButton
                         shipmentId={shipment.id}
                         trackingId={shipment.trackingId}
+                        status={shipment.status}
                         routeTitle={`${shipment.origin} → ${shipment.destination}`}
                         counterpartyName={shipment.user?.name || "Customer"}
                         counterpartyRole="Shipper / Customer"
@@ -304,6 +305,7 @@ export default function AgentShipmentDetailPage({
                             <ShipmentChatButton
                                 shipmentId={shipment.id}
                                 trackingId={shipment.trackingId}
+                                status={shipment.status}
                                 routeTitle={`${shipment.origin} → ${shipment.destination}`}
                                 counterpartyName={shipment.user?.name || "Customer"}
                                 counterpartyRole="Shipper / Customer"

@@ -8,7 +8,7 @@ interface EnvConfig {
     NEXT_PUBLIC_ACCESS_TOKEN_KEY: string;
     NEXT_PUBLIC_REFRESH_TOKEN_KEY: string;
     NEXT_PUBLIC_SESSION_TOKEN_KEY: string;
- 
+    NEXT_PUBLIC_SOCKET_URL: string
 }
 
 const loadVariabales = (): EnvConfig => {
@@ -18,7 +18,7 @@ const loadVariabales = (): EnvConfig => {
     //     "NEXT_PUBLIC_ACCESS_TOKEN_KEY",
     //     "NEXT_PUBLIC_REFRESH_TOKEN_KEY",
     //     "NEXT_PUBLIC_SESSION_TOKEN_KEY",
-     
+
     // ];
 
     // requirementVariables.forEach((variable) => {
@@ -36,6 +36,7 @@ const loadVariabales = (): EnvConfig => {
         NEXT_PUBLIC_ACCESS_TOKEN_KEY: process.env.NEXT_PUBLIC_ACCESS_TOKEN_KEY as string,
         NEXT_PUBLIC_REFRESH_TOKEN_KEY: process.env.NEXT_PUBLIC_REFRESH_TOKEN_KEY as string,
         NEXT_PUBLIC_SESSION_TOKEN_KEY: process.env.NEXT_PUBLIC_SESSION_TOKEN_KEY as string,
+        NEXT_PUBLIC_SOCKET_URL : process.env.NEXT_PUBLIC_SOCKET_URL as string
     };
 };
 

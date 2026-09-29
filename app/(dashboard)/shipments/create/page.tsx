@@ -1,18 +1,8 @@
-import type { Metadata } from "next";
-import CreateShipmentClient from "./CreateShipmentClient";
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/app/constants/routes";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-    title: "Book Freight Consignment | FreightAgent",
-    description: "Schedule a freight consignment dispatch across regional and global corridors.",
-    robots: {
-        index: false,
-        follow: false,
-        nocache: true,
-    },
-};
-
-export default function CreateShipmentPage() {
-    return <CreateShipmentClient />;
+export default function CreateShipmentLegacyRedirectPage() {
+    redirect(ROUTES.DASHBOARD_CUSTOMER_SHIPMENTS_NEW);
 }

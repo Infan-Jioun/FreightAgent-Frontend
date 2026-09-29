@@ -10,6 +10,7 @@ export interface IChatUser {
   phone?: string;
   role: "ADMIN" | "AGENT" | "CUSTOMER" | string;
   avatar?: string | null;
+  image?: string | null;
 }
 
 export interface IChatMessage {
@@ -18,10 +19,14 @@ export interface IChatMessage {
   senderId: string;
   content: string;
   isRead: boolean;
+  isEdited?: boolean;
   createdAt: string;
   updatedAt?: string;
   sender?: IChatUser;
 }
+
+export type IMessage = IChatMessage;
+
 
 export interface IConversationShipment {
   id: string;
@@ -61,6 +66,17 @@ export interface ISendMessageHttpPayload {
   content: string;
 }
 
+export interface IEditMessagePayload {
+  conversationId: string;
+  messageId: string;
+  content: string;
+}
+
+export interface IEditMessageHttpPayload {
+  content: string;
+}
+
+
 export interface IJoinConversationPayload {
   conversationId: string;
 }
@@ -73,4 +89,10 @@ export interface IUserTypingSocketPayload {
 export interface IChatErrorSocketPayload {
   statusCode: number;
   message: string;
+}
+
+export interface IConversationClosedSocketPayload {
+  conversationId: string;
+  shipmentId?: string;
+  message?: string;
 }

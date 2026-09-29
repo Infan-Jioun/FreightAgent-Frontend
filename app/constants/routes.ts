@@ -38,7 +38,7 @@ export const ROUTES = {
     DASHBOARD_ADMIN_FINANCES: "/dashboard/admin/finances",
 
     // General Dashboard / Account
-    SHIPMENTS: "/dashboard/customer/shipments",
+    SHIPMENTS: "/dashboard/shipments",
     SHIPMENT_CREATE: "/dashboard/customer/shipments/new",
     SHIPMENT_DETAIL: (id: string) => `/dashboard/agent/shipments/${id}`,
     TRACKING: (trackingId: string) => `/dashboard/customer/tracking?trackingId=${encodeURIComponent(trackingId)}`,

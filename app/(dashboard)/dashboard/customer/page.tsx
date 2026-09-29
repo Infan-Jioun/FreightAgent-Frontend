@@ -260,6 +260,7 @@ export default function CustomerOverviewPage() {
                                                 <ShipmentChatButton
                                                     shipmentId={s.id}
                                                     trackingId={s.trackingId}
+                                                    status={s.status}
                                                     routeTitle={`${s.origin} → ${s.destination}`}
                                                     counterpartyName={s.assignedAgent?.name || "Terminal Agent"}
                                                     counterpartyRole="Assigned Carrier Agent"
