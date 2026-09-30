@@ -39,7 +39,7 @@ const INITIAL_SEED_NOTIFICATIONS: INotification[] = [
     priority: "HIGH",
     timestamp: new Date(Date.now() - 1000 * 60 * 12).toISOString(), // 12 mins ago
     read: false,
-    link: "/tracking?id=FA-882910",
+    link: "/dashboard/customer/tracking?trackingId=FA-882910",
     metadata: {
       trackingId: "FA-882910",
       status: "AT_CUSTOMS",
@@ -54,7 +54,7 @@ const INITIAL_SEED_NOTIFICATIONS: INotification[] = [
     priority: "NORMAL",
     timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 mins ago
     read: false,
-    link: "/tracking?id=FA-771822",
+    link: "/dashboard/customer/tracking?trackingId=FA-771822",
     metadata: {
       trackingId: "FA-771822",
       status: "OUT_FOR_DELIVERY",
@@ -69,7 +69,7 @@ const INITIAL_SEED_NOTIFICATIONS: INotification[] = [
     priority: "NORMAL",
     timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
     read: true,
-    link: "/shipments",
+    link: "/dashboard/shipments",
     metadata: {
       trackingId: "FA-662910",
       status: "CLEARED",

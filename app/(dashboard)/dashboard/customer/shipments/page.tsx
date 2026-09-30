@@ -37,9 +37,12 @@ import { ROUTES } from "@/app/constants/routes";
 import { toast } from "sonner";
 import { AppError } from "@/app/errorHelper/appError";
 import { useDebounce } from "@/app/hooks/useDebounce";
-import { useSocketEvent } from "@/app/hooks/useSocket";
 import { usePaymentSocket } from "@/app/hooks/usePaymentSocket";
 import { CustomerShipmentDetailsModal } from "./components/CustomerShipmentDetailsModal";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
+import { resolveInvoiceUrl } from "@/app/lib/invoice";
+import { useSocketEvent } from "@/app/providers/SocketProvider";
+
 
 const STATUS_FILTERS: FilterTabOption<ShipmentStatus | "ALL">[] = [
     { key: "ALL", label: "All Statuses" },
@@ -201,6 +204,23 @@ export default function CustomerShipmentsPage() {
                             <span>Details</span>
                         </button>
 
+                        {/* Shipment Live Chat Modal Trigger */}
+                        {s.status !== "CANCELLED" && (
+                            <ShipmentChatButton
+                                shipmentId={s.id}
+                                trackingId={s.trackingId}
+                                status={s.status}
+                                routeTitle={`${s.origin} → ${s.destination}`}
+                                counterpartyName={s.assignedAgent?.name || "Terminal Agent"}
+                                counterpartyRole="Assigned Carrier Agent"
+                                counterpartyPhone={s.assignedAgent?.phone || undefined}
+                                counterpartyEmail={s.assignedAgent?.email || undefined}
+                                variant="white"
+                                label="Chat"
+                                className="px-2.5 py-1.5 text-xs"
+                            />
+                        )}
+
                         {/* Pay Now Button (if unpaid) */}
                         {(s.paymentStatus === "UNPAID" || s.paymentStatus === "FAILED" || !s.paymentStatus) &&
                             s.status !== "CANCELLED" && (
@@ -219,13 +239,13 @@ export default function CustomerShipmentsPage() {
                                 </button>
                             )}
 
-                        {/* Download Receipt (if paid and invoiceUrl available) */}
-                        {s.paymentStatus === "PAID" && s.invoiceUrl && (
+                        {/* Download Receipt (if paid) */}
+                        {s.paymentStatus === "PAID" && (
                             <a
-                                href={s.invoiceUrl}
+                                href={resolveInvoiceUrl(s.invoiceUrl, s.trackingId)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-all shadow-xs"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-all shadow-xs cursor-pointer"
                                 title="Download Payment Receipt PDF"
                             >
                                 <FileText size={12} />

@@ -1,23 +1,13 @@
-import type { Metadata } from "next";
-import NotificationDetailClient from "./NotificationDetailClient";
-
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/app/constants/routes";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Notification Details | FreightAgent",
-  description: "View specific operational notification details, payload metadata, and transit milestones.",
-  robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-  },
-};
-
-export default function NotificationDetailPage({
+export default async function NotificationDetailLegacyPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <NotificationDetailClient params={params} />;
+  const resolved = await params;
+  redirect(ROUTES.NOTIFICATION_DETAIL(resolved.id));
 }

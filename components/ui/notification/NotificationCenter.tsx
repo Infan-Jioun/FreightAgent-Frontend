@@ -25,6 +25,8 @@ import { useDesktopNotification } from "@/hooks/useDesktopNotification";
 import { NotificationBell } from "./NotificationBell";
 import { useAuthStore } from "@/app/store/authStore";
 import { toast } from "sonner";
+import { ROUTES } from "@/app/constants/routes";
+import { resolveNotificationDestination } from "@/app/lib/notificationRoutes";
 
 export interface NotificationCenterProps {
   currentUser?: {
@@ -418,24 +420,34 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
                     <div className="flex items-center justify-between mt-2 pt-0.5">
                       <div className="flex items-center gap-2">
-                        {item.link ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsOpen(false);
-                              router.push(item.link!);
-                            }}
-                            className="flex items-center gap-1 text-[10px] font-bold text-[#00c9a7] hover:underline cursor-pointer"
-                          >
-                            <span>Direct resource</span>
-                            <ExternalLink className="w-2.5 h-2.5" />
-                          </button>
-                        ) : (
-                          <span className="text-[9px] font-mono text-[#3a6b66] uppercase">
-                            {item.type.replace(/_/g, " ")}
-                          </span>
-                        )}
+                        {(() => {
+                          const targetUrl = resolveNotificationDestination(
+                            item,
+                            effectiveUser?.role
+                          );
+                          const hasResource = Boolean(
+                            targetUrl && targetUrl !== ROUTES.NOTIFICATION_DETAIL(item.id)
+                          );
+
+                          return hasResource ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsOpen(false);
+                                router.push(targetUrl);
+                              }}
+                              className="flex items-center gap-1 text-[10px] font-bold text-[#00c9a7] hover:underline cursor-pointer"
+                            >
+                              <span>Direct resource</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </button>
+                          ) : (
+                            <span className="text-[9px] font-mono text-[#3a6b66] uppercase">
+                              {item.type.replace(/_/g, " ")}
+                            </span>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex items-center gap-2">

@@ -9,6 +9,8 @@ import {
 import { Loader2, ShieldCheck, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { paymentService } from "@/app/services/payment.service";
+import { PaymentSuccessCard } from "./PaymentSuccessCard";
+import { resolveInvoiceUrl } from "@/app/lib/invoice";
 
 interface CheckoutFormProps {
     shipmentId: string;
@@ -29,6 +31,7 @@ export function CheckoutForm({
     const elements = useElements();
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successInvoiceUrl, setSuccessInvoiceUrl] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,21 +57,28 @@ export function CheckoutForm({
                 setErrorMessage(message);
                 toast.error(message);
             } else if (paymentIntent && paymentIntent.status === "succeeded") {
-                // Call verification endpoint to immediately set status = PAID and generate invoiceUrl
+                let invoiceUrl = "";
                 try {
-                    await paymentService.verifyPaymentStatus(shipmentId);
+                    const verifyResult = await paymentService.verifyPaymentStatus(shipmentId);
+                    invoiceUrl = verifyResult?.invoiceUrl || "";
                 } catch {
-                    // Fallback log if webhook handles it asynchronously
+                    // Fallback handled by resolveInvoiceUrl
                 }
+                const resolvedUrl = resolveInvoiceUrl(invoiceUrl, trackingId);
                 toast.success(`Payment of $${amountUSD.toFixed(2)} USD completed successfully!`);
+                setSuccessInvoiceUrl(resolvedUrl);
                 onSuccess();
             } else if (paymentIntent && paymentIntent.status === "processing") {
+                let invoiceUrl = "";
                 try {
-                    await paymentService.verifyPaymentStatus(shipmentId);
+                    const verifyResult = await paymentService.verifyPaymentStatus(shipmentId);
+                    invoiceUrl = verifyResult?.invoiceUrl || "";
                 } catch {
                     // Ignore background processing error
                 }
+                const resolvedUrl = resolveInvoiceUrl(invoiceUrl, trackingId);
                 toast.info("Payment is currently processing. Your invoice will update shortly.");
+                setSuccessInvoiceUrl(resolvedUrl);
                 onSuccess();
             } else {
                 toast.info("Payment authentication required or in progress.");
@@ -81,6 +91,17 @@ export function CheckoutForm({
             setIsProcessing(false);
         }
     };
+
+    if (successInvoiceUrl) {
+        return (
+            <PaymentSuccessCard
+                invoiceUrl={successInvoiceUrl}
+                trackingId={trackingId}
+                amountUSD={amountUSD}
+                onClose={onCancel}
+            />
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">

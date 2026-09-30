@@ -22,8 +22,10 @@ import { toast } from "sonner";
 import { shipmentService } from "@/app/services/shipment.service";
 import { IShipment, IStatusLog } from "@/app/types/shipment.types";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
 import { useSocketContext, useSocketEvent } from "@/app/hooks/useSocket";
 import { AppError } from "@/app/errorHelper/appError";
+import { resolveInvoiceUrl } from "@/app/lib/invoice";
 
 function TrackingContent() {
     const searchParams = useSearchParams();
@@ -177,9 +179,23 @@ function TrackingContent() {
                                     Booked on {new Date(shipment.createdAt).toLocaleDateString()}
                                 </p>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-xs text-[#7ecfc4]">Current Status:</span>
-                                <StatusBadge status={shipment.status} />
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-[#7ecfc4]">Current Status:</span>
+                                    <StatusBadge status={shipment.status} />
+                                </div>
+                                {shipment.paymentStatus === "PAID" && (
+                                    <a
+                                        href={resolveInvoiceUrl(shipment.invoiceUrl, shipment.trackingId)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 hover:bg-[#00c9a7]/25 text-[#00e5c0] border border-[#00c9a7]/30 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                                        title="Download Tax Invoice PDF"
+                                    >
+                                        <FileText size={13} />
+                                        <span>📄 Download Invoice (PDF)</span>
+                                    </a>
+                                )}
                             </div>
                         </div>
 
@@ -231,15 +247,30 @@ function TrackingContent() {
                                             </p>
                                         )}
                                     </div>
-                                    {shipment.assignedAgent.phone && (
-                                        <a
-                                            href={`tel:${shipment.assignedAgent.phone}`}
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 text-xs font-bold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all w-fit shadow-xs"
-                                        >
-                                            <Phone size={13} />
-                                            <span>{shipment.assignedAgent.phone}</span>
-                                        </a>
-                                    )}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <ShipmentChatButton
+                                            shipmentId={shipment.id}
+                                            trackingId={shipment.trackingId}
+                                            status={shipment.status}
+                                            routeTitle={`${shipment.origin} → ${shipment.destination}`}
+                                            counterpartyName={shipment.assignedAgent.name}
+                                            counterpartyRole="Assigned Carrier Agent"
+                                            counterpartyPhone={shipment.assignedAgent.phone || undefined}
+                                            counterpartyEmail={shipment.assignedAgent.email || undefined}
+                                            variant="outline"
+                                            label="Live Chat"
+                                            className="px-3 py-1.5 text-xs"
+                                        />
+                                        {shipment.assignedAgent.phone && (
+                                            <a
+                                                href={`tel:${shipment.assignedAgent.phone}`}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00c9a7]/15 text-xs font-bold text-[#00e5c0] border border-[#00c9a7]/30 hover:bg-[#00c9a7] hover:text-[#0a0f0f] transition-all w-fit shadow-xs"
+                                            >
+                                                <Phone size={13} />
+                                                <span>{shipment.assignedAgent.phone}</span>
+                                            </a>
+                                        )}
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-2">

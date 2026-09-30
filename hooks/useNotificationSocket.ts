@@ -6,6 +6,8 @@ import { INotification } from "@/types/notification";
 import { toast } from "sonner";
 import { playNotificationChime } from "@/app/lib/browserNotification";
 import { useSocketContext } from "@/app/providers/SocketProvider";
+import { envConfig } from "@/app/config/env";
+import { resolveNotificationDestination } from "@/app/lib/notificationRoutes";
 
 let globalSocket: Socket | null = null;
 
@@ -16,15 +18,15 @@ interface UseNotificationSocketProps {
 }
 
 function getSocketServerUrl(): string {
-  if (process.env.NEXT_PUBLIC_SOCKET_URL) {
-    return process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (envConfig.NEXT_PUBLIC_SOCKET_URL) {
+    return envConfig.NEXT_PUBLIC_SOCKET_URL;
   }
-  const rawApi = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  const rawApi = envConfig.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
   try {
     const parsed = new URL(rawApi);
     return parsed.origin;
   } catch {
-    return "http://localhost:5000";
+    return envConfig.NEXT_PUBLIC_API_URL;
   }
 }
 
@@ -79,24 +81,23 @@ export const useNotificationSocket = ({
       playNotificationChime();
 
       // 2. Display in-app toast
+      const targetUrl = resolveNotificationDestination(incoming, role);
       toast(incoming.title, {
         description: incoming.message,
-        action: incoming.link
-          ? {
-              label: "View",
-              onClick: () => {
-                if (typeof window !== "undefined") {
-                  window.location.href = incoming.link!;
-                }
-              },
+        action: {
+          label: "View",
+          onClick: () => {
+            if (typeof window !== "undefined") {
+              window.location.href = targetUrl;
             }
-          : undefined,
+          },
+        },
         duration: 5000,
       });
 
       // 3. Desktop OS Notification if tab is hidden / backgrounded
       if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-        showDesktopNotification(incoming.title, incoming.message, incoming.link);
+        showDesktopNotification(incoming.title, incoming.message, targetUrl);
       }
 
       // 4. Increment local unread counter

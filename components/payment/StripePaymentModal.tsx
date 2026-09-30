@@ -96,10 +96,7 @@ export function StripePaymentModal({
                             shipmentId={shipment.id}
                             trackingId={shipment.trackingId}
                             amountUSD={amountUSD}
-                            onSuccess={() => {
-                                onSuccess();
-                                onClose();
-                            }}
+                            onSuccess={onSuccess}
                             onCancel={onClose}
                         />
                     </Elements>

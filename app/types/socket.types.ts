@@ -71,5 +71,6 @@ export interface PaymentSocketPayload {
     currency?: string;
     error?: string;
     refundId?: string;
+    invoiceUrl?: string;
     message: string;
 }

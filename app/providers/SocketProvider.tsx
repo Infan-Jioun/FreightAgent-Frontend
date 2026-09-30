@@ -10,6 +10,7 @@ import {
     IShipmentAssignedSocketPayload,
     INewShipmentRequestSocketPayload,
 } from "@/app/types/socket.types";
+import { envConfig } from "../config/env";
 
 interface SocketContextType {
     socket: Socket | null;
@@ -29,7 +30,7 @@ const SocketContext = createContext<SocketContextType>({
  * Normalizes backend URL by stripping /api/v1 to reach the base Socket.IO server
  */
 function getSocketBaseUrl(): string {
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    const rawUrl = envConfig.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
     try {
         const parsed = new URL(rawUrl);
         return parsed.origin;
@@ -190,6 +191,32 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                     if (isCancelled) return;
                     notifySubscribers("unread_count_updated", data);
                 });
+
+                // Real-time Shipment Chat Events
+                localSocket.on("new_message", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("new_message", data);
+                });
+
+                localSocket.on("user_typing", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("user_typing", data);
+                });
+
+                localSocket.on("user_stop_typing", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("user_stop_typing", data);
+                });
+
+                localSocket.on("chat_error", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("chat_error", data);
+                });
+
+                localSocket.on("message_edited", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("message_edited", data);
+                });
             } catch (err) {
                 console.warn("Socket initialization skipped:", err);
             }
@@ -210,6 +237,11 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 localSocket.off("shipment_update");
                 localSocket.off("notification");
                 localSocket.off("unread_count_updated");
+                localSocket.off("new_message");
+                localSocket.off("message_edited");
+                localSocket.off("user_typing");
+                localSocket.off("user_stop_typing");
+                localSocket.off("chat_error");
                 localSocket.disconnect();
             }
             socketRef.current = null;

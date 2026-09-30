@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { IShipment } from "@/app/types/shipment.types";
 import { PaymentStatusBadge, StatusBadge } from "@/components/ui/status-badge";
 import { Modal } from "@/components/ui/Modal";
+import { ShipmentChatButton } from "@/components/chat/ShipmentChatButton";
+import { resolveInvoiceUrl } from "@/app/lib/invoice";
 
 export interface AgentShipmentDetailsModalProps {
     shipment: IShipment | null;
@@ -86,9 +88,6 @@ export function AgentShipmentDetailsModal({
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono text-[#00c9a7] uppercase tracking-wider font-bold">
                                 Consignment Waybill
-                            </span>
-                            <span className="text-[10px] text-[#3a6b66] font-mono">
-                                ID: {shipment.id.slice(0, 12)}...
                             </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
@@ -191,10 +190,25 @@ export function AgentShipmentDetailsModal({
 
                     {/* Customer Contact */}
                     <div className="p-4 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] space-y-3">
-                        <h4 className="text-xs font-bold text-[#e0faf5] uppercase tracking-wider flex items-center gap-1.5">
-                            <User size={14} className="text-[#00c9a7]" />
-                            <span>Shipper / Merchant Contact</span>
-                        </h4>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-[#e0faf5] uppercase tracking-wider flex items-center gap-1.5">
+                                <User size={14} className="text-[#00c9a7]" />
+                                <span>Shipper / Merchant Contact</span>
+                            </h4>
+                            <ShipmentChatButton
+                                shipmentId={shipment.id}
+                                trackingId={shipment.trackingId}
+                                status={shipment.status}
+                                routeTitle={`${shipment.origin} → ${shipment.destination}`}
+                                counterpartyName={shipment.user?.name || "Customer"}
+                                counterpartyRole="Shipper / Customer"
+                                counterpartyPhone={shipment.user?.phone || undefined}
+                                counterpartyEmail={shipment.user?.email || undefined}
+                                variant="white"
+                                label="Chat"
+                                className="px-2.5 py-1 text-xs"
+                            />
+                        </div>
 
                         <div className="space-y-2 text-xs">
                             <div className="flex items-center gap-2">
@@ -307,6 +321,19 @@ export function AgentShipmentDetailsModal({
                         Close
                     </button>
 
+                    {shipment.paymentStatus === "PAID" && (
+                        <a
+                            href={resolveInvoiceUrl(shipment.invoiceUrl, shipment.trackingId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#00c9a7]/20 hover:bg-[#00c9a7]/30 text-[#00e5c0] border border-[#00c9a7]/40 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                            title="View / Download Payment Invoice"
+                        >
+                            <FileText size={13} />
+                            <span>📄 Download Receipt (PDF)</span>
+                        </a>
+                    )}
+
                     {shipment.status === "ASSIGNED" && onOpenAcceptModal && (
                         <button
                             type="button"
@@ -320,6 +347,20 @@ export function AgentShipmentDetailsModal({
                             <span>Accept Consignment</span>
                         </button>
                     )}
+
+                    <ShipmentChatButton
+                        shipmentId={shipment.id}
+                        trackingId={shipment.trackingId}
+                        status={shipment.status}
+                        routeTitle={`${shipment.origin} → ${shipment.destination}`}
+                        counterpartyName={shipment.user?.name || "Customer"}
+                        counterpartyRole="Shipper / Customer"
+                        counterpartyPhone={shipment.user?.phone || undefined}
+                        counterpartyEmail={shipment.user?.email || undefined}
+                        variant="white"
+                        label="Live Dispatch Chat"
+                        className="w-full sm:w-auto"
+                    />
 
                     <Link
                         href={`/dashboard/agent/shipments/${shipment.id}`}
