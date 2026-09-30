@@ -191,14 +191,14 @@ export function ShipmentTable({
                                 <td className="py-3.5 px-4">
                                     <div className="flex flex-col min-w-0">
                                         <span
-                                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
+                                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-47.5"
                                             title={`Waybill: ${item.trackingId}`}
                                         >
                                             {item.trackingId.length > 20
                                                 ? `${item.trackingId.slice(0, 10)}...${item.trackingId.slice(-6)}`
                                                 : item.trackingId}
                                         </span>
-                                        <span className="text-[11px] text-[#7ecfc4]/70 truncate max-w-[190px]">
+                                        <span className="text-[11px] text-[#7ecfc4]/70 truncate max-w-47.5">
                                             {item.user?.name ? item.user.name : "Guest Shipper"}
                                         </span>
                                     </div>
@@ -206,7 +206,7 @@ export function ShipmentTable({
 
                                 {/* 2. Route Corridor */}
                                 <td className="py-3.5 px-4">
-                                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[220px]">
+                                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-55">
                                         <span className="truncate" title={item.origin}>
                                             {item.origin}
                                         </span>
@@ -249,7 +249,7 @@ export function ShipmentTable({
                                         }
 
                                         return (
-                                            <div className="flex flex-col min-w-0 max-w-[210px]">
+                                            <div className="flex flex-col min-w-0 max-w-52.5">
                                                 {/* Agent Name */}
                                                 <div className="flex items-center gap-1.5 min-w-0">
                                                     <div className="w-5 h-5 rounded-md bg-[#00c9a7]/15 border border-[#00c9a7]/30 flex items-center justify-center shrink-0">
@@ -265,7 +265,7 @@ export function ShipmentTable({
 
                                                 {/* Agent Email */}
                                                 {agent.email ? (
-                                                    <div className="flex items-center gap-1.5 mt-0.5 pl-[26px] min-w-0">
+                                                    <div className="flex items-center gap-1.5 mt-0.5 pl-6.5 min-w-0">
                                                         <Mail size={10} className="text-[#00c9a7]/70 shrink-0" />
                                                         <span
                                                             className="text-[11px] text-[#7ecfc4] hover:text-[#00e5c0] truncate font-mono transition-colors"
@@ -275,7 +275,7 @@ export function ShipmentTable({
                                                         </span>
                                                     </div>
                                                 ) : agent.phone ? (
-                                                    <span className="text-[10px] text-[#7ecfc4]/70 truncate font-mono mt-0.5 pl-[26px]">
+                                                    <span className="text-[10px] text-[#7ecfc4]/70 truncate font-mono mt-0.5 pl-6.5">
                                                         {agent.phone}
                                                     </span>
                                                 ) : null}

@@ -207,10 +207,10 @@ export function Navbar() {
   return (
     <header
       ref={headerRef}
-      className="fixed top-0 left-0 right-0 z-[60] px-3 sm:px-4 pt-3 md:pt-4 pointer-events-none"
+      className="fixed top-0 left-0 right-0 z-60 px-3 sm:px-4 pt-3 md:pt-4 pointer-events-none"
     >
       <nav
-        className="pointer-events-auto mx-auto max-w-[1240px] flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2 transition-all duration-300 relative overflow-visible rounded-2xl border"
+        className="pointer-events-auto mx-auto max-w-310 flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2 transition-all duration-300 relative overflow-visible rounded-2xl border"
         style={{
           height: scrolled ? "60px" : "66px",
           background: scrolled
@@ -227,7 +227,7 @@ export function Navbar() {
         }}
       >
         {/* Glowing border scan line */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden opacity-50 pointer-events-none rounded-t-2xl">
+        <div className="absolute top-0 left-0 right-0 h-0.5 overflow-hidden opacity-50 pointer-events-none rounded-t-2xl">
           <motion.div
             className="w-full h-full"
             style={{
@@ -296,7 +296,7 @@ export function Navbar() {
                 {(isActive || hoveredLink === link.label) && (
                   <motion.div
                     layoutId="navUnderline"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8]"
+                    className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8]"
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
@@ -346,7 +346,7 @@ export function Navbar() {
                     initials={userInitials}
                     size="sm"
                   />
-                  <span className="max-w-[85px] truncate text-xs font-bold text-[#e0faf5]">
+                  <span className="max-w-21.25 truncate text-xs font-bold text-[#e0faf5]">
                     {displayName}
                   </span>
                   <ChevronDown
@@ -512,17 +512,17 @@ export function Navbar() {
               <motion.span
                 animate={mobileMenuOpen ? { rotate: 45, y: 5.5 } : { rotate: 0, y: 0 }}
                 transition={{ duration: 0.2 }}
-                className="w-4 h-[2px] bg-[#00e5c0] rounded-full origin-center"
+                className="w-4 h-0.5 bg-[#00e5c0] rounded-full origin-center"
               />
               <motion.span
                 animate={mobileMenuOpen ? { opacity: 0, scale: 0.5 } : { opacity: 1, scale: 1 }}
                 transition={{ duration: 0.15 }}
-                className="w-4 h-[2px] bg-[#00e5c0] rounded-full"
+                className="w-4 h-0.5 bg-[#00e5c0] rounded-full"
               />
               <motion.span
                 animate={mobileMenuOpen ? { rotate: -45, y: -5.5 } : { rotate: 0, y: 0 }}
                 transition={{ duration: 0.2 }}
-                className="w-4 h-[2px] bg-[#00e5c0] rounded-full origin-center"
+                className="w-4 h-0.5 bg-[#00e5c0] rounded-full origin-center"
               />
             </div>
 
@@ -531,7 +531,7 @@ export function Navbar() {
 
         {/* Scroll Progress line */}
         <motion.div
-          className="absolute bottom-0 left-0 right-0 h-[2px] z-50 origin-left"
+          className="absolute bottom-0 left-0 right-0 h-0.5 z-50 origin-left"
           style={{
             scaleX,
             background: "linear-gradient(90deg, #00c9a7, #00e5c0, #00b4d8)",
@@ -544,7 +544,7 @@ export function Navbar() {
         createPortal(
           <AnimatePresence>
             {mobileMenuOpen && (
-              <div className="fixed inset-0 z-[99999] lg:hidden flex">
+              <div className="fixed inset-0 z-99999 lg:hidden flex">
                 {/* Full Screen Backdrop */}
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -561,10 +561,10 @@ export function Navbar() {
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
                   transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                  className="relative ml-auto w-full sm:w-[380px] max-w-[85vw] h-full bg-[#0d1f1f] border-l border-[#1a4a4a] shadow-2xl z-10 flex flex-col justify-between p-5 sm:p-6 overflow-y-auto"
+                  className="relative ml-auto w-full sm:w-95 max-w-[85vw] h-full bg-[#0d1f1f] border-l border-[#1a4a4a] shadow-2xl z-10 flex flex-col justify-between p-5 sm:p-6 overflow-y-auto"
                 >
                   {/* Glowing vertical scanline on the left border */}
-                  <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-[#00c9a7] via-[#00e5c0]/60 to-transparent pointer-events-none" />
+                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-linear-to-b from-[#00c9a7] via-[#00e5c0]/60 to-transparent pointer-events-none" />
 
                   {/* Ambient radial glow */}
                   <div className="absolute top-12 right-0 w-64 h-64 bg-[#00c9a7]/10 rounded-full blur-3xl pointer-events-none" />
@@ -577,7 +577,7 @@ export function Navbar() {
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-2.5"
                       >
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20">
                           <Anchor size={16} />
                         </div>
                         <div>

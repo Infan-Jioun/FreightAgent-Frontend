@@ -138,7 +138,7 @@ function TrackingContent() {
                     <button
                         type="submit"
                         disabled={loading || !trackingIdInput.trim()}
-                        className="px-6 py-3 rounded-2xl bg-[#00c9a7] text-xs font-bold text-[#0a0f0f] hover:bg-[#00e5c0] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                        className="px-6 py-3 rounded-2xl bg-[#00c9a7] text-xs font-bold text-[#0a0f0f] hover:bg-[#00e5c0] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20 disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer shrink-0"
                     >
                         {loading ? (
                             <>
@@ -338,7 +338,7 @@ function TrackingContent() {
                                         <div key={log.id || idx} className="relative group">
                                             {/* Milestone Node Bullet */}
                                             <div
-                                                className={`absolute -left-[31px] sm:-left-[39px] top-1 w-4 h-4 rounded-full border-2 ${
+                                                className={`absolute -left-7.75 sm:-left-9.75 top-1 w-4 h-4 rounded-full border-2 ${
                                                     isLatest
                                                         ? "border-[#00c9a7] bg-[#00c9a7] ring-4 ring-[#00c9a7]/20"
                                                         : "border-[#1a4a4a] bg-[#0d1f1f]"

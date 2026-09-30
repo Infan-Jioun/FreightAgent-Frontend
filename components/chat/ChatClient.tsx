@@ -179,7 +179,7 @@ function renderChatContent(
             <img
               src={url}
               alt={fileName}
-              className="max-w-[240px] sm:max-w-xs max-h-56 object-cover rounded-xl transition-transform group-hover:scale-[1.02]"
+              className="max-w-60 sm:max-w-xs max-h-56 object-cover rounded-xl transition-transform group-hover:scale-[1.02]"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold">
               <Maximize2 className="size-4 text-[#00e5c0]" />
@@ -464,7 +464,7 @@ export function ChatClient() {
 
   return (
     <>
-      <div className="relative w-full rounded-[28px] sm:rounded-[32px] border border-white/10 bg-[#091b1b]/95 backdrop-blur-2xl shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row h-[calc(100vh-165px)] min-h-[520px] max-h-[740px]">
+      <div className="relative w-full rounded-[28px] sm:rounded-[32px] border border-white/10 bg-[#091b1b]/95 backdrop-blur-2xl shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row h-[calc(100vh-165px)] min-h-130 max-h-185">
         {/* Ambient background glows */}
         <div className="pointer-events-none absolute -top-40 -right-40 size-96 rounded-full bg-[#00c9a7]/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-40 size-96 rounded-full bg-[#0077b6]/10 blur-3xl" />
@@ -475,8 +475,8 @@ export function ChatClient() {
         <div
           className={`flex flex-col border-r border-white/10 bg-[#0e2626]/75 backdrop-blur-md z-10 ${
             selectedConversation
-              ? "hidden md:flex md:w-[290px] lg:w-[320px]"
-              : "w-full md:w-[290px] lg:w-[320px]"
+              ? "hidden md:flex md:w-72.5 lg:w-[320px]"
+              : "w-full md:w-72.5 lg:w-[320px]"
           } shrink-0`}
         >
           {/* Search Header */}
@@ -503,7 +503,7 @@ export function ChatClient() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or email..."
-                className="w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder-white/40 focus:outline-hidden focus:border-[#00c9a7]/60 focus:bg-white/10 transition-all"
+                className="w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-white/40 focus:outline-hidden focus:border-[#00c9a7]/60 focus:bg-white/10 transition-all"
               />
             </div>
           </div>
@@ -778,7 +778,7 @@ export function ChatClient() {
                             </div>
 
                             {/* Incoming message bubble */}
-                            <div className="rounded-[20px] rounded-tl-[4px] bg-[#ebf4f2] text-[#0d2626] px-3.5 py-2 shadow-md shadow-black/10">
+                            <div className="rounded-[20px] rounded-tl-1 bg-[#ebf4f2] text-[#0d2626] px-3.5 py-2 shadow-md shadow-black/10">
                               {renderChatContent(msg, false, (url, name) =>
                                 setPreviewImage({ url, title: name })
                               )}
@@ -817,14 +817,14 @@ export function ChatClient() {
                                   onClick={() => startEditing(msg)}
                                   title="Edit message"
                                   aria-label="Edit message"
-                                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 rounded-md text-white/50 hover:text-[#00e5c0] hover:bg-white/10 cursor-pointer"
+                                  className="group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1 rounded-md text-white/50 hover:text-[#00e5c0] hover:bg-white/10 cursor-pointer"
                                 >
                                   <Pencil className="size-3.5" />
                                 </button>
                               )}
 
                               {/* Outgoing message bubble: dark frosted teal capsule */}
-                              <div className="rounded-[20px] rounded-br-[4px] bg-[#163838]/95 border border-white/10 text-white px-3.5 py-2 shadow-md shadow-black/20">
+                              <div className="rounded-[20px] rounded-br-1 bg-[#163838]/95 border border-white/10 text-white px-3.5 py-2 shadow-md shadow-black/20">
                                 {renderChatContent(msg, true, (url, name) =>
                                   setPreviewImage({ url, title: name })
                                 )}
@@ -957,7 +957,7 @@ export function ChatClient() {
                       }
                       maxLength={2000}
                       disabled={isSending || isUploadingFile}
-                      className="grow bg-transparent text-xs text-white placeholder-white/40 focus:outline-hidden"
+                      className="grow bg-transparent text-xs text-white placeholder:text-white/40 focus:outline-hidden"
                     />
 
                     {/* Send message button */}

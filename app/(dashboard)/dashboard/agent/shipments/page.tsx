@@ -159,14 +159,14 @@ export default function AgentShipmentsPage() {
                 cell: (s) => (
                     <div className="flex flex-col min-w-0">
                         <span
-                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
+                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-47.5"
                             title={`Waybill: ${s.trackingId}`}
                         >
                             {s.trackingId.length > 20
                                 ? `${s.trackingId.slice(0, 10)}...${s.trackingId.slice(-6)}`
                                 : s.trackingId}
                         </span>
-                        <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/70 truncate max-w-[190px] mt-0.5">
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#7ecfc4]/70 truncate max-w-47.5 mt-0.5">
                             <User size={11} className="text-[#7ecfc4]/60 shrink-0" />
                             <span className="truncate">{s.user?.name || "Merchant Shipper"}</span>
                         </div>
@@ -177,7 +177,7 @@ export default function AgentShipmentsPage() {
                 id: "route",
                 header: "Route Corridor",
                 cell: (s) => (
-                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[240px]">
+                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-60">
                         <span className="truncate" title={s.origin}>
                             {s.origin}
                         </span>
@@ -201,7 +201,7 @@ export default function AgentShipmentsPage() {
                                 ${s.declaredCargoValue.toFixed(0)} USD
                             </span>
                         ) : s.description ? (
-                            <span className="text-[10px] text-[#7ecfc4]/60 truncate max-w-[140px]" title={s.description}>
+                            <span className="text-[10px] text-[#7ecfc4]/60 truncate max-w-35" title={s.description}>
                                 {s.description}
                             </span>
                         ) : null}
@@ -436,7 +436,7 @@ export default function AgentShipmentsPage() {
                                     value={acceptLocation}
                                     onChange={(e) => setAcceptLocation(e.target.value)}
                                     placeholder="e.g. Chattogram Port / Hub Warehouse"
-                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7]"
+                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus-visible:outline-hidden focus-visible:border-[#00c9a7]"
                                 />
                             </div>
 
@@ -449,7 +449,7 @@ export default function AgentShipmentsPage() {
                                     value={acceptNote}
                                     onChange={(e) => setAcceptNote(e.target.value)}
                                     placeholder="e.g. Received by agent, ready for pickup"
-                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] resize-none"
+                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus-visible:outline-hidden focus-visible:border-[#00c9a7] resize-none"
                                 />
                             </div>
 

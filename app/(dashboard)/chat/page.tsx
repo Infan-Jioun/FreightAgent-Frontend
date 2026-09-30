@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function ChatPage() {
   return (
-    <div className="p-3 sm:p-5 md:p-6 max-w-[1400px] mx-auto w-full">
+    <div className="p-3 sm:p-5 md:p-6 max-w-350 mx-auto w-full">
       <ChatClient />
     </div>
   );

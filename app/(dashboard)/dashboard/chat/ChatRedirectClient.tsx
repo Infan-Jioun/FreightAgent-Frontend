@@ -32,12 +32,12 @@ export default function ChatRedirectClient() {
   // If Admin, render the full Dispatch Monitoring Console
   if (isAdmin) {
     return (
-      <div className="relative p-1.5 sm:p-4 md:p-6 max-w-[1440px] mx-auto w-full min-h-[calc(100vh-85px)] flex items-center justify-center">
+      <div className="relative p-1.5 sm:p-4 md:p-6 max-w-360 mx-auto w-full min-h-[calc(100vh-85px)] flex items-center justify-center">
         {/* Decorative concentric background rings */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-30 select-none">
-          <div className="size-[580px] rounded-full border border-[#00c9a7]/20" />
-          <div className="absolute size-[880px] rounded-full border border-[#00c9a7]/10" />
-          <div className="absolute size-[1180px] rounded-full border border-[#00c9a7]/5" />
+          <div className="size-145 rounded-full border border-[#00c9a7]/20" />
+          <div className="absolute size-220 rounded-full border border-[#00c9a7]/10" />
+          <div className="absolute size-295 rounded-full border border-[#00c9a7]/5" />
         </div>
 
         <ChatClient />

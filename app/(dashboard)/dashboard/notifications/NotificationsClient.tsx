@@ -346,7 +346,7 @@ export default function NotificationsClient() {
                 className={`p-4 sm:p-5 flex items-start gap-4 transition-all relative group cursor-pointer ${
                   item.isRead
                     ? "bg-transparent hover:bg-[#0a1a1a]/60"
-                    : "bg-[#00c9a7]/[0.03] hover:bg-[#00c9a7]/[0.07]"
+                    : "bg-[#00c9a7]/3 hover:bg-[#00c9a7]/7"
                 }`}
               >
                 {/* Type Category Icon */}

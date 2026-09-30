@@ -177,7 +177,7 @@ export function AgentShipmentDetailsModal({
 
                         {shipment.description && (
                             <div className="p-2.5 rounded-xl bg-[#112a2a]/40 border border-[#1a4a4a]/40 text-xs">
-                                <span className="text-[10px] text-[#7ecfc4] block mb-0.5 flex items-center gap-1">
+                                <span className="text-[10px] text-[#7ecfc4] mb-0.5 flex items-center gap-1">
                                     <FileText size={11} />
                                     <span>Cargo Manifest / Instructions</span>
                                 </span>

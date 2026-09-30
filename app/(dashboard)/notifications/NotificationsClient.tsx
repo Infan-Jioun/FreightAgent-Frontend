@@ -285,20 +285,21 @@ export default function NotificationsClient() {
         </div>
 
         {/* Search Input */}
-        <div className="relative min-w-[240px]">
+        <div className="relative min-w-60">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3a6b66]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search alerts or consignments..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:border-[#00c9a7] focus:outline-hidden transition-all"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden transition-all"
           />
         </div>
       </div>
 
       {/* Notifications List Card Container */}
-      <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden divide-y divide-[#1a4a4a]/50">
+      <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden">
+        <div className="divide-y divide-[#1a4a4a]/50">
         {isLoading ? (
           <div className="p-16 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 rounded-full border-2 border-[#1a4a4a] border-t-[#00c9a7] animate-spin" />
@@ -328,7 +329,7 @@ export default function NotificationsClient() {
               className={`p-4 sm:p-5 flex items-start gap-4 transition-all relative group cursor-pointer ${
                 item.isRead
                   ? "bg-transparent hover:bg-[#0a1a1a]/60"
-                  : "bg-[#00c9a7]/[0.03] hover:bg-[#00c9a7]/[0.07]"
+                  : "bg-[#00c9a7]/3 hover:bg-[#00c9a7]/7"
               }`}
             >
               {/* Type Category Icon */}
@@ -417,6 +418,7 @@ export default function NotificationsClient() {
             </div>
           ))
         )}
+        </div>
       </div>
     </div>
   );

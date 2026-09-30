@@ -170,7 +170,7 @@ function renderChatContent(
             <img
               src={url}
               alt={fileName}
-              className="max-w-[240px] sm:max-w-xs max-h-56 object-cover rounded-xl transition-transform group-hover:scale-[1.02]"
+              className="max-w-60 sm:max-w-xs max-h-56 object-cover rounded-xl transition-transform group-hover:scale-[1.02]"
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-semibold">
               <Maximize2 className="size-4 text-[#00e5c0]" />
@@ -458,7 +458,7 @@ export function ShipmentChatModal({
         onClose={onClose}
         maxWidth="2xl"
         showCloseButton={false}
-        className="p-0 overflow-hidden bg-[#091b1b]/95 border border-white/15 rounded-[28px] sm:rounded-[32px] shadow-[0_25px_80px_rgba(0,0,0,0.95)] max-h-[92vh] h-[670px] flex flex-col relative"
+        className="p-0 overflow-hidden bg-[#091b1b]/95 border border-white/15 rounded-[28px] sm:rounded-[32px] shadow-[0_25px_80px_rgba(0,0,0,0.95)] max-h-[92vh] h-167.5 flex flex-col relative"
         contentClassName="flex-1 min-h-0 flex flex-col overflow-hidden p-0"
       >
         {/* Ambient background glows */}
@@ -556,7 +556,7 @@ export function ShipmentChatModal({
               </span>
               <span className="hidden sm:flex items-center gap-1 text-[10px] sm:text-[11px] text-white/60">
                 <MapPin className="size-3 text-[#00c9a7] shrink-0" />
-                <span className="truncate max-w-[140px]">{effectiveRoute}</span>
+                <span className="truncate max-w-35">{effectiveRoute}</span>
               </span>
             </div>
           </div>
@@ -703,7 +703,7 @@ export function ShipmentChatModal({
                             onClick={() => startEditing(msg)}
                             title="Edit message"
                             aria-label="Edit message"
-                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 rounded-lg text-white/50 hover:text-[#00e5c0] hover:bg-white/10 cursor-pointer"
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1.5 rounded-lg text-white/50 hover:text-[#00e5c0] hover:bg-white/10 cursor-pointer"
                           >
                             <Pencil className="size-3.5" />
                           </button>
@@ -850,7 +850,7 @@ export function ShipmentChatModal({
               }
               maxLength={2000}
               disabled={isSending || isUploadingFile}
-              className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-white placeholder-white/40 focus:outline-hidden py-0.5"
+              className="flex-1 min-w-0 bg-transparent text-xs sm:text-sm text-white focus:outline-hidden py-0.5"
             />
 
             {/* Send message button */}

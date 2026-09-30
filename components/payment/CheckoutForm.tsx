@@ -153,7 +153,7 @@ export function CheckoutForm({
                     <button
                         type="submit"
                         disabled={!stripe || !elements || isProcessing}
-                        className="px-5 py-2 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-xs font-black text-[#0a0f0f] transition-all flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="px-5 py-2 rounded-xl bg-[#00c9a7] hover:bg-[#00e5c0] text-xs font-black text-[#0a0f0f] transition-all flex items-center gap-2 shadow-xs enabled:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         {isProcessing && <Loader2 size={13} className="animate-spin" />}
                         <span>{isProcessing ? "Processing..." : `Pay $${amountUSD.toFixed(2)} USD`}</span>
