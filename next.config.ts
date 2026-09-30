@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react", "@react-three/fiber", "@react-three/drei"],
+
   },
   images: {
     remotePatterns: [
@@ -15,6 +16,15 @@ const nextConfig: NextConfig = {
         hostname: "res.cloudinary.com",
       },
     ],
+  },
+  async redirects() {
+    return [
+      {
+        source: "/register/agent",
+        destination: "/register-agent",
+        permanent: true,
+      },
+    ];
   },
 };
 

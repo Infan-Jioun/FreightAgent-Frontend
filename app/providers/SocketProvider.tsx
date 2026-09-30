@@ -10,6 +10,8 @@ import {
     IShipmentAssignedSocketPayload,
     INewShipmentRequestSocketPayload,
 } from "@/app/types/socket.types";
+import { envConfig } from "../config/env";
+import { getClientCookie } from "../lib/cookie";
 
 interface SocketContextType {
     socket: Socket | null;
@@ -29,7 +31,10 @@ const SocketContext = createContext<SocketContextType>({
  * Normalizes backend URL by stripping /api/v1 to reach the base Socket.IO server
  */
 function getSocketBaseUrl(): string {
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    if (envConfig.NEXT_PUBLIC_SOCKET_URL) {
+        return envConfig.NEXT_PUBLIC_SOCKET_URL;
+    }
+    const rawUrl = envConfig.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
     try {
         const parsed = new URL(rawUrl);
         return parsed.origin;
@@ -78,17 +83,22 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 if (isCancelled) return;
 
                 const socketBaseUrl = getSocketBaseUrl();
+                const token =
+                    getClientCookie("accessToken") ||
+                    getClientCookie("freightagent.accessToken") ||
+                    "";
 
                 localSocket = io(socketBaseUrl, {
+                    auth: { token },
                     query: {
                         userId: user.id,
                         role: user.role, // "ADMIN" | "AGENT" | "CUSTOMER"
                     },
-                    transports: ["websocket", "polling"],
+                    transports: ["websocket"], // Backend strictly allows websocket
                     withCredentials: true,
                     reconnection: true,
-                    reconnectionAttempts: 10,
-                    reconnectionDelay: 2000,
+                    reconnectionAttempts: 15,
+                    reconnectionDelay: 1500,
                 });
 
                 socketRef.current = localSocket;
@@ -178,6 +188,60 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                     if (isCancelled) return;
                     notifySubscribers("shipment_update", data);
                 });
+
+                // Real-time backend notification event
+                localSocket.on("notification", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("notification", data);
+                });
+
+                // Real-time unread count sync event
+                localSocket.on("unread_count_updated", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("unread_count_updated", data);
+                });
+
+                // Real-time Shipment Chat Events
+                localSocket.on("new_message", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("new_message", data);
+                });
+
+                localSocket.on("messages_read", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("messages_read", data);
+                });
+
+                localSocket.on("message_edited", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("message_edited", data);
+                });
+
+                localSocket.on("user_typing", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("user_typing", data);
+                });
+
+                localSocket.on("user_stop_typing", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("user_stop_typing", data);
+                });
+
+                localSocket.on("chat_error", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("chat_error", data);
+                });
+
+                localSocket.on("session_expired", (data: unknown) => {
+                    if (isCancelled) return;
+                    toast.error("Your session has expired. Please refresh your browser or re-login.");
+                    notifySubscribers("session_expired", data);
+                });
+
+                localSocket.on("conversation_closed", (data: unknown) => {
+                    if (isCancelled) return;
+                    notifySubscribers("conversation_closed", data);
+                });
             } catch (err) {
                 console.warn("Socket initialization skipped:", err);
             }
@@ -196,6 +260,16 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
                 localSocket.off("new_shipment_request");
                 localSocket.off("new_shipment");
                 localSocket.off("shipment_update");
+                localSocket.off("notification");
+                localSocket.off("unread_count_updated");
+                localSocket.off("new_message");
+                localSocket.off("messages_read");
+                localSocket.off("message_edited");
+                localSocket.off("user_typing");
+                localSocket.off("user_stop_typing");
+                localSocket.off("chat_error");
+                localSocket.off("session_expired");
+                localSocket.off("conversation_closed");
                 localSocket.disconnect();
             }
             socketRef.current = null;
@@ -206,6 +280,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const emit = useCallback((event: string, ...args: unknown[]) => {
         if (socketRef.current && socketRef.current.connected) {
             socketRef.current.emit(event, ...args);
+        } else {
+            const lastArg = args[args.length - 1];
+            if (typeof lastArg === "function") {
+                (lastArg as (res: { success: boolean; error: string }) => void)({
+                    success: false,
+                    error: "WebSocket is currently not connected.",
+                });
+            }
         }
     }, []);
 
