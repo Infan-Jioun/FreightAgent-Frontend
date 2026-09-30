@@ -81,6 +81,28 @@ export function useConversationsList(activeConversationId?: string) {
     );
   });
 
+  // Reset unread count when messages are marked as read
+  useSocketEvent<{ conversationId: string; readBy: string; readAt: string }>(
+    "messages_read",
+    (data) => {
+      if (!data?.conversationId) return;
+
+      setConversations((prev) =>
+        prev.map((conv) => {
+          if (conv.id === data.conversationId) {
+            return {
+              ...conv,
+              unreadCount: 0,
+              customerUnread: user?.role === "CUSTOMER" ? 0 : conv.customerUnread,
+              agentUnread: user?.role === "AGENT" ? 0 : conv.agentUnread,
+            };
+          }
+          return conv;
+        })
+      );
+    }
+  );
+
   // Update conversation status in real-time when a shipment is marked DELIVERED
   useSocketEvent<IConversationClosedSocketPayload>("conversation_closed", (data) => {
     if (!data) return;

@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ROUTES } from "@/app/constants/routes";
 import { useAuthStore } from "@/app/store/authStore";
 import { resolveNotificationDestination } from "@/app/lib/notificationRoutes";
+import { ConfirmAlertModal } from "@/components/ui/ConfirmAlertModal";
 
 interface NotificationDetailClientProps {
   id?: string;
@@ -50,6 +51,7 @@ export default function NotificationDetailClient({
   const [notification, setNotification] = useState<INotification | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
   const destinationUrl = notification
     ? resolveNotificationDestination(notification, user?.role)
@@ -81,9 +83,13 @@ export default function NotificationDetailClient({
     loadDetail();
   }, [loadDetail]);
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
     if (!id) return;
-    if (!confirm("Are you sure you want to remove this notification?")) return;
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!id) return;
     setDeleting(true);
     try {
       await notificationApi.deleteNotification(id);
@@ -92,6 +98,7 @@ export default function NotificationDetailClient({
     } catch {
       toast.error("Failed to delete notification");
       setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -177,7 +184,7 @@ export default function NotificationDetailClient({
 
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             disabled={deleting}
             className="flex items-center gap-1 text-xs text-[#ff6b6b] hover:text-[#ff8787] p-1.5 px-2.5 rounded-lg border border-[#ff6b6b]/30 bg-[#ff6b6b]/10 hover:bg-[#ff6b6b]/20 transition-colors cursor-pointer disabled:opacity-50"
             title="Delete notification"
@@ -285,6 +292,19 @@ export default function NotificationDetailClient({
           </div>
         )}
       </div>
+
+      {/* Reusable Delete Confirmation Alert Modal */}
+      <ConfirmAlertModal
+        isOpen={showDeleteModal}
+        onClose={() => !deleting && setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Notification Record"
+        description="Are you sure you want to remove this notification from your console? This action cannot be undone."
+        confirmText="Delete Record"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

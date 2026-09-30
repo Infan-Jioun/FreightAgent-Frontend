@@ -7,9 +7,12 @@ import api from "../lib/api";
 import { API } from "../constants/api";
 import {
   IConversation,
+  IConversationMessage,
   IChatMessage,
   ICreateConversationPayload,
   ISendMessageHttpPayload,
+  IGetMessagesParams,
+  IGetMessagesResponse,
 } from "../types/chat.types";
 import { AppError } from "../errorHelper/appError";
 import { IApiResponse } from "../types/rag.types";
@@ -48,18 +51,71 @@ export const chatService = {
   },
 
   /**
-   * Retrieve previous message history for a conversation
-   * Automatically marks unread counterparty messages as read on the backend
+   * Retrieve message history for a conversation with cursor pagination & catch-up support
+   * Supports:
+   * - limit: number of messages (default 30)
+   * - cursor: oldestMessageId to paginate upwards
+   * - after: latestMessageId for reconnection catch-up
    */
-  getConversationMessages: async (conversationId: string): Promise<IChatMessage[]> => {
-    if (!conversationId) return [];
+  getConversationMessages: async (
+    conversationId: string,
+    params?: IGetMessagesParams
+  ): Promise<IGetMessagesResponse> => {
+    if (!conversationId) {
+      return { messages: [] };
+    }
     try {
-      const res = await api.get<IApiResponse<IChatMessage[]>>(
-        API.CHAT.MESSAGES(conversationId)
-      );
-      return res.data?.data || [];
+      const queryParams = new URLSearchParams();
+      if (params?.limit) queryParams.set("limit", String(params.limit));
+      if (params?.cursor) queryParams.set("cursor", params.cursor);
+      if (params?.after) queryParams.set("after", params.after);
+
+      const queryString = queryParams.toString();
+      const url = `${API.CHAT.MESSAGES(conversationId)}${queryString ? `?${queryString}` : ""}`;
+
+      const res = await api.get<any>(url);
+      const rawBody = res.data;
+      const rawData = rawBody?.data !== undefined ? rawBody.data : rawBody;
+
+      let messagesArray: IConversationMessage[] = [];
+      let nextCursor: string | null = null;
+      let resetRequired = false;
+
+      if (Array.isArray(rawData)) {
+        messagesArray = rawData;
+        nextCursor = rawData.length > 0 ? rawData[0].id : null;
+      } else if (rawData && typeof rawData === "object") {
+        if (Array.isArray(rawData.messages)) {
+          messagesArray = rawData.messages;
+        } else if (Array.isArray(rawData.data)) {
+          messagesArray = rawData.data;
+        } else if (Array.isArray(rawData.result)) {
+          messagesArray = rawData.result;
+        }
+        nextCursor = rawData.nextCursor ?? (messagesArray.length > 0 ? messagesArray[0].id : null);
+        resetRequired = Boolean(rawData.resetRequired);
+      }
+
+      return {
+        messages: Array.isArray(messagesArray) ? messagesArray : [],
+        nextCursor,
+        resetRequired,
+      };
     } catch (err: unknown) {
       throw AppError.fromAxios(err);
+    }
+  },
+
+  /**
+   * Mark all counterparty messages in conversation as read via REST fallback
+   */
+  markConversationAsRead: async (conversationId: string): Promise<void> => {
+    if (!conversationId) return;
+    try {
+      await api.patch(API.CHAT.READ(conversationId));
+    } catch (err: unknown) {
+      // Non-blocking error handling
+      console.warn("REST mark read fallback failed:", err);
     }
   },
 
@@ -68,11 +124,16 @@ export const chatService = {
    */
   sendMessageHttp: async (
     conversationId: string,
-    content: string
-  ): Promise<IChatMessage> => {
+    content: string,
+    clientMessageId?: string
+  ): Promise<IConversationMessage> => {
     try {
-      const payload: ISendMessageHttpPayload = { content };
-      const res = await api.post<IApiResponse<IChatMessage>>(
+      const payload: ISendMessageHttpPayload = {
+        content,
+        clientMessageId,
+        type: "TEXT",
+      };
+      const res = await api.post<IApiResponse<IConversationMessage>>(
         API.CHAT.MESSAGES(conversationId),
         payload
       );
@@ -89,9 +150,9 @@ export const chatService = {
     conversationId: string,
     messageId: string,
     content: string
-  ): Promise<IChatMessage> => {
+  ): Promise<IConversationMessage> => {
     try {
-      const res = await api.patch<IApiResponse<IChatMessage>>(
+      const res = await api.patch<IApiResponse<IConversationMessage>>(
         API.CHAT.MESSAGE(conversationId, messageId),
         { content }
       );
@@ -107,12 +168,12 @@ export const chatService = {
   uploadAttachment: async (
     conversationId: string,
     file: File
-  ): Promise<IChatMessage> => {
+  ): Promise<IConversationMessage> => {
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await api.post<IApiResponse<IChatMessage>>(
+      const res = await api.post<IApiResponse<IConversationMessage>>(
         API.CHAT.UPLOAD(conversationId),
         formData,
         {
@@ -129,3 +190,4 @@ export const chatService = {
 };
 
 export default chatService;
+
