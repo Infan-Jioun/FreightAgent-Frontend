@@ -703,7 +703,7 @@ export function ShipmentChatModal({
                             onClick={() => startEditing(msg)}
                             title="Edit message"
                             aria-label="Edit message"
-                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1.5 rounded-lg text-white/50 hover:text-[#00e5c0] hover:bg-white/10 cursor-pointer"
+                            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity p-1.5 rounded-lg text-white/50 hover:text-[#00e5c0] hover:bg-white/10 cursor-pointer inline-flex items-center justify-center"
                           >
                             <Pencil className="size-3.5" />
                           </button>

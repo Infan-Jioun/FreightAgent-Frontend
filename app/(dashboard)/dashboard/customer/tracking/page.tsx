@@ -138,7 +138,7 @@ function TrackingContent() {
                     <button
                         type="submit"
                         disabled={loading || !trackingIdInput.trim()}
-                        className="px-6 py-3 rounded-2xl bg-[#00c9a7] text-xs font-bold text-[#0a0f0f] hover:bg-[#00e5c0] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20 disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer shrink-0"
+                        className="px-6 py-3 rounded-2xl bg-[#00c9a7] text-xs font-bold text-[#0a0f0f] hover:bg-[#00e5c0] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#00c9a7]/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
                     >
                         {loading ? (
                             <>

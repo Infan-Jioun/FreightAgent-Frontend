@@ -503,7 +503,7 @@ export function ChatClient() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or email..."
-                className="w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-white/40 focus:outline-hidden focus:border-[#00c9a7]/60 focus:bg-white/10 transition-all"
+                className="w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-white/40 focus:outline-hidden focus:border-[#00c9a7]/60 focus:bg-white/10 transition-colors"
               />
             </div>
           </div>

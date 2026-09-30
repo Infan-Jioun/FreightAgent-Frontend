@@ -433,7 +433,7 @@ export default function AgentOverviewPage() {
                                     value={acceptLocation}
                                     onChange={(e) => setAcceptLocation(e.target.value)}
                                     placeholder="e.g. Chattogram Port / Hub Warehouse"
-                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus-visible:outline-hidden focus-visible:border-[#00c9a7]"
+                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] transition-colors"
                                 />
                             </div>
 
@@ -446,7 +446,7 @@ export default function AgentOverviewPage() {
                                     value={acceptNote}
                                     onChange={(e) => setAcceptNote(e.target.value)}
                                     placeholder="e.g. Received by agent, ready for pickup"
-                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus-visible:outline-hidden focus-visible:border-[#00c9a7] resize-none"
+                                    className="w-full bg-[#0a1a1a] rounded-xl px-3.5 py-2 border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] transition-colors resize-none"
                                 />
                             </div>
 

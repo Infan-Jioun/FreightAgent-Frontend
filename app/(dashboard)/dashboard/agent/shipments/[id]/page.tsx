@@ -409,7 +409,7 @@ export default function AgentShipmentDetailPage({
                         <button
                             type="submit"
                             disabled={updating || !location.trim()}
-                            className="px-6 py-2.5 rounded-xl bg-[#00c9a7] text-xs font-bold text-[#0a0f0f] hover:bg-[#00e5c0] transition-all flex items-center gap-2 shadow-lg shadow-[#00c9a7]/20 disabled:opacity-40 disabled:cursor-not-allowed enabled:cursor-pointer"
+                            className="px-6 py-2.5 rounded-xl bg-[#00c9a7] text-xs font-bold text-[#0a0f0f] hover:bg-[#00e5c0] transition-all flex items-center gap-2 shadow-lg shadow-[#00c9a7]/20 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {updating ? (
                                 <>
