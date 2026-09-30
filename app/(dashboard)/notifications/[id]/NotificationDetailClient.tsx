@@ -22,6 +22,7 @@ import { INotification, NotificationType } from "@/types/notification";
 import { notificationApi } from "@/services/notificationService";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/constants/routes";
+import { ConfirmAlertModal } from "@/components/ui/ConfirmAlertModal";
 
 interface NotificationDetailClientProps {
   params: Promise<{ id: string }> | { id: string };
@@ -39,6 +40,7 @@ export default function NotificationDetailClient({ params }: NotificationDetailC
   const [notification, setNotification] = useState<INotification | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -62,8 +64,11 @@ export default function NotificationDetailClient({ params }: NotificationDetailC
     loadDetail();
   }, [loadDetail]);
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to remove this notification?")) return;
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
     setDeleting(true);
     try {
       await notificationApi.deleteNotification(id);
@@ -72,6 +77,7 @@ export default function NotificationDetailClient({ params }: NotificationDetailC
     } catch {
       toast.error("Failed to delete notification");
       setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -157,7 +163,7 @@ export default function NotificationDetailClient({ params }: NotificationDetailC
 
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             disabled={deleting}
             className="flex items-center gap-1 text-xs text-[#ff6b6b] hover:text-[#ff8787] p-1.5 px-2.5 rounded-lg border border-[#ff6b6b]/30 bg-[#ff6b6b]/10 hover:bg-[#ff6b6b]/20 transition-colors cursor-pointer disabled:opacity-50"
             title="Delete notification"
@@ -243,7 +249,7 @@ export default function NotificationDetailClient({ params }: NotificationDetailC
                   <span className="text-[10px] uppercase font-mono text-[#3a6b66] block">
                     {key.replace(/_/g, " ")}
                   </span>
-                  <span className="text-xs font-bold text-[#e0faf5] break-words">
+                  <span className="text-xs font-bold text-[#e0faf5] wrap-break-word">
                     {typeof value === "object" ? JSON.stringify(value) : String(value)}
                   </span>
                 </div>
@@ -265,6 +271,19 @@ export default function NotificationDetailClient({ params }: NotificationDetailC
           </div>
         )}
       </div>
+
+      {/* Reusable Delete Confirmation Alert Modal */}
+      <ConfirmAlertModal
+        isOpen={showDeleteModal}
+        onClose={() => !deleting && setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Notification Record"
+        description="Are you sure you want to remove this notification from your console? This action cannot be undone."
+        confirmText="Delete Record"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

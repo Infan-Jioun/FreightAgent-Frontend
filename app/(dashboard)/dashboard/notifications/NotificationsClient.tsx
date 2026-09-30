@@ -27,6 +27,7 @@ import { useAuthStore } from "@/app/store/authStore";
 import { toast } from "sonner";
 import { ROUTES } from "@/app/constants/routes";
 import { resolveNotificationDestination } from "@/app/lib/notificationRoutes";
+import { ConfirmAlertModal } from "@/components/ui/ConfirmAlertModal";
 
 type FilterTab = "ALL" | "UNREAD" | "SHIPMENT" | "SYSTEM";
 
@@ -56,7 +57,11 @@ export default function NotificationsClient() {
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
-  const [searchQuery, setSearchQuery] = useState<string>("" );
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [showMarkAllModal, setShowMarkAllModal] = useState<boolean>(false);
+  const [isMarkingAll, setIsMarkingAll] = useState<boolean>(false);
 
   // Sync real-time socket events
   const handleNewNotification = useCallback((incoming: INotification) => {
@@ -105,27 +110,35 @@ export default function NotificationsClient() {
     }
   };
 
-  // Mark all as read
-  const handleMarkAllRead = async () => {
+  // Mark all as read confirmation flow
+  const handleConfirmMarkAllRead = async () => {
+    setIsMarkingAll(true);
     try {
       await notificationApi.markAllAsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
       toast.success("All notifications marked as read");
+      setShowMarkAllModal(false);
     } catch {
       toast.error("Failed to mark all as read");
+    } finally {
+      setIsMarkingAll(false);
     }
   };
 
-  // Delete single notification
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  // Delete single notification confirmation flow
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    setIsDeleting(true);
     try {
-      await notificationApi.deleteNotification(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      await notificationApi.deleteNotification(pendingDeleteId);
+      setNotifications((prev) => prev.filter((n) => n.id !== pendingDeleteId));
       toast.success("Notification removed");
+      setPendingDeleteId(null);
     } catch {
       toast.error("Failed to delete notification");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -211,7 +224,7 @@ export default function NotificationsClient() {
           {unreadCount > 0 && (
             <button
               type="button"
-              onClick={handleMarkAllRead}
+              onClick={() => setShowMarkAllModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#00c9a7]/15 border border-[#00c9a7]/40 text-xs font-bold text-[#00e5c0] hover:bg-[#00c9a7]/25 transition-all cursor-pointer"
             >
               <CheckCheck size={14} />
@@ -286,20 +299,20 @@ export default function NotificationsClient() {
         </div>
 
         {/* Search Input */}
-        <div className="relative min-w-[240px]">
+        <div className="relative min-w-60">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3a6b66]" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search alerts or consignments..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:border-[#00c9a7] focus:outline-hidden transition-all"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden transition-all"
           />
         </div>
       </div>
 
       {/* Notifications List Card Container */}
-      <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden divide-y divide-[#1a4a4a]/50">
+      <div className="rounded-3xl bg-[#0d1f1f] border border-[#1a4a4a] shadow-xl overflow-hidden divide-y">
         {isLoading ? (
           <div className="p-16 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 rounded-full border-2 border-[#1a4a4a] border-t-[#00c9a7] animate-spin" />
@@ -405,7 +418,10 @@ export default function NotificationsClient() {
 
                     <button
                       type="button"
-                      onClick={(e) => handleDelete(e, item.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingDeleteId(item.id);
+                      }}
                       className="text-[#3a6b66] hover:text-[#ff6b6b] p-1.5 hover:bg-[#112a2a] rounded-lg transition-colors cursor-pointer"
                       title="Delete notification"
                       aria-label="Delete notification"
@@ -424,6 +440,32 @@ export default function NotificationsClient() {
         })
       )}
       </div>
+
+      {/* Reusable Delete Confirmation Alert Modal */}
+      <ConfirmAlertModal
+        isOpen={Boolean(pendingDeleteId)}
+        onClose={() => !isDeleting && setPendingDeleteId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Notification Record"
+        description="Are you sure you want to remove this notification? It will be permanently removed from your feed."
+        confirmText="Delete Record"
+        cancelText="Cancel"
+        variant="danger"
+        loading={isDeleting}
+      />
+
+      {/* Reusable Mark All Read Confirmation Alert Modal */}
+      <ConfirmAlertModal
+        isOpen={showMarkAllModal}
+        onClose={() => !isMarkingAll && setShowMarkAllModal(false)}
+        onConfirm={handleConfirmMarkAllRead}
+        title="Mark All as Read"
+        description="Are you sure you want to mark all notifications as read across your operational console?"
+        confirmText="Mark All Read"
+        cancelText="Cancel"
+        variant="info"
+        loading={isMarkingAll}
+      />
     </div>
   );
 }

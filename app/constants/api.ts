@@ -116,5 +116,6 @@ export const API = {
         MESSAGE: (convId: string, messageId: string) =>
             `/chat/conversations/${encodeURIComponent(convId)}/messages/${encodeURIComponent(messageId)}`,
         UPLOAD: (id: string) => `/chat/conversations/${encodeURIComponent(id)}/upload`,
+        READ: (id: string) => `/chat/conversations/${encodeURIComponent(id)}/read`,
     },
 } as const;
