@@ -16,6 +16,8 @@ import { useSocketContext, useSocketEvent } from "@/app/providers/SocketProvider
 import { useAuthStore } from "@/app/store/authStore";
 import { getErrorMessage } from "@/app/errorHelper/appError";
 
+import { playNotificationChime } from "@/app/lib/browserNotification";
+
 interface UseShipmentChatOptions {
   conversationId?: string;
   shipmentId?: string;
@@ -58,26 +60,28 @@ export function useShipmentChat({
   const localStopTypingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wasDisconnectedRef = useRef<boolean>(false);
 
-  // Keep isChatClosed in sync when shipmentStatus changes
+  // Keep isChatClosed in sync when shipmentStatus changes (both DELIVERED and active)
   useEffect(() => {
-    if (shipmentStatus === "DELIVERED") {
-      setIsChatClosed(true);
-    }
+    setIsChatClosed(shipmentStatus === "DELIVERED");
   }, [shipmentStatus]);
 
   // Keep isChatClosed in sync when conversation payload loads
   useEffect(() => {
-    if (conversation?.shipment?.status === "DELIVERED") {
-      setIsChatClosed(true);
+    if (conversation?.shipment?.status) {
+      setIsChatClosed(conversation.shipment.status === "DELIVERED");
     }
   }, [conversation?.shipment?.status]);
 
-  // Sync if initialConversationId changes
+  // Sync and reset state when switching conversations
   useEffect(() => {
-    if (initialConversationId) {
+    if (initialConversationId && initialConversationId !== activeConversationId) {
       setActiveConversationId(initialConversationId);
+      setConversation(null);
+      setIsChatClosed(shipmentStatus === "DELIVERED");
+      setIsCounterpartyTyping(false);
+      setError(null);
     }
-  }, [initialConversationId]);
+  }, [initialConversationId, shipmentStatus, activeConversationId]);
 
   // If shipmentId provided, retrieve or initiate conversation session
   useEffect(() => {
@@ -301,9 +305,10 @@ export function useShipmentChat({
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // If incoming message is from opponent, mark as read
+    // If incoming message is from opponent, mark as read and play chime
     if (user?.id && incomingMsg.senderId !== user.id) {
       markAsRead(activeConversationId);
+      playNotificationChime();
     }
   });
 

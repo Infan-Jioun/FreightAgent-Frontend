@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   X,
   Send,
@@ -17,6 +17,7 @@ import {
   Users,
   Pencil,
   Maximize2,
+  ArrowDown,
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
@@ -277,14 +278,19 @@ export function ShipmentChatModal({
 
   const safeMessages = Array.isArray(messages) ? messages : [];
 
-  const isClosed =
-    isChatClosed ||
-    effectiveStatus === "DELIVERED" ||
-    conversation?.shipment?.status === "DELIVERED";
+  const isClosed = useMemo(() => {
+    if (effectiveStatus === "DELIVERED") return true;
+    if (effectiveStatus && effectiveStatus !== "DELIVERED") return false;
+    if (conversation?.shipment?.status === "DELIVERED") return true;
+    if (conversation?.shipment?.status && conversation.shipment.status !== "DELIVERED") return false;
+    return isChatClosed;
+  }, [effectiveStatus, conversation?.shipment?.status, isChatClosed]);
 
   const isAdmin = user?.role === "ADMIN";
 
   const [editingMessage, setEditingMessage] = useState<IConversationMessage | null>(null);
+  const [hasNewMessagesBelow, setHasNewMessagesBelow] = useState<boolean>(false);
+  const isAtBottomRef = useRef<boolean>(true);
 
   // If chat is closed, cancel any active edit state
   useEffect(() => {
@@ -314,26 +320,47 @@ export function ShipmentChatModal({
     }
   };
 
-  // Cursor pagination: scroll near top to load older messages
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+      setHasNewMessagesBelow(false);
+    }
+  }, []);
+
+  // Cursor pagination & scroll tracking
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const target = e.currentTarget;
       if (target.scrollTop < 60 && hasMoreOlder && !isLoadingOlder) {
         void loadOlderMessages();
       }
+      const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+      const isBottom = distanceToBottom < 80;
+      isAtBottomRef.current = isBottom;
+      if (isBottom) {
+        setHasNewMessagesBelow(false);
+      }
     },
     [hasMoreOlder, isLoadingOlder, loadOlderMessages]
   );
 
-  // Auto-scroll inside chat messages container on new message
+  // Auto-scroll when appropriate or trigger new message pill
   useEffect(() => {
-    if (isOpen && messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+    if (!isOpen) return;
+    const currentList = safeMessages;
+    if (currentList.length === 0) return;
+    const lastMsg = currentList[currentList.length - 1];
+    const isMe = user?.id && lastMsg?.senderId === user.id;
+
+    if (isMe || isAtBottomRef.current) {
+      scrollToBottom(true);
+    } else {
+      setHasNewMessagesBelow(true);
     }
-  }, [safeMessages, isCounterpartyTyping, isOpen]);
+  }, [safeMessages, isOpen, user?.id, scrollToBottom]);
 
   // Focus input field on modal open
   useEffect(() => {
@@ -771,6 +798,18 @@ export function ShipmentChatModal({
             <div className="rounded-2xl bg-red-950/40 border border-red-500/50 p-2.5 text-xs text-red-200">
               {error}
             </div>
+          )}
+
+          {hasNewMessagesBelow && (
+            <button
+              type="button"
+              onClick={() => scrollToBottom(true)}
+              className="sticky bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold text-xs shadow-[0_4px_25px_rgba(0,201,167,0.5)] animate-bounce hover:scale-105 active:scale-95 transition-all cursor-pointer mx-auto"
+              aria-label="Scroll to new messages"
+            >
+              <ArrowDown className="size-3.5" />
+              <span>New message received</span>
+            </button>
           )}
         </div>
 
