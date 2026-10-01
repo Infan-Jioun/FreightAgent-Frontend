@@ -16,7 +16,9 @@ import {
   BookOpen,
   Zap,
   Info,
+  GripVertical,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useRagChat } from "@/hooks/useRagChat";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { RagContextType } from "@/app/types/rag.types";
@@ -50,8 +52,16 @@ export function RagChatWidget() {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [input, setInput] = useState<string>("");
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const isPointerDownRef = useRef<boolean>(false);
+  const hasMovedRef = useRef<boolean>(false);
+  const pointerStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const buttonStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const {
     messages,
@@ -88,6 +98,116 @@ export function RagChatWidget() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
+  // Lock body scroll on mobile devices when widget is opened
+  useEffect(() => {
+    if (isOpen) {
+      const isMobile = window.innerWidth < 640;
+      if (isMobile) {
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+          document.body.style.overflow = originalOverflow;
+        };
+      }
+    }
+  }, [isOpen]);
+
+  // Clamp button inside viewport on screen resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (!position || !buttonRef.current) return;
+      const btnWidth = buttonRef.current.offsetWidth || 140;
+      const btnHeight = buttonRef.current.offsetHeight || 48;
+      const margin = 12;
+      const maxX = Math.max(margin, window.innerWidth - btnWidth - margin);
+      const maxY = Math.max(margin, window.innerHeight - btnHeight - margin);
+
+      setPosition((prev) => {
+        if (!prev) return null;
+        return {
+          x: Math.min(Math.max(prev.x, margin), maxX),
+          y: Math.min(Math.max(prev.y, margin), maxY),
+        };
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [position]);
+
+  // Pointer drag event handlers for movable floating button
+  const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.button !== 0) return; // Only respond to primary left-click or touch
+    isPointerDownRef.current = true;
+    hasMovedRef.current = false;
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      buttonStartRef.current = { x: rect.left, y: rect.top };
+    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isPointerDownRef.current) return;
+    const dx = e.clientX - pointerStartRef.current.x;
+    const dy = e.clientY - pointerStartRef.current.y;
+
+    if (!hasMovedRef.current && Math.hypot(dx, dy) > 5) {
+      hasMovedRef.current = true;
+      setIsDragging(true);
+    }
+
+    if (hasMovedRef.current && buttonRef.current) {
+      const btnWidth = buttonRef.current.offsetWidth || 140;
+      const btnHeight = buttonRef.current.offsetHeight || 48;
+      const margin = 12;
+      const maxX = Math.max(margin, window.innerWidth - btnWidth - margin);
+      const maxY = Math.max(margin, window.innerHeight - btnHeight - margin);
+
+      const newX = Math.min(Math.max(buttonStartRef.current.x + dx, margin), maxX);
+      const newY = Math.min(Math.max(buttonStartRef.current.y + dy, margin), maxY);
+
+      setPosition({ x: newX, y: newY });
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isPointerDownRef.current) return;
+    isPointerDownRef.current = false;
+    setIsDragging(false);
+
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Safe ignore
+    }
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+    isPointerDownRef.current = false;
+    setIsDragging(false);
+    try {
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Safe ignore
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (hasMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    setIsOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -108,59 +228,81 @@ export function RagChatWidget() {
   }, [directory]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      {/* Floating Toggle Button */}
+    <>
+      {/* Movable Floating Toggle Button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] px-5 py-3 text-[#0a0f0f] font-semibold shadow-[0_0_20px_rgba(0,201,167,0.35)] hover:shadow-[0_0_30px_rgba(0,201,167,0.55)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] outline-hidden ring-3 ring-[#00c9a7]/30"
-          aria-label="Open FreightAgent AI Assistant"
+          ref={buttonRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
+          onClick={handleClick}
+          style={
+            position
+              ? {
+                  left: `${position.x}px`,
+                  top: `${position.y}px`,
+                  touchAction: "none",
+                }
+              : { touchAction: "none" }
+          }
+          className={cn(
+            "group fixed z-50 flex items-center gap-2.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] px-4 sm:px-5 py-3 text-[#0a0f0f] font-semibold select-none",
+            "shadow-[0_0_20px_rgba(0,201,167,0.35)] hover:shadow-[0_0_30px_rgba(0,201,167,0.55)] outline-hidden ring-3 ring-[#00c9a7]/30",
+            isDragging
+              ? "cursor-grabbing scale-105 shadow-[0_0_35px_rgba(0,201,167,0.7)] transition-none"
+              : "cursor-grab transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]",
+            !position && "bottom-6 right-6"
+          )}
+          aria-label="Open FreightAgent AI Assistant (Movable)"
+          title="Drag to reposition, tap to open"
         >
-          <span className="relative flex size-2.5">
+          <GripVertical className="size-3.5 text-[#0a0f0f]/60 group-hover:text-[#0a0f0f] shrink-0 transition-opacity" />
+          <span className="relative flex size-2.5 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0a0f0f] opacity-75" />
             <span className="relative inline-flex size-2.5 rounded-full bg-[#0a0f0f]" />
           </span>
-          <Sparkles className="size-4.5 transition-transform duration-300 group-hover:rotate-12" />
-          <span className="text-sm font-bold tracking-tight">Freight AI</span>
+          <Sparkles className="size-4.5 transition-transform duration-300 group-hover:rotate-12 shrink-0" />
+          <span className="text-sm font-bold tracking-tight whitespace-nowrap">Freight AI</span>
         </button>
       )}
 
-      {/* Expanded Chat Window */}
+      {/* Expanded Chat Window - Full Screen on Mobile, Floating Card on Desktop */}
       {isOpen && (
-        <div className="flex flex-col w-[92vw] sm:w-110 md:w-120 h-150 max-h-[85vh] rounded-2xl border border-[#1a4a4a] bg-[#0a0f0f]/95 shadow-[0_12px_45px_rgba(0,0,0,0.85)] backdrop-blur-xl overflow-hidden transition-all duration-200">
+        <div className="fixed inset-0 z-50 flex flex-col w-full h-dvh max-h-none rounded-none border-0 bg-[#0a0f0f] sm:inset-auto sm:bottom-6 sm:right-6 sm:w-110 md:w-120 sm:h-150 sm:max-h-[85vh] sm:rounded-2xl sm:border sm:border-[#1a4a4a] sm:bg-[#0a0f0f]/95 sm:shadow-[0_12px_45px_rgba(0,0,0,0.85)] sm:backdrop-blur-xl overflow-hidden transition-all duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#1a4a4a] bg-[#0d1f1f]/80 px-4 py-3.5 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-linear-to-br from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-[0_0_12px_rgba(0,201,167,0.4)]">
+          <div className="flex items-center justify-between border-b border-[#1a4a4a] bg-[#0d1f1f]/90 px-4 py-3 sm:py-3.5 backdrop-blur-md pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-3.5">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-[0_0_12px_rgba(0,201,167,0.4)]">
                 <Anchor className="size-5 text-[#0a0f0f]" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold tracking-wide text-[#e0faf5]">
+                  <h3 className="text-sm font-bold tracking-wide text-[#e0faf5] truncate">
                     FreightAgent AI
                   </h3>
-      
                 </div>
                 {isLoading ? (
-                  <p className="text-[11px] text-[#00e5c0] font-medium flex items-center gap-1.5 mt-0.5 animate-pulse">
-                    <span className="inline-block size-1.5 rounded-full bg-[#00e5c0] animate-ping" />
+                  <p className="text-[11px] text-[#00e5c0] font-medium flex items-center gap-1.5 mt-0.5 animate-pulse truncate">
+                    <span className="inline-block size-1.5 rounded-full bg-[#00e5c0] animate-ping shrink-0" />
                     typing...
                   </p>
                 ) : (
-                  <p className="text-[11px] text-[#7ecfc4] font-medium flex items-center gap-1.5 mt-0.5">
-                    <span className="inline-block size-1.5 rounded-full bg-[#00e5c0] animate-pulse" />
+                  <p className="text-[11px] text-[#7ecfc4] font-medium flex items-center gap-1.5 mt-0.5 truncate">
+                    <span className="inline-block size-1.5 rounded-full bg-[#00e5c0] animate-pulse shrink-0" />
                     Real-time corridors, rates & tracking
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2 shrink-0 ml-2">
               <button
                 onClick={clearChat}
                 title="Clear Conversation Memory"
                 type="button"
-                className="rounded-lg p-2 text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#00e5c0] transition-colors outline-hidden focus:ring-3 focus:ring-[#00c9a7]/30"
+                className="flex size-9 items-center justify-center rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#00e5c0] active:scale-95 transition-all outline-hidden focus:ring-2 focus:ring-[#00c9a7]/30 cursor-pointer"
                 aria-label="Clear session history"
               >
                 <RotateCcw className="size-4" />
@@ -169,10 +311,10 @@ export function RagChatWidget() {
                 onClick={() => setIsOpen(false)}
                 title="Close Assistant"
                 type="button"
-                className="rounded-lg p-2 text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#e0faf5] transition-colors outline-hidden focus:ring-3 focus:ring-[#00c9a7]/30"
+                className="flex size-9 items-center justify-center rounded-xl bg-[#142828] border border-[#215a5a] text-[#e0faf5] hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/40 active:scale-95 transition-all outline-hidden focus:ring-2 focus:ring-red-400/40 shadow-xs cursor-pointer"
                 aria-label="Close Assistant"
               >
-                <X className="size-4" />
+                <X className="size-5" strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -333,7 +475,7 @@ export function RagChatWidget() {
           {/* Input Footer */}
           <form
             onSubmit={handleSubmit}
-            className="border-t border-[#1a4a4a] bg-[#0d1f1f]/90 p-3 flex flex-col gap-1.5"
+            className="border-t border-[#1a4a4a] bg-[#0d1f1f]/95 p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:pb-3 flex flex-col gap-1.5"
           >
             <div className="flex items-center gap-2">
               <input
@@ -349,7 +491,7 @@ export function RagChatWidget() {
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 outline-hidden focus:ring-3 focus:ring-[#00c9a7]/40 shadow-[0_0_12px_rgba(0,201,167,0.3)]"
+                className="flex size-9.5 shrink-0 items-center justify-center rounded-xl bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 outline-hidden focus:ring-3 focus:ring-[#00c9a7]/40 shadow-[0_0_12px_rgba(0,201,167,0.3)] cursor-pointer"
                 aria-label="Send Message"
               >
                 {isLoading ? (
@@ -367,7 +509,7 @@ export function RagChatWidget() {
           </form>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
