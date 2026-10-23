@@ -206,7 +206,7 @@ export function RagChatWidget() {
 
           {/* Messages Container */}
           <div className="grow overflow-y-auto p-4 space-y-4 custom-modal-scrollbar">
-            {messages.length === 0 && (
+            {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center px-3 py-6">
                 <div className="flex size-14 items-center justify-center rounded-2xl bg-[#0d1f1f] text-[#00c9a7] border border-[#1a4a4a] shadow-[0_0_20px_rgba(0,201,167,0.15)] mb-3.5">
                   <Sparkles className="size-7" />
@@ -227,7 +227,7 @@ export function RagChatWidget() {
                       key={idx}
                       type="button"
                       onClick={() => sendMessage(prompt)}
-                      className="group flex items-center justify-between text-left text-xs bg-[#0d1f1f]/80 hover:bg-[#112a2a] text-[#e0faf5] hover:text-[#00e5c0] px-3.5 py-2.5 rounded-xl border border-[#1a4a4a] hover:border-[#00c9a7]/50 transition-all duration-200 outline-hidden"
+                      className="group flex items-center justify-between text-left text-xs bg-[#0d1f1f]/80 hover:bg-[#112a2a] text-[#e0faf5] hover:text-[#00e5c0] px-3.5 py-2.5 rounded-xl border border-[#1a4a4a] hover:border-[#00c9a7]/50 transition-all duration-200 outline-hidden cursor-pointer"
                     >
                       <span className="truncate pr-2">{prompt}</span>
                       <Send className="size-3 text-[#3a6b66] group-hover:text-[#00e5c0] transition-colors shrink-0" />
@@ -235,86 +235,86 @@ export function RagChatWidget() {
                   ))}
                 </div>
               </div>
-            )}
-
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex w-full ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <div className="flex items-start gap-2.5 max-w-[90%]">
-                    {/* FreightAgent Brand Logo Avatar */}
-                    <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-xs shadow-[#00c9a7]/20 mt-0.5">
-                      <Anchor className="size-3.5 text-[#0a0f0f]" />
-                    </div>
-
-                    <div className="flex flex-col items-start min-w-0">
-                      {/* Message Bubble */}
-                      <div className="rounded-2xl rounded-bl-xs px-4 py-3 text-xs leading-relaxed bg-[#0d1f1f] text-[#e0faf5] border border-[#1a4a4a] shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
-                        <MarkdownRenderer content={msg.content} />
+            ) : (
+              messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex w-full ${
+                    msg.role === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {msg.role === "assistant" ? (
+                    <div className="flex items-start gap-2.5 max-w-[90%]">
+                      {/* FreightAgent Brand Logo Avatar */}
+                      <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-linear-to-tr from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-xs shadow-[#00c9a7]/20 mt-0.5">
+                        <Anchor className="size-3.5 text-[#0a0f0f]" />
                       </div>
 
-                      {/* Assistant Metadata: Cached badge & Sources */}
-                      {msg.isCached && (
-                        <div className="flex items-center gap-1 text-[10px] text-[#00e5c0] font-medium mt-1.5 px-1">
-                          <Zap className="size-3" />
-                          <span>Instant response (Redis cache hit)</span>
+                      <div className="flex flex-col items-start min-w-0">
+                        {/* Message Bubble */}
+                        <div className="rounded-2xl rounded-bl-xs px-4 py-3 text-xs leading-relaxed bg-[#0d1f1f] text-[#e0faf5] border border-[#1a4a4a] shadow-[0_4px_15px_rgba(0,0,0,0.3)]">
+                          <MarkdownRenderer content={msg.content} />
                         </div>
-                      )}
 
-                      {msg.sources && msg.sources.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1 px-1">
-                          <span className="text-[10px] text-[#7ecfc4] font-semibold flex items-center gap-1">
-                            <Database className="size-3 text-[#00c9a7]" /> Sources:
-                          </span>
-                          {msg.sources.map((src, srcIdx) => {
-                            const tooltipKey = `${index}-${srcIdx}`;
-                            const isTooltipActive = activeTooltip === tooltipKey;
+                        {/* Assistant Metadata: Cached badge & Sources */}
+                        {msg.isCached && (
+                          <div className="flex items-center gap-1 text-[10px] text-[#00e5c0] font-medium mt-1.5 px-1">
+                            <Zap className="size-3" />
+                            <span>Instant response (Redis cache hit)</span>
+                          </div>
+                        )}
 
-                            return (
-                              <div key={srcIdx} className="relative inline-block">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setActiveTooltip(
-                                      isTooltipActive ? null : tooltipKey
-                                    )
-                                  }
-                                  className="inline-flex items-center gap-1 rounded-md bg-[#0a1a1a] px-2 py-0.5 text-[10px] font-medium text-[#7ecfc4] hover:text-[#00e5c0] border border-[#1a4a4a] hover:border-[#00c9a7]/60 transition-colors cursor-pointer"
-                                >
-                                  {getSourceIcon(src.type)}
-                                  <span className="max-w-30 truncate">
-                                    {src.title}
-                                  </span>
-                                  {src.detail && <Info className="size-2.5 opacity-60" />}
-                                </button>
+                        {msg.sources && msg.sources.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1 px-1">
+                            <span className="text-[10px] text-[#7ecfc4] font-semibold flex items-center gap-1">
+                              <Database className="size-3 text-[#00c9a7]" /> Sources:
+                            </span>
+                            {msg.sources.map((src, srcIdx) => {
+                              const tooltipKey = `${index}-${srcIdx}`;
+                              const isTooltipActive = activeTooltip === tooltipKey;
 
-                                {/* Source Detail Popover */}
-                                {isTooltipActive && src.detail && (
-                                  <div className="absolute left-0 bottom-full mb-1.5 z-20 w-56 rounded-lg border border-[#1a4a4a] bg-[#071313] p-2 text-[10px] leading-snug text-[#e0faf5] shadow-xl">
-                                    <div className="font-semibold text-[#00e5c0] mb-0.5 uppercase tracking-wider text-[9px]">
-                                      {src.type} Context
+                              return (
+                                <div key={srcIdx} className="relative inline-block">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveTooltip(
+                                        isTooltipActive ? null : tooltipKey
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1 rounded-md bg-[#0a1a1a] px-2 py-0.5 text-[10px] font-medium text-[#7ecfc4] hover:text-[#00e5c0] border border-[#1a4a4a] hover:border-[#00c9a7]/60 transition-colors cursor-pointer"
+                                  >
+                                    {getSourceIcon(src.type)}
+                                    <span className="max-w-30 truncate">
+                                      {src.title}
+                                    </span>
+                                    {src.detail && <Info className="size-2.5 opacity-60" />}
+                                  </button>
+
+                                  {/* Source Detail Popover */}
+                                  {isTooltipActive && src.detail && (
+                                    <div className="absolute left-0 bottom-full mb-1.5 z-20 w-56 rounded-lg border border-[#1a4a4a] bg-[#071313] p-2 text-[10px] leading-snug text-[#e0faf5] shadow-xl">
+                                      <div className="font-semibold text-[#00e5c0] mb-0.5 uppercase tracking-wider text-[9px]">
+                                        {src.type} Context
+                                      </div>
+                                      <div>{src.detail}</div>
                                     </div>
-                                    <div>{src.detail}</div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="max-w-[85%] rounded-2xl rounded-br-xs px-4 py-3 text-xs leading-relaxed bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-medium shadow-[0_4px_15px_rgba(0,201,167,0.25)]">
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+                  ) : (
+                    <div className="max-w-[85%] rounded-2xl rounded-br-xs px-4 py-3 text-xs leading-relaxed bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-medium shadow-[0_4px_15px_rgba(0,201,167,0.25)]">
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
 
             {/* WhatsApp-Style Typing Indicator with FreightAgent Logo */}
             {isLoading && (
