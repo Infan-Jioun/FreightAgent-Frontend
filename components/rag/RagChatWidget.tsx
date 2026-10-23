@@ -88,6 +88,28 @@ export function RagChatWidget() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
+  // Prevent background page scrolling on mobile when open as full-screen modal
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isOpen) {
+      const checkAndLock = () => {
+        if (window.innerWidth < 640) {
+          document.body.style.overflow = "hidden";
+        } else {
+          document.body.style.overflow = "";
+        }
+      };
+      checkAndLock();
+      window.addEventListener("resize", checkAndLock);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("resize", checkAndLock);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [isOpen]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -108,12 +130,18 @@ export function RagChatWidget() {
   }, [directory]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div
+      className={
+        isOpen
+          ? "fixed inset-0 z-50 flex flex-col sm:inset-auto sm:bottom-6 sm:right-6 sm:block"
+          : "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
+      }
+    >
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] px-5 py-3 text-[#0a0f0f] font-semibold shadow-[0_0_20px_rgba(0,201,167,0.35)] hover:shadow-[0_0_30px_rgba(0,201,167,0.55)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] outline-hidden ring-3 ring-[#00c9a7]/30"
+          className="group relative flex items-center gap-2.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] px-4 py-2.5 sm:px-5 sm:py-3 text-[#0a0f0f] font-semibold shadow-[0_0_20px_rgba(0,201,167,0.35)] hover:shadow-[0_0_30px_rgba(0,201,167,0.55)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] outline-hidden ring-3 ring-[#00c9a7]/30"
           aria-label="Open FreightAgent AI Assistant"
         >
           <span className="relative flex size-2.5">
@@ -121,33 +149,32 @@ export function RagChatWidget() {
             <span className="relative inline-flex size-2.5 rounded-full bg-[#0a0f0f]" />
           </span>
           <Sparkles className="size-4.5 transition-transform duration-300 group-hover:rotate-12" />
-          <span className="text-sm font-bold tracking-tight">Freight AI</span>
+          <span className="text-xs sm:text-sm font-bold tracking-tight">Freight AI</span>
         </button>
       )}
 
       {/* Expanded Chat Window */}
       {isOpen && (
-        <div className="flex flex-col w-[92vw] sm:w-110 md:w-120 h-150 max-h-[85vh] rounded-2xl border border-[#1a4a4a] bg-[#0a0f0f]/95 shadow-[0_12px_45px_rgba(0,0,0,0.85)] backdrop-blur-xl overflow-hidden transition-all duration-200">
+        <div className="flex flex-col w-full h-dvh max-h-none rounded-none border-none sm:w-110 md:w-120 sm:h-150 sm:max-h-[85vh] sm:rounded-2xl sm:border sm:border-[#1a4a4a] bg-[#0a0f0f]/95 shadow-[0_12px_45px_rgba(0,0,0,0.85)] backdrop-blur-xl overflow-hidden transition-all duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#1a4a4a] bg-[#0d1f1f]/80 px-4 py-3.5 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-linear-to-br from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-[0_0_12px_rgba(0,201,167,0.4)]">
-                <Anchor className="size-5 text-[#0a0f0f]" />
+          <div className="flex items-center justify-between border-b border-[#1a4a4a] bg-[#0d1f1f]/80 px-3.5 py-3 sm:px-4 sm:py-3.5 backdrop-blur-md shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="flex size-8.5 sm:size-9 items-center justify-center rounded-xl bg-linear-to-br from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-[0_0_12px_rgba(0,201,167,0.4)] shrink-0">
+                <Anchor className="size-4.5 sm:size-5 text-[#0a0f0f]" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold tracking-wide text-[#e0faf5]">
+                  <h3 className="text-sm font-bold tracking-wide text-[#e0faf5] truncate">
                     FreightAgent AI
                   </h3>
-      
                 </div>
                 {isLoading ? (
-                  <p className="text-[11px] text-[#00e5c0] font-medium flex items-center gap-1.5 mt-0.5 animate-pulse">
+                  <p className="text-[11px] text-[#00e5c0] font-medium flex items-center gap-1.5 mt-0.5 animate-pulse truncate">
                     <span className="inline-block size-1.5 rounded-full bg-[#00e5c0] animate-ping" />
                     typing...
                   </p>
                 ) : (
-                  <p className="text-[11px] text-[#7ecfc4] font-medium flex items-center gap-1.5 mt-0.5">
+                  <p className="text-[11px] text-[#7ecfc4] font-medium flex items-center gap-1.5 mt-0.5 truncate">
                     <span className="inline-block size-1.5 rounded-full bg-[#00e5c0] animate-pulse" />
                     Real-time corridors, rates & tracking
                   </p>
@@ -155,12 +182,12 @@ export function RagChatWidget() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={clearChat}
                 title="Clear Conversation Memory"
                 type="button"
-                className="rounded-lg p-2 text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#00e5c0] transition-colors outline-hidden focus:ring-3 focus:ring-[#00c9a7]/30"
+                className="rounded-lg p-2 text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#00c9a7] transition-colors outline-hidden focus:ring-3 focus:ring-[#00c9a7]/30 cursor-pointer"
                 aria-label="Clear session history"
               >
                 <RotateCcw className="size-4" />
@@ -169,10 +196,10 @@ export function RagChatWidget() {
                 onClick={() => setIsOpen(false)}
                 title="Close Assistant"
                 type="button"
-                className="rounded-lg p-2 text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#e0faf5] transition-colors outline-hidden focus:ring-3 focus:ring-[#00c9a7]/30"
+                className="rounded-lg p-2 text-[#7ecfc4] hover:bg-[#112a2a] hover:text-[#e0faf5] transition-colors outline-hidden focus:ring-3 focus:ring-[#00c9a7]/30 cursor-pointer"
                 aria-label="Close Assistant"
               >
-                <X className="size-4" />
+                <X className="size-5 sm:size-4" />
               </button>
             </div>
           </div>
@@ -333,7 +360,7 @@ export function RagChatWidget() {
           {/* Input Footer */}
           <form
             onSubmit={handleSubmit}
-            className="border-t border-[#1a4a4a] bg-[#0d1f1f]/90 p-3 flex flex-col gap-1.5"
+            className="border-t border-[#1a4a4a] bg-[#0d1f1f]/90 p-3 pb-[max(env(safe-area-inset-bottom,0px),12px)] sm:pb-3 flex flex-col gap-1.5 shrink-0"
           >
             <div className="flex items-center gap-2">
               <input

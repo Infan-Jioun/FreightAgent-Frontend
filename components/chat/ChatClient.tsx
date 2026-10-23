@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   MessageSquare,
   Search,
@@ -33,6 +34,7 @@ import { toast } from "sonner";
 import { ChatMessagesSkeleton, ConversationListSkeleton } from "./ChatSkeleton";
 import { envConfig } from "@/app/config/env";
 import { MessageReceiptTicks } from "./MessageReceiptTicks";
+import { ROUTES } from "@/app/constants/routes";
 
 function isAttachmentContent(content?: string | null): boolean {
   if (!content) return false;
@@ -243,9 +245,21 @@ function renderChatContent(
   );
 }
 
-export function ChatClient() {
+export interface ChatClientProps {
+  initialConversationId?: string;
+  onClose?: () => void;
+  className?: string;
+}
+
+export function ChatClient({
+  initialConversationId,
+  onClose,
+  className,
+}: ChatClientProps = {}) {
+  const router = useRouter();
   const { user } = useAuthStore();
   const isAdmin = user?.role === "ADMIN";
+  const isCustomer = user?.role === "CUSTOMER";
   const [selectedConversation, setSelectedConversation] = useState<IConversation | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [input, setInput] = useState<string>("");
@@ -256,6 +270,61 @@ export function ChatClient() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Close / Exit modal or full page on mobile
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (typeof window !== "undefined") {
+      if (window.history.length > 1) {
+        router.back();
+      } else {
+        const target = isAdmin
+          ? ROUTES.DASHBOARD_ADMIN
+          : isCustomer
+          ? ROUTES.DASHBOARD_CUSTOMER_SHIPMENTS
+          : ROUTES.DASHBOARD_AGENT_SHIPMENTS;
+        router.push(target);
+      }
+    }
+  }, [onClose, router, isAdmin, isCustomer]);
+
+  // Lock body scroll on mobile while modal view is mounted
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateBodyScroll = () => {
+      if (window.innerWidth < 768) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+    };
+    updateBodyScroll();
+    window.addEventListener("resize", updateBodyScroll);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("resize", updateBodyScroll);
+    };
+  }, []);
+
+  // Escape key listener to close modal or back out of conversation on mobile
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !previewImage) {
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          if (selectedConversation) {
+            setSelectedConversation(null);
+          } else {
+            handleClose();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [previewImage, selectedConversation, handleClose]);
+
   // Load all user conversations
   const {
     conversations,
@@ -263,14 +332,24 @@ export function ChatClient() {
     refreshConversations,
   } = useConversationsList(selectedConversation?.id);
 
-  // Set default selected conversation once loaded on desktop
+  // Set default selected conversation once loaded on desktop (or if initialConversationId is provided)
   useEffect(() => {
-    if (!selectedConversation && conversations.length > 0) {
+    if (conversations.length === 0) return;
+    if (initialConversationId) {
+      const matched = conversations.find(
+        (c) => c.id === initialConversationId || c.shipmentId === initialConversationId
+      );
+      if (matched && (!selectedConversation || selectedConversation.id !== matched.id)) {
+        setSelectedConversation(matched);
+        return;
+      }
+    }
+    if (!selectedConversation) {
       if (typeof window !== "undefined" && window.innerWidth >= 768) {
         setSelectedConversation(conversations[0]);
       }
     }
-  }, [conversations, selectedConversation]);
+  }, [conversations, initialConversationId, selectedConversation]);
 
   // Hook for the currently selected conversation
   const {
@@ -409,8 +488,6 @@ export function ChatClient() {
     setEditingMessage(null);
     setHasNewMessagesBelow(false);
   };
-
-  const isCustomer = user?.role === "CUSTOMER";
 
   // Helper to extract clean Name & Email (No IDs)
   const getCounterpartyInfo = (conv?: IConversation | null) => {
@@ -551,7 +628,16 @@ export function ChatClient() {
 
   return (
     <>
-      <div className="relative w-full rounded-[28px] sm:rounded-[32px] border border-white/10 bg-[#091b1b]/95 backdrop-blur-2xl shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row h-[calc(100vh-165px)] min-h-[520px] max-h-[740px]">
+      <div
+        className={cn(
+          "overflow-hidden flex flex-col md:flex-row bg-[#091b1b] backdrop-blur-2xl text-white transition-all",
+          // Mobile responsive: Full page / Full screen modal experience
+          "max-md:fixed max-md:inset-0 max-md:z-50 max-md:h-dvh max-md:w-screen max-md:rounded-none max-md:border-0 max-md:shadow-none",
+          // Desktop: Floating card container
+          "md:relative md:inset-auto md:z-10 md:w-full md:rounded-[28px] md:sm:rounded-[32px] md:border md:border-white/10 md:shadow-[0_25px_70px_rgba(0,0,0,0.8)] md:h-[calc(100vh-165px)] md:min-h-[520px] md:max-h-[740px]",
+          className
+        )}
+      >
         {/* Ambient background glows */}
         <div className="pointer-events-none absolute -top-40 -right-40 size-96 rounded-full bg-[#00c9a7]/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-40 size-96 rounded-full bg-[#0077b6]/10 blur-3xl" />
@@ -560,26 +646,40 @@ export function ChatClient() {
             1. CONVERSATION SIDEBAR
             ───────────────────────────────────────────────────────────── */}
         <div
-          className={`flex flex-col border-r border-white/10 bg-[#0e2626]/75 backdrop-blur-md z-10 ${
+          className={cn(
+            "flex flex-col border-r border-white/10 bg-[#0e2626]/75 backdrop-blur-md z-10 shrink-0",
             selectedConversation
               ? "hidden md:flex md:w-[290px] lg:w-[320px]"
-              : "w-full md:w-[290px] lg:w-[320px]"
-          } shrink-0`}
+              : "flex-1 w-full md:flex-initial md:w-[290px] lg:w-[320px]"
+          )}
         >
           {/* Search Header */}
-          <div className="p-3.5 space-y-2.5 border-b border-white/5">
+          <div className="p-3.5 space-y-2.5 border-b border-white/5 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="size-4 text-[#00c9a7]" />
                 <h2 className="text-sm font-bold text-white tracking-wide">Messages</h2>
               </div>
-              <button
-                onClick={() => void refreshConversations()}
-                title="Refresh inbox"
-                className="p-1.5 text-white/60 hover:text-[#00c9a7] rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="size-3.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void refreshConversations()}
+                  title="Refresh inbox"
+                  className="p-1.5 text-white/60 hover:text-[#00c9a7] rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="size-3.5" />
+                </button>
+                {/* Mobile Cross (Close) Button */}
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  title="Close chat"
+                  aria-label="Close chat"
+                  className="md:hidden p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
 
             {/* Capsule Search Input */}
@@ -737,15 +837,16 @@ export function ChatClient() {
             2. RIGHT MAIN CHAT AREA
             ───────────────────────────────────────────────────────────── */}
         <div
-          className={`flex flex-col grow bg-[#081818]/90 z-10 ${
-            !selectedConversation ? "hidden md:flex" : "flex"
-          }`}
+          className={cn(
+            "flex flex-col grow bg-[#081818]/90 z-10 min-w-0 h-full",
+            !selectedConversation ? "hidden md:flex" : "flex flex-1"
+          )}
         >
           {selectedConversation ? (
             <>
               {/* Header: Name & Email, Refresh History */}
-              <div className="m-2.5 sm:m-3 rounded-2xl bg-[#143333]/85 border border-white/10 backdrop-blur-md px-3.5 py-2 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className="m-2 sm:m-2.5 md:m-3 rounded-2xl bg-[#143333]/85 border border-white/10 backdrop-blur-md px-3 sm:px-3.5 py-2 flex items-center justify-between shadow-md shrink-0">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                   {/* Mobile Back Button */}
                   <Button
                     type="button"
@@ -803,8 +904,8 @@ export function ChatClient() {
                   </div>
                 </div>
 
-                {/* Action Buttons: Refresh History */}
-                <div className="flex items-center gap-1 sm:gap-1.5 text-white/70">
+                {/* Action Buttons: Refresh History + Mobile Cross/Close Button */}
+                <div className="flex items-center gap-1 sm:gap-1.5 text-white/70 shrink-0">
                   <Button
                     type="button"
                     variant="ghost"
@@ -816,6 +917,20 @@ export function ChatClient() {
                     className="text-white/70 hover:text-white hover:bg-white/10"
                   >
                     <RotateCcw className="size-3.5 sm:size-4" />
+                  </Button>
+
+                  {/* Mobile Cross (Close) Button */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    shape="pill"
+                    onClick={handleClose}
+                    title="Close chat"
+                    aria-label="Close chat"
+                    className="md:hidden text-white/70 hover:text-white hover:bg-white/10"
+                  >
+                    <X className="size-4" />
                   </Button>
                 </div>
               </div>
@@ -1046,14 +1161,14 @@ export function ChatClient() {
 
               {/* Input Bar or Read-Only Locked Banner */}
               {isClosed ? (
-                <div className="m-2.5 sm:m-3 shrink-0 rounded-2xl bg-amber-950/20 border border-amber-500/30 p-3 sm:p-3.5 text-center shadow-md">
+                <div className="m-2 sm:m-2.5 md:m-3 shrink-0 rounded-2xl bg-amber-950/20 border border-amber-500/30 p-3 sm:p-3.5 text-center shadow-md">
                   <p className="text-xs sm:text-sm text-amber-200/90 font-medium flex items-center justify-center gap-2">
                     <span>🔒</span>
                     <span>This consignment has been successfully delivered. Chat is closed.</span>
                   </p>
                 </div>
               ) : (
-                <div className="m-2.5 sm:m-3 flex flex-col gap-1.5 shrink-0">
+                <div className="m-2 sm:m-2.5 md:m-3 flex flex-col gap-1.5 shrink-0 pb-[max(env(safe-area-inset-bottom,0px),8px)] sm:pb-0">
                   {/* Editing Mode Banner */}
                   {editingMessage && (
                     <div className="px-3.5 py-1.5 rounded-t-2xl bg-[#143232] border-t border-x border-[#00c9a7]/40 text-xs flex items-center justify-between shadow-lg">
