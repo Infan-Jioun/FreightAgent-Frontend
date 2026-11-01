@@ -256,9 +256,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       {/* Responsive Dropdown / Modal */}
       {isOpen && (
         <div
-          className={`fixed inset-x-2 top-[64px] sm:inset-auto sm:top-full sm:mt-2.5 ${
+          className={`fixed inset-x-2 top-16 sm:inset-auto sm:top-full sm:mt-2.5 ${
             align === "right" ? "sm:right-0" : "sm:left-0"
-          } z-50 w-auto sm:w-[420px] max-w-[calc(100vw-16px)] sm:max-w-none mx-auto sm:mx-0 max-h-[calc(100vh-80px)] sm:max-h-[580px] flex flex-col bg-[#0d1f1f] rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/80 border border-[#1a4a4a] overflow-hidden animate-in fade-in zoom-in-95 sm:zoom-in-100 sm:slide-in-from-top-2 duration-150`}
+          } z-50 w-auto sm:w-105 max-w-[calc(100vw-16px)] sm:max-w-none mx-auto sm:mx-0 max-h-[calc(100vh-80px)] sm:max-h-145 flex flex-col bg-[#0d1f1f] rounded-2xl sm:rounded-3xl shadow-2xl shadow-black/80 border border-[#1a4a4a] overflow-hidden animate-in fade-in zoom-in-95 sm:zoom-in-100 sm:slide-in-from-top-2 duration-150`}
         >
           {/* Header */}
           <div className="p-3.5 sm:p-4 border-b border-[#1a4a4a]/80 bg-[#0a1a1a]/70 flex items-center justify-between gap-3 shrink-0">
@@ -362,7 +362,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           </div>
 
           {/* Notification List Panel */}
-          <div className="flex-1 min-h-0 max-h-[50vh] sm:max-h-[380px] overflow-y-auto divide-y divide-[#1a4a4a]/40 scrollbar-thin">
+          <div className="flex-1 min-h-0 max-h-[50vh] sm:max-h-95 overflow-y-auto divide-y divide-[#1a4a4a]/40 scrollbar-thin">
             {isLoading ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                 <div className="w-6 h-6 rounded-full border-2 border-[#1a4a4a] border-t-[#00c9a7] animate-spin" />
@@ -388,7 +388,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   className={`p-3.5 flex items-start gap-3 transition-colors relative group cursor-pointer ${
                     item.isRead
                       ? "bg-transparent hover:bg-[#0a1a1a]/60"
-                      : "bg-[#00c9a7]/[0.04] hover:bg-[#00c9a7]/[0.08]"
+                      : "bg-[#00c9a7]/4 hover:bg-[#00c9a7]/8"
                   }`}
                 >
                   {/* Category Icon Badge */}

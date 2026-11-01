@@ -306,7 +306,7 @@ export default function NotificationsClient() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search alerts or consignments..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden transition-all"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#0a1a1a] border border-[#1a4a4a] text-xs text-[#e0faf5] placeholder:text-[#3a6b66] focus:outline-hidden focus:border-[#00c9a7] transition-all"
           />
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function NotificationsClient() {
                 className={`p-4 sm:p-5 flex items-start gap-4 transition-all relative group cursor-pointer ${
                   item.isRead
                     ? "bg-transparent hover:bg-[#0a1a1a]/60"
-                    : "bg-[#00c9a7]/[0.03] hover:bg-[#00c9a7]/[0.07]"
+                    : "bg-[#00c9a7]/3 hover:bg-[#00c9a7]/7"
                 }`}
               >
                 {/* Type Category Icon */}

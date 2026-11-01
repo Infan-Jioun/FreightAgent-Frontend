@@ -228,7 +228,7 @@ export default function CustomerOverviewPage() {
                                     </TableCell>
                                     <TableCell>
                                         {s.assignedAgent ? (
-                                            <span className="text-xs font-bold text-[#e0faf5] flex items-center gap-1 truncate max-w-[140px]">
+                                            <span className="text-xs font-bold text-[#e0faf5] flex items-center gap-1 truncate max-w-35">
                                                 <UserCheck size={12} className="text-[#00c9a7] shrink-0" />
                                                 <span className="truncate">{s.assignedAgent.name}</span>
                                             </span>

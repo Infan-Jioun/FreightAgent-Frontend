@@ -270,7 +270,7 @@ export default function NotificationDetailClient({
                   <span className="text-[10px] uppercase font-mono text-[#3a6b66] block">
                     {key.replace(/_/g, " ")}
                   </span>
-                  <span className="text-xs font-bold text-[#e0faf5] break-words">
+                  <span className="text-xs font-bold text-[#e0faf5] wrap-break-word">
                     {typeof value === "object" ? JSON.stringify(value) : String(value)}
                   </span>
                 </div>

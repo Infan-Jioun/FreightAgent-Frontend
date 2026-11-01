@@ -81,7 +81,7 @@ export function MessageReceiptTicks({
         title="Delivered"
         className={`inline-flex items-center text-white/50 ${className}`}
       >
-        <CheckCheck className="size-3.5 stroke-[2]" />
+        <CheckCheck className="size-3.5 stroke-2" />
       </span>
     );
   }
@@ -92,7 +92,7 @@ export function MessageReceiptTicks({
       title="Sent"
       className={`inline-flex items-center text-white/40 ${className}`}
     >
-      <Check className="size-3.5 stroke-[2]" />
+      <Check className="size-3.5 stroke-2" />
     </span>
   );
 }

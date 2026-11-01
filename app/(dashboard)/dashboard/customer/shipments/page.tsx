@@ -138,7 +138,7 @@ export default function CustomerShipmentsPage() {
                 cell: (s) => (
                     <div className="flex flex-col min-w-0">
                         <span
-                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-[190px]"
+                            className="font-mono font-bold text-[#e0faf5] group-hover:text-[#00e5c0] transition-colors truncate max-w-47.5"
                             title={`Waybill: ${s.trackingId}`}
                         >
                             {s.trackingId.length > 20
@@ -163,7 +163,7 @@ export default function CustomerShipmentsPage() {
                 id: "route",
                 header: "Route Corridor",
                 cell: (s) => (
-                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-[260px]">
+                    <div className="flex items-center gap-1.5 text-[#e0faf5] font-semibold text-xs min-w-0 max-w-65">
                         <span className="truncate" title={s.origin}>
                             {s.origin}
                         </span>

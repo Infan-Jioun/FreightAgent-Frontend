@@ -445,7 +445,7 @@ export default function AgentShipmentDetailPage({
                     <div className="relative pl-6 sm:pl-8 border-l-2 border-[#1a4a4a] space-y-6 my-2">
                         {statusLogs.map((log, idx) => (
                             <div key={log.id || idx} className="relative">
-                                <div className="absolute -left-[31px] sm:-left-[39px] top-1 w-4 h-4 rounded-full border-2 border-[#00c9a7] bg-[#0d1f1f]" />
+                                <div className="absolute -left-7.75 sm:-left-9.75 top-1 w-4 h-4 rounded-full border-2 border-[#00c9a7] bg-[#0d1f1f]" />
                                 <div className="p-4 rounded-2xl bg-[#0a1a1a] border border-[#1a4a4a] space-y-1.5">
                                     <div className="flex items-center justify-between gap-2">
                                         <StatusBadge status={log.status} />

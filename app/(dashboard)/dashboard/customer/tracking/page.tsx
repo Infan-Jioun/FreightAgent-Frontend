@@ -338,7 +338,7 @@ function TrackingContent() {
                                         <div key={log.id || idx} className="relative group">
                                             {/* Milestone Node Bullet */}
                                             <div
-                                                className={`absolute -left-[31px] sm:-left-[39px] top-1 w-4 h-4 rounded-full border-2 ${
+                                                className={`absolute -left-7.75 sm:-left-9.75 top-1 w-4 h-4 rounded-full border-2 ${
                                                     isLatest
                                                         ? "border-[#00c9a7] bg-[#00c9a7] ring-4 ring-[#00c9a7]/20"
                                                         : "border-[#1a4a4a] bg-[#0d1f1f]"
