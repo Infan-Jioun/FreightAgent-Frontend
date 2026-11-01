@@ -201,7 +201,7 @@ export function Modal({
             {isOpen && (
                 <div
                     className={cn(
-                        "fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs",
+                        "fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xs",
                         overlayClassName
                     )}
                     onClick={(e) => {

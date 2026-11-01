@@ -6,6 +6,7 @@ import { chatService } from "@/app/services/chat.service";
 import { useSocketEvent } from "@/app/providers/SocketProvider";
 import { useAuthStore } from "@/app/store/authStore";
 import { getErrorMessage } from "@/app/errorHelper/appError";
+import { playNotificationChime } from "@/app/lib/browserNotification";
 
 export function useConversationsList(activeConversationId?: string) {
   const { user } = useAuthStore();
@@ -39,7 +40,10 @@ export function useConversationsList(activeConversationId?: string) {
     setConversations((prev) => {
       const index = prev.findIndex((c) => c.id === incomingMsg.conversationId);
       if (index === -1) {
-        // New conversation created, refresh list
+        // New conversation created, refresh list and chime
+        if (user?.id && incomingMsg.senderId !== user.id) {
+          playNotificationChime();
+        }
         void fetchConversations();
         return prev;
       }
@@ -56,6 +60,7 @@ export function useConversationsList(activeConversationId?: string) {
         incomingMsg.senderId !== user.id
       ) {
         target.unreadCount = (target.unreadCount || 0) + 1;
+        playNotificationChime();
       }
 
       // Move latest conversation to top

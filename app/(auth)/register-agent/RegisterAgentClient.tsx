@@ -556,7 +556,7 @@ const onSubmit = async (data: RegisterAgentInput) => {
 
 return (
     <div
-        className="min-h-screen w-full overflow-x-hidden flex flex-col items-center justify-start lg:justify-center p-3 sm:p-6 lg:p-8 py-4 sm:py-10 lg:py-12"
+        className="min-h-screen w-full overflow-x-hidden flex flex-col items-center justify-start lg:justify-center p-2.5 sm:p-6 lg:p-8 pt-3 pb-24 sm:py-8 lg:py-12"
         style={{ background: "var(--bg-primary)" }}
     >
         <motion.div
@@ -583,7 +583,7 @@ return (
 
             {/* Right: Stepped Agent Registration Form */}
             <div
-                className="p-4 sm:p-6 md:p-10 flex flex-col justify-between h-auto lg:h-full lg:min-h-[720px] lg:overflow-y-auto custom-modal-scrollbar"
+                className="p-3.5 sm:p-6 md:p-10 flex flex-col justify-between h-auto lg:h-full lg:min-h-[720px] lg:overflow-y-auto custom-modal-scrollbar"
             >
                 <div>
                     <h1
@@ -593,69 +593,55 @@ return (
                         Register as Logistics Agent
                     </h1>
                     <p
-                        className="text-xs mb-4 sm:mb-5 text-center leading-relaxed"
+                        className="text-xs mb-3.5 sm:mb-5 text-center leading-relaxed"
                         style={{ color: "var(--text-muted)" }}
                     >
                         Configure your credentials {"&"} operational freight corridors.
                     </p>
 
-                    {/* Step indicator header */}
-                    <div className="flex items-center justify-between mb-4 sm:mb-5 pb-3 border-b border-gray-800">
-                        <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
-                            {/* Step 1 Tab Button */}
-                            <button
-                                type="button"
-                                onClick={() => setStep(1)}
-                                className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${step === 1
-                                    ? "bg-teal-500/15 border-teal-400 text-teal-300"
-                                    : "bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200"
+                    {/* Step indicator header: 2-column balanced grid on mobile and desktop */}
+                    <div className="grid grid-cols-2 gap-2 mb-3.5 sm:mb-5 pb-3 border-b border-gray-800">
+                        {/* Step 1 Tab Button */}
+                        <button
+                            type="button"
+                            onClick={() => setStep(1)}
+                            className={`flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-2.5 rounded-xl border transition-all cursor-pointer ${step === 1
+                                ? "bg-teal-500/15 border-teal-400 text-teal-300 shadow-xs shadow-teal-500/10"
+                                : "bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200"
+                                }`}
+                        >
+                            <span
+                                className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold shrink-0 ${step === 1 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
                                     }`}
                             >
-                                <span
-                                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold shrink-0 ${step === 1 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
-                                        }`}
-                                >
-                                    1
-                                </span>
-                                <span className="hidden sm:inline">Account Info</span>
-                                <span className="sm:hidden">Acct</span>
-                            </button>
+                                1
+                            </span>
+                            <span className="truncate">1. Account Info</span>
+                        </button>
 
-                            <div className="w-3 sm:w-6 h-px bg-gray-700 shrink-0" />
-
-                            {/* Step 2 Tab Button */}
-                            <button
-                                type="button"
-                                onClick={handleNextToStep2}
-                                className={`flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${step === 2
-                                    ? "bg-teal-500/15 border-teal-400 text-teal-300"
-                                    : "bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200"
+                        {/* Step 2 Tab Button */}
+                        <button
+                            type="button"
+                            onClick={handleNextToStep2}
+                            className={`flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-2.5 rounded-xl border transition-all cursor-pointer ${step === 2
+                                ? "bg-teal-500/15 border-teal-400 text-teal-300 shadow-xs shadow-teal-500/10"
+                                : "bg-black/20 border-gray-800 text-gray-400 hover:text-gray-200"
+                                }`}
+                        >
+                            <span
+                                className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold shrink-0 ${step === 2 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
                                     }`}
                             >
-                                <span
-                                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] font-bold shrink-0 ${step === 2 ? "bg-teal-400 text-black" : "bg-gray-800 text-gray-300"
-                                        }`}
-                                >
-                                    2
-                                </span>
-                                <span>
-                                    Corridors ({configuredRoutes.length})
-                                </span>
-                            </button>
-                        </div>
-
-                        <span className="text-[10px] sm:text-[11px] text-gray-400 font-mono shrink-0">
-                            Step {step} of 2
-                        </span>
-                    </div>
-
-                    {/* Mobile fallback summary */}
-                    <div className="mb-5 lg:hidden">
-                        <MobileRegisterSummary />
+                                2
+                            </span>
+                            <span className="truncate">
+                                2. Corridors ({configuredRoutes.length})
+                            </span>
+                        </button>
                     </div>
 
                     {/* Form Section */}
-                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5 sm:gap-4">
                         {/* ────────────────────────────────────────────────
                                 STEP 1: ACCOUNT CREDENTIALS & PHONE WITH CODE
                             ──────────────────────────────────────────────── */}
@@ -798,19 +784,19 @@ return (
                                                     const found = COUNTRIES.find((c) => c.code === e.target.value);
                                                     if (found) handleCountryChange(found);
                                                 }}
-                                                className="h-9 pl-2 pr-6 rounded-lg bg-black/40 border border-gray-800 text-base sm:text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-teal-400 appearance-none cursor-pointer transition-colors max-w-[105px] sm:max-w-none"
+                                                className="h-9 pl-2.5 pr-6 rounded-lg bg-black/40 border border-gray-800 text-xs font-semibold text-gray-200 focus:outline-hidden focus:border-teal-400 appearance-none cursor-pointer transition-colors w-[88px] sm:w-[98px] shrink-0"
                                             >
                                                 {COUNTRIES.map((c) => (
                                                     <option key={c.code} value={c.code} className="bg-[#0d1f1f] text-gray-200 cursor-pointer">
-                                                        {c.flag} {c.code} ({c.dialCode})
+                                                        {c.code} {c.dialCode}
                                                     </option>
                                                 ))}
                                             </select>
-                                            <ChevronDown size={11} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                         </div>
 
                                         {/* National Phone Input */}
-                                        <div className="flex items-center gap-2 flex-1 px-2 min-w-0">
+                                        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 px-1.5 sm:px-2 min-w-0">
                                             <Phone
                                                 size={15}
                                                 className={`shrink-0 ${
@@ -825,14 +811,15 @@ return (
                                                 type="tel"
                                                 value={nationalPhone}
                                                 onChange={(e) => handlePhoneChange(e.target.value)}
-                                                placeholder="e.g. 1712-345678"
-                                                className="flex-1 min-w-0 bg-transparent text-base sm:text-sm font-mono outline-hidden text-gray-100 placeholder:text-gray-600"
+                                                placeholder="e.g. 01712-345678"
+                                                className="flex-1 min-w-0 bg-transparent text-sm sm:text-sm font-mono outline-hidden text-gray-100 placeholder:text-gray-600"
                                             />
                                             {nationalPhone && (
                                                 <button
                                                     type="button"
                                                     onClick={() => handlePhoneChange("")}
                                                     className="text-gray-500 hover:text-gray-300 transition-colors cursor-pointer p-1 shrink-0"
+                                                    aria-label="Clear phone number"
                                                 >
                                                     <X size={13} className="cursor-pointer" />
                                                 </button>
@@ -844,7 +831,7 @@ return (
                                     {phoneCheckMessage && (
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] mt-1.5 px-1">
                                             <span
-                                                className={
+                                                className={`break-words ${
                                                     phoneCheckStatus === "available"
                                                         ? "text-teal-300 font-medium"
                                                         : phoneCheckStatus === "taken" || phoneCheckStatus === "invalid"
@@ -852,7 +839,7 @@ return (
                                                             : phoneCheckStatus === "checking"
                                                                 ? "text-teal-400/80"
                                                                 : "text-gray-500"
-                                                }
+                                                }`}
                                             >
                                                 {phoneCheckMessage}
                                             </span>
@@ -966,17 +953,17 @@ return (
                                 className="flex flex-col gap-3.5"
                             >
                                 {/* Header & Badges matching step 1 label layout */}
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
                                     <label
                                         className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"
                                         style={{ color: "var(--text-secondary)" }}
                                     >
-                                        <Route size={15} style={{ color: "var(--accent-primary)" }} />
-                                        Operational Trade Corridors
+                                        <Route size={15} className="shrink-0" style={{ color: "var(--accent-primary)" }} />
+                                        <span>Operational Corridors</span>
                                         <span className="text-rose-400">*</span>
                                     </label>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#00c9a7]/10 text-[#00e5c0] border border-[#00c9a7]/30 font-semibold">
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#00c9a7]/10 text-[#00e5c0] border border-[#00c9a7]/30 font-semibold shrink-0">
                                             {configuredRoutes.length} / {MAX_ROUTES} Routes
                                         </span>
                                         {configuredRoutes.length < MAX_ROUTES && (
@@ -986,10 +973,10 @@ return (
                                                     setIsPendingGoogleAuth(false);
                                                     setIsCorridorModalOpen(true);
                                                 }}
-                                                className="inline-flex items-center gap-1 text-xs text-[#00e5c0] hover:text-[#00c9a7] font-semibold cursor-pointer underline underline-offset-4"
+                                                className="inline-flex items-center gap-1 text-xs text-[#00e5c0] hover:text-[#00c9a7] font-semibold cursor-pointer underline underline-offset-4 shrink-0"
                                             >
                                                 <Plus size={13} />
-                                                Add Road
+                                                <span>Add Route</span>
                                             </button>
                                         )}
                                     </div>
@@ -998,7 +985,7 @@ return (
                                 {/* Subtitle with hub counter */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 -mt-1.5">
                                     <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                                        Pair origin dispatch terminals with destination discharge hubs.
+                                        Pair origin terminals with destination hubs.
                                     </p>
                                     <span className="text-[11px] font-mono text-[#7ecfc4] shrink-0 font-medium">
                                         {loadingLocations ? "Loading hubs..." : `${locations.length} shipping hubs available`}
@@ -1006,7 +993,7 @@ return (
                                 </div>
 
                                 {/* 10-Slot Progress Strip */}
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#091717] border border-[#1a4a4a]">
+                                <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-[#091717] border border-[#1a4a4a]">
                                     <div className="flex items-center gap-1 flex-1">
                                         {Array.from({ length: MAX_ROUTES }).map((_, idx) => (
                                             <div
@@ -1030,37 +1017,37 @@ return (
                                             setIsPendingGoogleAuth(false);
                                             setIsCorridorModalOpen(true);
                                         }}
-                                        className="h-[210px] rounded-2xl border-2 border-dashed border-[#1a4a4a] hover:border-[#00c9a7]/60 bg-[#0d1f1f]/50 hover:bg-[#0d1f1f]/80 transition-all flex flex-col items-center justify-center text-center p-4 gap-2.5 cursor-pointer group shadow-lg"
+                                        className="min-h-[190px] sm:h-[210px] rounded-2xl border-2 border-dashed border-[#1a4a4a] hover:border-[#00c9a7]/60 bg-[#0d1f1f]/50 hover:bg-[#0d1f1f]/80 transition-all flex flex-col items-center justify-center text-center p-3.5 sm:p-4 gap-2 cursor-pointer group shadow-lg"
                                     >
-                                        <div className="w-12 h-12 rounded-2xl bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] group-hover:scale-110 transition-transform shadow-md shadow-[#00c9a7]/10">
-                                            <Compass size={24} />
+                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-[#00c9a7]/10 border border-[#00c9a7]/30 flex items-center justify-center text-[#00e5c0] group-hover:scale-110 transition-transform shadow-md shadow-[#00c9a7]/10 shrink-0">
+                                            <Compass size={22} />
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-bold text-white group-hover:text-[#00e5c0] transition-colors">
-                                                No Trade Routes Configured Yet
+                                                No Trade Routes Configured
                                             </h3>
-                                            <p className="text-xs text-gray-400 mt-1 max-w-xs leading-relaxed">
-                                                Launch the interactive corridor modal to pair Origin and Destination hubs from 225 database records.
+                                            <p className="text-xs text-gray-400 mt-0.5 max-w-xs leading-relaxed">
+                                                Pair Origin and Destination hubs from {locations.length} database records.
                                             </p>
                                         </div>
                                         <button
                                             type="button"
-                                            className="px-4 py-2 rounded-xl text-xs font-bold transition-all mt-0.5 cursor-pointer bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 flex items-center gap-1.5"
+                                            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all mt-1 cursor-pointer bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 flex items-center gap-1.5 shrink-0"
                                         >
                                             <Plus size={14} />
-                                            <span>Configure Trade Corridors (Modal)</span>
+                                            <span>Configure Corridors (Modal)</span>
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="h-[210px] p-3 rounded-2xl border border-[#1a4a4a] bg-[#091a1a] flex flex-col justify-between">
+                                    <div className="h-[210px] p-2.5 sm:p-3 rounded-2xl border border-[#1a4a4a] bg-[#091a1a] flex flex-col justify-between">
                                         <div className="flex items-center justify-between pb-1.5 border-b border-gray-800">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-2 h-2 rounded-full bg-[#00c9a7] animate-pulse" />
-                                                <span className="text-[11px] font-bold text-[#00e5c0] uppercase tracking-wider font-mono">
-                                                    Configured Routes ({configuredRoutes.length} / {MAX_ROUTES})
+                                            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                                <span className="w-2 h-2 rounded-full bg-[#00c9a7] animate-pulse shrink-0" />
+                                                <span className="text-[10px] sm:text-[11px] font-bold text-[#00e5c0] uppercase tracking-wider font-mono truncate">
+                                                    Routes ({configuredRoutes.length}/{MAX_ROUTES})
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 shrink-0">
                                                 {configuredRoutes.length < MAX_ROUTES && (
                                                     <button
                                                         type="button"
@@ -1091,19 +1078,19 @@ return (
                                             {configuredRoutes.map((route, idx) => (
                                                 <div
                                                     key={route.id}
-                                                    className="group flex items-center justify-between p-2 rounded-xl border border-[#1a4a4a] bg-[#0d1f1f]/80 hover:border-[#00c9a7]/40 hover:bg-[#0f2424] transition-all"
+                                                    className="group flex items-center justify-between p-1.5 sm:p-2 rounded-xl border border-[#1a4a4a] bg-[#0d1f1f]/80 hover:border-[#00c9a7]/40 hover:bg-[#0f2424] transition-all gap-1.5"
                                                 >
-                                                    <div className="flex items-center gap-2 min-w-0">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
                                                         <span className="shrink-0 w-4 h-4 rounded-full bg-[#00c9a7]/15 text-[#00e5c0] text-[9px] font-mono font-bold flex items-center justify-center border border-[#00c9a7]/30">
                                                             {idx + 1}
                                                         </span>
 
                                                         {/* Origin */}
                                                         <div className="flex items-center gap-1 min-w-0">
-                                                            <span className="font-mono text-[11px] font-bold text-[#00e5c0] bg-black/40 px-1.5 py-0.5 rounded border border-[#1a4a4a]">
+                                                            <span className="font-mono text-[11px] font-bold text-[#00e5c0] bg-black/40 px-1.5 py-0.5 rounded border border-[#1a4a4a] shrink-0">
                                                                 {route.origin.code}
                                                             </span>
-                                                            <span className="text-xs text-gray-200 truncate max-w-[85px] sm:max-w-[120px]">
+                                                            <span className="text-xs text-gray-200 truncate max-w-[50px] sm:max-w-[120px]">
                                                                 {route.origin.city || route.origin.name}
                                                             </span>
                                                         </div>
@@ -1113,10 +1100,10 @@ return (
 
                                                         {/* Destination */}
                                                         <div className="flex items-center gap-1 min-w-0">
-                                                            <span className="font-mono text-[11px] font-bold text-amber-300 bg-black/40 px-1.5 py-0.5 rounded border border-[#1a4a4a]">
+                                                            <span className="font-mono text-[11px] font-bold text-amber-300 bg-black/40 px-1.5 py-0.5 rounded border border-[#1a4a4a] shrink-0">
                                                                 {route.destination.code}
                                                             </span>
-                                                            <span className="text-xs text-gray-200 truncate max-w-[85px] sm:max-w-[120px]">
+                                                            <span className="text-xs text-gray-200 truncate max-w-[50px] sm:max-w-[120px]">
                                                                 {route.destination.city || route.destination.name}
                                                             </span>
                                                         </div>
@@ -1127,6 +1114,7 @@ return (
                                                         onClick={() => handleRemoveRoute(route.id)}
                                                         className="p-1 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 cursor-pointer"
                                                         title="Delete this corridor route"
+                                                        aria-label="Delete route"
                                                     >
                                                         <Trash2 size={13} />
                                                     </button>
@@ -1144,11 +1132,11 @@ return (
                                                 className="w-full py-1.5 rounded-xl border border-dashed border-[#1a4a4a] hover:border-[#00c9a7]/50 text-xs text-[#7ecfc4] hover:text-[#00e5c0] font-semibold flex items-center justify-center gap-1 bg-[#0a1a1a]/50 hover:bg-[#0d1f1f] transition-all cursor-pointer"
                                             >
                                                 <Plus size={12} />
-                                                <span>Add Another Route ({configuredRoutes.length}/{MAX_ROUTES})</span>
+                                                <span>Add Route ({configuredRoutes.length}/{MAX_ROUTES})</span>
                                             </button>
                                         ) : (
                                             <p className="text-[10px] text-amber-300/80 text-center font-mono py-0.5">
-                                                Maximum limit reached ({MAX_ROUTES}/{MAX_ROUTES} routes configured)
+                                                Maximum limit reached ({MAX_ROUTES}/{MAX_ROUTES} routes)
                                             </p>
                                         )}
                                     </div>
@@ -1173,7 +1161,7 @@ return (
                                     <button
                                         type="button"
                                         onClick={() => setStep(1)}
-                                        className="py-3.5 px-3 sm:px-4 rounded-xl font-semibold text-xs border border-gray-700 text-gray-300 hover:bg-gray-800 transition-all cursor-pointer shrink-0"
+                                        className="py-3 px-3 sm:px-4 rounded-xl font-semibold text-xs border border-gray-700 text-gray-300 hover:bg-gray-800 transition-all cursor-pointer shrink-0"
                                     >
                                         ← Back
                                     </button>
@@ -1181,7 +1169,7 @@ return (
                                     <button
                                         type="submit"
                                         disabled={isSubmitting || registered}
-                                        className="grow flex justify-center items-center gap-2 py-3.5 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 cursor-pointer bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 text-center"
+                                        className="grow flex justify-center items-center gap-2 py-3 px-3 sm:px-4 rounded-xl font-bold text-xs sm:text-sm transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 cursor-pointer bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20 text-center"
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -1189,7 +1177,10 @@ return (
                                                 <span>Registering...</span>
                                             </>
                                         ) : (
-                                            <span>Register as Agent ({configuredRoutes.length} Routes)</span>
+                                            <>
+                                                <span className="hidden sm:inline">Register as Agent ({configuredRoutes.length} Routes)</span>
+                                                <span className="sm:hidden">Register Agent ({configuredRoutes.length})</span>
+                                            </>
                                         )}
                                     </button>
                                 </div>
@@ -1248,9 +1239,9 @@ return (
                             <button
                                 type="button"
                                 onClick={handleGoogleAgentLogin}
-                                className="inline-flex items-center justify-center gap-2 text-xs font-semibold text-gray-400 hover:text-teal-300 transition-colors cursor-pointer py-1"
+                                className="inline-flex items-center justify-center gap-2 text-xs font-semibold text-gray-400 hover:text-teal-300 transition-colors cursor-pointer py-1 max-w-full"
                             >
-                                <svg width="14" height="14" viewBox="0 0 24 24">
+                                <svg width="14" height="14" viewBox="0 0 24 24" className="shrink-0">
                                     <path
                                         fill="#4285F4"
                                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -1268,7 +1259,8 @@ return (
                                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                                     />
                                 </svg>
-                                <span>Or register with Google and link these {configuredRoutes.length} corridor(s)</span>
+                                <span className="hidden sm:inline">Or register with Google and link these {configuredRoutes.length} corridor(s)</span>
+                                <span className="sm:hidden truncate">Register with Google ({configuredRoutes.length} corridors)</span>
                             </button>
                         </div>
                     )}
