@@ -280,4 +280,11 @@ select,
 summary,
 .cursor-pointer {
   cursor: pointer !important;
+}
+
+/* Hide site navigation header on mobile when AI Assistant full-screen modal is open */
+@media (max-width: 639px) {
+  body.rag-chat-active header {
+    display: none !important;
+  }
 }

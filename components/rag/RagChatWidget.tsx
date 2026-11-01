@@ -88,10 +88,11 @@ export function RagChatWidget() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
-  // Prevent background page scrolling on mobile when open as full-screen modal
+  // Prevent background page scrolling and hide navbar on mobile when open as full-screen modal
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (isOpen) {
+      document.body.classList.add("rag-chat-active");
       const checkAndLock = () => {
         if (window.innerWidth < 640) {
           document.body.style.overflow = "hidden";
@@ -103,10 +104,12 @@ export function RagChatWidget() {
       window.addEventListener("resize", checkAndLock);
       return () => {
         document.body.style.overflow = "";
+        document.body.classList.remove("rag-chat-active");
         window.removeEventListener("resize", checkAndLock);
       };
     } else {
       document.body.style.overflow = "";
+      document.body.classList.remove("rag-chat-active");
     }
   }, [isOpen]);
 
@@ -133,7 +136,7 @@ export function RagChatWidget() {
     <div
       className={
         isOpen
-          ? "fixed inset-0 z-50 flex flex-col sm:inset-auto sm:bottom-6 sm:right-6 sm:block"
+          ? "fixed inset-0 z-[100] flex flex-col sm:inset-auto sm:bottom-6 sm:right-6 sm:block"
           : "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50"
       }
     >
@@ -155,9 +158,9 @@ export function RagChatWidget() {
 
       {/* Expanded Chat Window */}
       {isOpen && (
-        <div className="flex flex-col w-full h-dvh max-h-none rounded-none border-none sm:w-110 md:w-120 sm:h-150 sm:max-h-[85vh] sm:rounded-2xl sm:border sm:border-[#1a4a4a] bg-[#0a0f0f]/95 shadow-[0_12px_45px_rgba(0,0,0,0.85)] backdrop-blur-xl overflow-hidden transition-all duration-200">
+        <div className="flex flex-col w-full h-dvh max-h-none rounded-none border-none sm:w-110 md:w-120 sm:h-150 sm:max-h-[85vh] sm:rounded-2xl sm:border sm:border-[#1a4a4a] bg-[#0a0f0f] sm:bg-[#0a0f0f]/95 shadow-[0_12px_45px_rgba(0,0,0,0.85)] backdrop-blur-xl overflow-hidden transition-all duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-[#1a4a4a] bg-[#0d1f1f]/80 px-3.5 py-3 sm:px-4 sm:py-3.5 backdrop-blur-md shrink-0">
+          <div className="flex items-center justify-between border-b border-[#1a4a4a] bg-[#0d1f1f] sm:bg-[#0d1f1f]/80 px-3.5 pt-[max(env(safe-area-inset-top,0px),12px)] pb-3 sm:py-3.5 backdrop-blur-md shrink-0">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <div className="flex size-8.5 sm:size-9 items-center justify-center rounded-xl bg-linear-to-br from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] shadow-[0_0_12px_rgba(0,201,167,0.4)] shrink-0">
                 <Anchor className="size-4.5 sm:size-5 text-[#0a0f0f]" />

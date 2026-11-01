@@ -51,7 +51,7 @@ import type { RegisterVisualProps } from "@/app/types/interface";
 export function MobileRegisterSummary() {
     return (
         <div
-            className="w-full rounded-2xl px-5 py-4"
+            className="w-full rounded-2xl px-3.5 py-2.5"
             style={{
                 background: "linear-gradient(135deg, rgba(0,201,167,0.08), rgba(10,15,15,0.6))",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -60,25 +60,26 @@ export function MobileRegisterSummary() {
             <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                     <Radio size={10} style={{ color: "#00C9A7" }} />
-                    Live Network
+                    Live Corridor Network
                 </span>
                 <span className="flex items-center gap-1 text-[10px] font-semibold uppercase" style={{ color: "#00C9A7" }}>
-                    ● Shipment Active
+                    ● 225 Hubs Active
                 </span>
             </div>
 
-            <div className="mt-3 flex items-center justify-center gap-3 py-2">
-                <div className="rounded-xl p-3" style={{ background: "rgba(0,201,167,0.1)", border: "1px solid rgba(0,201,167,0.25)" }}>
-                    <Package size={22} style={{ color: "#00C9A7" }} />
+            <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="rounded-lg p-1.5 bg-[#00c9a7]/10 border border-[#00c9a7]/25 text-[#00c9a7] shrink-0">
+                        <Package size={15} />
+                    </div>
+                    <div className="flex items-center gap-1 text-xs font-semibold text-white truncate">
+                        <span>Dubai (JEA)</span>
+                        <ChevronDown size={11} className="text-gray-500 -rotate-90 shrink-0" />
+                        <span>Chittagong (CGP)</span>
+                    </div>
                 </div>
+                <span className="text-[10px] text-gray-400 font-mono shrink-0 hidden xs:inline-block">FA-Live</span>
             </div>
-
-            <div className="flex flex-col items-center gap-0.5 text-sm font-semibold text-white">
-                <span>Dubai</span>
-                <ChevronDown size={12} className="text-gray-500" />
-                <span>Riyadh</span>
-            </div>
-            <div className="mt-2 text-center text-[11px] text-gray-500">Container FA-20491</div>
         </div>
     );
 }

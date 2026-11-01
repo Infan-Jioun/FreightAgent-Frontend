@@ -179,29 +179,29 @@ export function CorridorRouteModal({
             onClose={onClose}
             maxWidth="2xl"
             showCloseButton={false}
-            className="p-0 overflow-hidden h-[650px] max-h-[92vh] bg-[#0a1818] gap-0 space-y-0"
+            className="p-0 overflow-hidden h-[90vh] sm:h-[650px] max-h-[92vh] bg-[#0a1818] gap-0 space-y-0"
             contentClassName="flex flex-col h-full overflow-hidden p-0"
         >
             <div className="flex flex-col h-full overflow-hidden">
                 {/* 1. Header (Fixed Height) */}
-                <div className="px-5 py-3.5 border-b border-[#1a4a4a] flex items-center justify-between bg-[#081414] shrink-0">
-                    <div>
-                        <h2 className="text-base font-bold text-white flex items-center gap-2">
-                            <Compass size={18} className="text-[#00c9a7]" />
+                <div className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 border-b border-[#1a4a4a] flex items-center justify-between bg-[#081414] shrink-0">
+                    <div className="min-w-0">
+                        <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 truncate">
+                            <Compass size={18} className="text-[#00c9a7] shrink-0" />
                             <span>Add Trade Corridors</span>
                         </h2>
-                        <p className="text-xs text-[#7ecfc4]/70 mt-0.5">
+                        <p className="text-[11px] sm:text-xs text-[#7ecfc4]/70 mt-0.5 truncate">
                             Pair origin dispatch terminals with arrival discharge hubs.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-[#00c9a7]/10 text-[#00e5c0] border border-[#00c9a7]/30">
-                            {configuredRoutes.length} / {maxRoutes} Added
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
+                        <span className="text-[10px] sm:text-xs font-mono font-semibold px-2 sm:px-2.5 py-1 rounded-full bg-[#00c9a7]/10 text-[#00e5c0] border border-[#00c9a7]/30 shrink-0">
+                            {configuredRoutes.length} / {maxRoutes}
                         </span>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#112a2a] transition-colors cursor-pointer"
+                            className="p-1 sm:p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#112a2a] transition-colors cursor-pointer shrink-0"
                             aria-label="Close"
                         >
                             <X size={18} />
@@ -209,13 +209,13 @@ export function CorridorRouteModal({
                     </div>
                 </div>
 
-                {/* 2. Route Builder (Origin ➔ Destination) (Fixed Height) */}
-                <div className="p-3.5 bg-[#0d1f1f] border-b border-[#1a4a4a] flex flex-col gap-2 shrink-0">
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,1fr] items-center gap-2">
+                {/* 2. Route Builder (Origin ➔ Destination) (Compact side-by-side grid) */}
+                <div className="p-2.5 sm:p-3.5 bg-[#0d1f1f] border-b border-[#1a4a4a] flex flex-col gap-2 shrink-0">
+                    <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-1.5 sm:gap-2">
                         {/* Origin Picker Box */}
                         <div
                             onClick={() => setActiveTarget("origin")}
-                            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 ${
+                            className={`p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 sm:gap-2.5 min-w-0 ${
                                 activeTarget === "origin"
                                     ? "border-[#00c9a7] bg-[#00c9a7]/10 shadow-xs shadow-[#00c9a7]/20"
                                     : stagedOrigin
@@ -223,30 +223,30 @@ export function CorridorRouteModal({
                                     : "border-dashed border-[#1a4a4a] bg-[#112a2a]/40 hover:border-[#00c9a7]/50"
                             }`}
                         >
-                            <div className="w-7 h-7 rounded-lg bg-[#00c9a7]/20 text-[#00e5c0] flex items-center justify-center shrink-0">
-                                <Compass size={15} />
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#00c9a7]/20 text-[#00e5c0] flex items-center justify-center shrink-0">
+                                <Compass size={14} />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <span className="text-[10px] uppercase font-bold text-[#7ecfc4] block">
-                                    1. Origin Hub {activeTarget === "origin" && "(Active)"}
+                                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[#7ecfc4] block truncate">
+                                    1. Origin {activeTarget === "origin" && "●"}
                                 </span>
                                 {stagedOrigin ? (
                                     <div className="truncate">
-                                        <span className="font-mono text-xs font-bold text-white mr-1.5">
+                                        <span className="font-mono text-xs font-bold text-white mr-1">
                                             {stagedOrigin.code}
                                         </span>
-                                        <span className="text-xs text-gray-300">
+                                        <span className="text-[11px] sm:text-xs text-gray-300">
                                             {stagedOrigin.city || stagedOrigin.name}
                                         </span>
                                     </div>
                                 ) : (
-                                    <span className="text-xs text-gray-400">
-                                        Click a hub below...
+                                    <span className="text-[11px] sm:text-xs text-gray-400 block truncate">
+                                        Pick Origin...
                                     </span>
                                 )}
                             </div>
                             {stagedOrigin && (
-                                <Check size={14} className="text-[#00c9a7] shrink-0" />
+                                <Check size={13} className="text-[#00c9a7] shrink-0 hidden sm:block" />
                             )}
                         </div>
 
@@ -255,16 +255,16 @@ export function CorridorRouteModal({
                             type="button"
                             onClick={handleSwap}
                             disabled={!stagedOrigin && !stagedDestination}
-                            className="w-8 h-8 mx-auto rounded-lg bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-white border border-[#1a4a4a] flex items-center justify-center cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#112a2a] hover:bg-[#1a4a4a] text-[#7ecfc4] hover:text-white border border-[#1a4a4a] flex items-center justify-center cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                             title="Swap Origin and Destination"
                         >
-                            <ArrowLeftRight size={14} />
+                            <ArrowLeftRight size={13} />
                         </button>
 
                         {/* Destination Picker Box */}
                         <div
                             onClick={() => setActiveTarget("destination")}
-                            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2.5 ${
+                            className={`p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 sm:gap-2.5 min-w-0 ${
                                 activeTarget === "destination"
                                     ? "border-[#00b4d8] bg-[#00b4d8]/10 shadow-xs shadow-[#00b4d8]/20"
                                     : stagedDestination
@@ -272,48 +272,48 @@ export function CorridorRouteModal({
                                     : "border-dashed border-[#1a4a4a] bg-[#112a2a]/40 hover:border-[#00b4d8]/50"
                             }`}
                         >
-                            <div className="w-7 h-7 rounded-lg bg-[#00b4d8]/20 text-[#00b4d8] flex items-center justify-center shrink-0">
-                                <MapPin size={15} />
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-[#00b4d8]/20 text-[#00b4d8] flex items-center justify-center shrink-0">
+                                <MapPin size={14} />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <span className="text-[10px] uppercase font-bold text-[#00b4d8] block">
-                                    2. Destination {activeTarget === "destination" && "(Active)"}
+                                <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[#00b4d8] block truncate">
+                                    2. Dest {activeTarget === "destination" && "●"}
                                 </span>
                                 {stagedDestination ? (
                                     <div className="truncate">
-                                        <span className="font-mono text-xs font-bold text-white mr-1.5">
+                                        <span className="font-mono text-xs font-bold text-white mr-1">
                                             {stagedDestination.code}
                                         </span>
-                                        <span className="text-xs text-gray-300">
+                                        <span className="text-[11px] sm:text-xs text-gray-300">
                                             {stagedDestination.city || stagedDestination.name}
                                         </span>
                                     </div>
                                 ) : (
-                                    <span className="text-xs text-gray-400">
-                                        Click a hub below...
+                                    <span className="text-[11px] sm:text-xs text-gray-400 block truncate">
+                                        Pick Dest...
                                     </span>
                                 )}
                             </div>
                             {stagedDestination && (
-                                <Check size={14} className="text-[#00b4d8] shrink-0" />
+                                <Check size={13} className="text-[#00b4d8] shrink-0 hidden sm:block" />
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* 3. Search & Location Hubs Catalog (Expands to fill exact height, NEVER shrinks on search) */}
-                <div className="p-3.5 flex-1 min-h-0 flex flex-col overflow-hidden">
+                {/* 3. Search & Location Hubs Catalog */}
+                <div className="p-2.5 sm:p-3.5 flex-1 min-h-0 flex flex-col overflow-hidden">
                     {/* Search & Filter Bar */}
-                    <div className="flex flex-col gap-2 mb-2.5 shrink-0">
+                    <div className="flex flex-col gap-1.5 sm:gap-2 mb-2 sm:mb-2.5 shrink-0">
                         {/* Search Input */}
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#112a2a] border border-[#1a4a4a]">
+                        <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-[#112a2a] border border-[#1a4a4a]">
                             <Search size={14} className="text-[#7ecfc4] shrink-0" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder={`Search ${locations.length > 0 ? `${locations.length} hubs` : "trade hubs"} (e.g. Chittagong, Singapore, Dubai, Rotterdam)...`}
-                                className="flex-1 min-w-0 bg-transparent text-base sm:text-xs outline-hidden text-gray-100 placeholder:text-gray-500"
+                                placeholder={`Search ${locations.length > 0 ? `${locations.length} hubs` : "trade hubs"}...`}
+                                className="flex-1 min-w-0 bg-transparent text-sm sm:text-xs outline-hidden text-gray-100 placeholder:text-gray-500"
                             />
                             {searchQuery && (
                                 <button
@@ -328,11 +328,11 @@ export function CorridorRouteModal({
 
                         {/* Facility Quick Filter Tabs & Counter */}
                         <div className="flex items-center justify-between gap-1.5 overflow-x-auto pb-0.5 custom-modal-scrollbar">
-                            <div className="flex items-center gap-1.5 text-xs">
+                            <div className="flex items-center gap-1 sm:gap-1.5 text-xs shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setTypeFilter("ALL")}
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                                    className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer ${
                                         typeFilter === "ALL"
                                             ? "bg-[#00c9a7] text-[#0a1818] font-bold shadow-xs"
                                             : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
@@ -343,31 +343,31 @@ export function CorridorRouteModal({
                                 <button
                                     type="button"
                                     onClick={() => setTypeFilter("SEA_PORT")}
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                    className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
                                         typeFilter === "SEA_PORT"
                                             ? "bg-[#00c9a7] text-[#0a1818] font-bold shadow-xs"
                                             : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
                                     }`}
                                 >
                                     <Ship size={11} />
-                                    <span>Seaports ({categoryCounts.sea})</span>
+                                    <span>Sea ({categoryCounts.sea})</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setTypeFilter("AIR_PORT")}
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                    className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
                                         typeFilter === "AIR_PORT"
                                             ? "bg-[#00b4d8] text-[#0a1818] font-bold shadow-xs"
                                             : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
                                     }`}
                                 >
                                     <Plane size={11} />
-                                    <span>Airports ({categoryCounts.air})</span>
+                                    <span>Air ({categoryCounts.air})</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setTypeFilter("INLAND_PORT")}
-                                    className={`px-2 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                                    className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
                                         typeFilter === "INLAND_PORT"
                                             ? "bg-[#f59e0b] text-[#0a1818] font-bold shadow-xs"
                                             : "bg-[#112a2a] text-[#7ecfc4]/80 hover:text-white border border-[#1a4a4a]"
@@ -392,9 +392,9 @@ export function CorridorRouteModal({
                                 {Array.from({ length: 8 }).map((_, idx) => (
                                     <div
                                         key={idx}
-                                        className="p-2.5 rounded-xl border border-[#1a4a4a]/50 bg-[#0c1a1a]/90 flex items-center justify-between gap-2 animate-pulse"
+                                        className="p-2 sm:p-2.5 rounded-xl border border-[#1a4a4a]/50 bg-[#0c1a1a]/90 flex items-center justify-between gap-2 animate-pulse"
                                     >
-                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
                                             <div className="w-7 h-7 rounded-lg bg-[#1a4a4a]/60 shrink-0" />
                                             <div className="space-y-1.5 flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5">
@@ -404,7 +404,7 @@ export function CorridorRouteModal({
                                                 <div className="w-28 h-3 rounded-sm bg-[#1a4a4a]/30" />
                                             </div>
                                         </div>
-                                        <div className="w-16 h-5.5 rounded-md bg-[#1a4a4a]/50 shrink-0" />
+                                        <div className="w-14 h-5 rounded-md bg-[#1a4a4a]/50 shrink-0" />
                                     </div>
                                 ))}
                             </div>
@@ -436,7 +436,7 @@ export function CorridorRouteModal({
                                         <div
                                             key={loc.code || loc.id}
                                             onClick={() => handleSelectLocation(loc)}
-                                            className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                            className={`p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-1.5 sm:gap-2 ${
                                                 isOrigin
                                                     ? "bg-[#00c9a7]/15 border-[#00c9a7]"
                                                     : isDest
@@ -470,7 +470,7 @@ export function CorridorRouteModal({
                                             </div>
 
                                             <span
-                                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 ${
+                                                className={`text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 ${
                                                     isOrigin
                                                         ? "bg-[#00c9a7] text-[#0a0f0f]"
                                                         : isDest
@@ -495,12 +495,12 @@ export function CorridorRouteModal({
                 </div>
 
                 {/* 4. Add Route Action Button (Fixed Height) */}
-                <div className="px-4 py-2.5 bg-[#091717] border-t border-[#1a4a4a] shrink-0">
+                <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-[#091717] border-t border-[#1a4a4a] shrink-0">
                     <button
                         type="button"
                         onClick={handleAddRoute}
                         disabled={!isReadyToAdd}
-                        className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`w-full py-2 sm:py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                             isReadyToAdd
                                 ? "bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] shadow-md shadow-[#00c9a7]/20"
                                 : "bg-[#112a2a] text-gray-500 cursor-not-allowed border border-[#1a4a4a]"
@@ -521,8 +521,8 @@ export function CorridorRouteModal({
 
                 {/* 5. Added Corridors Summary List (Compact, Fixed Max Height) */}
                 {configuredRoutes.length > 0 && (
-                    <div className="px-4 py-2 bg-[#081414] border-t border-[#1a4a4a] shrink-0">
-                        <div className="flex items-center justify-between mb-1.5">
+                    <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#081414] border-t border-[#1a4a4a] shrink-0">
+                        <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold text-[#7ecfc4] uppercase tracking-wider font-mono">
                                 Configured Routes ({configuredRoutes.length}/{maxRoutes})
                             </span>
@@ -536,29 +536,30 @@ export function CorridorRouteModal({
                                 </button>
                             )}
                         </div>
-                        <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto custom-modal-scrollbar">
+                        <div className="flex flex-wrap gap-1 sm:gap-1.5 max-h-14 overflow-y-auto custom-modal-scrollbar">
                             {configuredRoutes.map((r, idx) => (
                                 <div
                                     key={r.id}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0d1f1f] border border-[#1a4a4a] text-xs"
+                                    className="flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:py-1 rounded-lg bg-[#0d1f1f] border border-[#1a4a4a] text-xs"
                                 >
-                                    <span className="font-mono text-[10px] text-gray-400">
+                                    <span className="font-mono text-[9px] sm:text-[10px] text-gray-400">
                                         #{idx + 1}
                                     </span>
                                     <span className="font-mono font-bold text-[#00e5c0]">
                                         {r.origin.code}
                                     </span>
-                                    <ArrowRight size={11} className="text-gray-400" />
+                                    <ArrowRight size={10} className="text-gray-400" />
                                     <span className="font-mono font-bold text-[#00b4d8]">
                                         {r.destination.code}
                                     </span>
                                     <button
                                         type="button"
                                         onClick={() => onRemoveRoute(r.id)}
-                                        className="text-gray-500 hover:text-rose-400 ml-1 cursor-pointer"
+                                        className="text-gray-500 hover:text-rose-400 ml-0.5 sm:ml-1 cursor-pointer"
                                         title="Remove route"
+                                        aria-label="Remove route"
                                     >
-                                        <Trash2 size={12} />
+                                        <Trash2 size={11} />
                                     </button>
                                 </div>
                             ))}
@@ -567,10 +568,10 @@ export function CorridorRouteModal({
                 )}
 
                 {/* 6. Footer (Fixed Height) */}
-                <div className="p-3 bg-[#061010] border-t border-[#1a4a4a] flex items-center justify-between shrink-0">
-                    <span className="text-xs text-gray-400">
+                <div className="p-2.5 sm:p-3 bg-[#061010] border-t border-[#1a4a4a] flex items-center justify-between shrink-0 gap-2">
+                    <span className="text-[11px] sm:text-xs text-gray-400 truncate">
                         {configuredRoutes.length === 0
-                            ? "Please add at least 1 corridor route"
+                            ? "Add at least 1 corridor"
                             : `${configuredRoutes.length} route(s) configured`}
                     </span>
                     <button
@@ -582,10 +583,10 @@ export function CorridorRouteModal({
                                 onClose();
                             }
                         }}
-                        className="px-5 py-2 rounded-xl text-xs font-bold bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] transition-all cursor-pointer shadow-sm"
+                        className="px-4 sm:px-5 py-2 rounded-xl text-xs font-bold bg-[#00c9a7] hover:bg-[#00e5c0] text-[#0a0f0f] transition-all cursor-pointer shadow-xs shrink-0"
                     >
                         {isPendingGoogleAuth
-                            ? `Continue with Google (${configuredRoutes.length} Corridors)`
+                            ? `Continue with Google (${configuredRoutes.length})`
                             : "Done & Close"}
                     </button>
                 </div>
