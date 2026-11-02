@@ -92,6 +92,7 @@ jobs:
   deploy-to-aws:
     name: Deploy Container to AWS EC2
     needs: build-and-push
+    if: ${{ secrets.AWS_EC2_HOST != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
