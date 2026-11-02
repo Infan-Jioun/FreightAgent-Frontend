@@ -92,12 +92,22 @@ jobs:
   deploy-to-aws:
     name: Deploy Container to AWS EC2
     needs: build-and-push
-    if: ${{ secrets.AWS_EC2_HOST != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
+      - name: Check AWS Configuration
+        id: check-aws
+        run: |
+          if [ -z "${{ secrets.AWS_EC2_HOST }}" ]; then
+            echo "AWS_CONFIGURED=false" >> $GITHUB_ENV
+            echo "::notice::AWS_EC2_HOST secret not found. Skipping remote deployment. Docker image was published to Docker Hub successfully."
+          else
+            echo "AWS_CONFIGURED=true" >> $GITHUB_ENV
+          fi
+
       - name: Execute Remote SSH Commands on AWS EC2
+        if: env.AWS_CONFIGURED == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AWS_EC2_HOST }}
