@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   MessageSquare,
   Search,
@@ -15,10 +16,13 @@ import {
   Check,
   CheckCheck,
   ArrowLeft,
+  ArrowDown,
   Pencil,
   Maximize2,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { playNotificationChime } from "@/app/lib/browserNotification";
 import { useConversationsList } from "@/hooks/useConversationsList";
 import { useShipmentChat } from "@/hooks/useShipmentChat";
 import { useAuthStore } from "@/app/store/authStore";
@@ -30,6 +34,7 @@ import { toast } from "sonner";
 import { ChatMessagesSkeleton, ConversationListSkeleton } from "./ChatSkeleton";
 import { envConfig } from "@/app/config/env";
 import { MessageReceiptTicks } from "./MessageReceiptTicks";
+import { ROUTES } from "@/app/constants/routes";
 
 function isAttachmentContent(content?: string | null): boolean {
   if (!content) return false;
@@ -240,9 +245,21 @@ function renderChatContent(
   );
 }
 
-export function ChatClient() {
+export interface ChatClientProps {
+  initialConversationId?: string;
+  onClose?: () => void;
+  className?: string;
+}
+
+export function ChatClient({
+  initialConversationId,
+  onClose,
+  className,
+}: ChatClientProps = {}) {
+  const router = useRouter();
   const { user } = useAuthStore();
   const isAdmin = user?.role === "ADMIN";
+  const isCustomer = user?.role === "CUSTOMER";
   const [selectedConversation, setSelectedConversation] = useState<IConversation | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [input, setInput] = useState<string>("");
@@ -253,6 +270,61 @@ export function ChatClient() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Close / Exit modal or full page on mobile
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (typeof window !== "undefined") {
+      if (window.history.length > 1) {
+        router.back();
+      } else {
+        const target = isAdmin
+          ? ROUTES.DASHBOARD_ADMIN
+          : isCustomer
+          ? ROUTES.DASHBOARD_CUSTOMER_SHIPMENTS
+          : ROUTES.DASHBOARD_AGENT_SHIPMENTS;
+        router.push(target);
+      }
+    }
+  }, [onClose, router, isAdmin, isCustomer]);
+
+  // Lock body scroll on mobile while modal view is mounted
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateBodyScroll = () => {
+      if (window.innerWidth < 768) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+    };
+    updateBodyScroll();
+    window.addEventListener("resize", updateBodyScroll);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("resize", updateBodyScroll);
+    };
+  }, []);
+
+  // Escape key listener to close modal or back out of conversation on mobile
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !previewImage) {
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+          if (selectedConversation) {
+            setSelectedConversation(null);
+          } else {
+            handleClose();
+          }
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [previewImage, selectedConversation, handleClose]);
+
   // Load all user conversations
   const {
     conversations,
@@ -260,14 +332,24 @@ export function ChatClient() {
     refreshConversations,
   } = useConversationsList(selectedConversation?.id);
 
-  // Set default selected conversation once loaded on desktop
+  // Set default selected conversation once loaded on desktop (or if initialConversationId is provided)
   useEffect(() => {
-    if (!selectedConversation && conversations.length > 0) {
+    if (conversations.length === 0) return;
+    if (initialConversationId) {
+      const matched = conversations.find(
+        (c) => c.id === initialConversationId || c.shipmentId === initialConversationId
+      );
+      if (matched && (!selectedConversation || selectedConversation.id !== matched.id)) {
+        setSelectedConversation(matched);
+        return;
+      }
+    }
+    if (!selectedConversation) {
       if (typeof window !== "undefined" && window.innerWidth >= 768) {
         setSelectedConversation(conversations[0]);
       }
     }
-  }, [conversations, selectedConversation]);
+  }, [conversations, initialConversationId, selectedConversation]);
 
   // Hook for the currently selected conversation
   const {
@@ -292,8 +374,24 @@ export function ChatClient() {
 
   const safeMessages = Array.isArray(messages) ? messages : [];
 
-  const isClosed =
-    isChatClosed || selectedConversation?.shipment?.status === "DELIVERED";
+  const isClosed = useMemo(() => {
+    if (!selectedConversation) return false;
+    // Explicit DELIVERED status from selected conversation
+    if (selectedConversation.shipment?.status === "DELIVERED") return true;
+    // Explicit active status from selected conversation
+    if (
+      selectedConversation.shipment?.status &&
+      selectedConversation.shipment.status !== "DELIVERED"
+    ) {
+      return false;
+    }
+    return isChatClosed;
+  }, [selectedConversation, isChatClosed]);
+
+  const [hasNewMessagesBelow, setHasNewMessagesBelow] = useState<boolean>(false);
+  const isAtBottomRef = useRef<boolean>(true);
+  const prevMessagesCountRef = useRef<number>(0);
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "DELIVERED">("ALL");
 
   const [editingMessage, setEditingMessage] = useState<IConversationMessage | null>(null);
 
@@ -325,28 +423,71 @@ export function ChatClient() {
     }
   };
 
-  // Cursor pagination: scroll near top to load older messages
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+      setHasNewMessagesBelow(false);
+    }
+  }, []);
+
+  // Cursor pagination & scroll tracking
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const target = e.currentTarget;
       if (target.scrollTop < 60 && hasMoreOlder && !isLoadingOlder) {
         void loadOlderMessages();
       }
+      const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+      const isBottom = distanceToBottom < 80;
+      isAtBottomRef.current = isBottom;
+      if (isBottom) {
+        setHasNewMessagesBelow(false);
+      }
     },
     [hasMoreOlder, isLoadingOlder, loadOlderMessages]
   );
 
-  // Safe internal auto-scroll that only scrolls the message list
+  // Auto-scroll when appropriate or trigger new message pill
   useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: "smooth",
-      });
+    const currentList = safeMessages;
+    if (currentList.length === 0) {
+      prevMessagesCountRef.current = 0;
+      return;
     }
-  }, [safeMessages, isCounterpartyTyping]);
 
-  const isCustomer = user?.role === "CUSTOMER";
+    const isFirstLoad = prevMessagesCountRef.current === 0;
+    const isNewMessageAdded = currentList.length > prevMessagesCountRef.current;
+    prevMessagesCountRef.current = currentList.length;
+
+    const lastMsg = currentList[currentList.length - 1];
+    const isMe = user?.id && lastMsg?.senderId === user.id;
+
+    if (isFirstLoad || isMe || isAtBottomRef.current) {
+      scrollToBottom(!isFirstLoad);
+    } else if (isNewMessageAdded) {
+      setHasNewMessagesBelow(true);
+    }
+  }, [safeMessages, user?.id, scrollToBottom]);
+
+  // When switching conversations, scroll to bottom immediately and reset indicators
+  useEffect(() => {
+    if (selectedConversation?.id) {
+      prevMessagesCountRef.current = 0;
+      setHasNewMessagesBelow(false);
+      setTimeout(() => scrollToBottom(false), 50);
+    }
+  }, [selectedConversation?.id, scrollToBottom]);
+
+  const handleSelectConversation = (conv: IConversation) => {
+    if (selectedConversation?.id === conv.id) return;
+    setSelectedConversation(conv);
+    setInput("");
+    setEditingMessage(null);
+    setHasNewMessagesBelow(false);
+  };
 
   // Helper to extract clean Name & Email (No IDs)
   const getCounterpartyInfo = (conv?: IConversation | null) => {
@@ -368,18 +509,41 @@ export function ChatClient() {
     };
   };
 
-  // Filter conversations by Name or Email only (clean user-friendly search)
+  // Count active vs delivered conversations
+  const { activeCount, deliveredCount } = useMemo(() => {
+    let active = 0;
+    let delivered = 0;
+    conversations.forEach((c) => {
+      if (c.shipment?.status === "DELIVERED") {
+        delivered++;
+      } else {
+        active++;
+      }
+    });
+    return { activeCount: active, deliveredCount: delivered };
+  }, [conversations]);
+
+  // Filter conversations by Status, and Name/Email/Tracking
   const filteredConversations = useMemo(() => {
-    if (!searchQuery.trim()) return conversations;
+    let list = conversations;
+
+    if (statusFilter === "ACTIVE") {
+      list = list.filter((c) => c.shipment?.status !== "DELIVERED");
+    } else if (statusFilter === "DELIVERED") {
+      list = list.filter((c) => c.shipment?.status === "DELIVERED");
+    }
+
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return conversations.filter((c) => {
+    return list.filter((c) => {
       const info = getCounterpartyInfo(c);
       return (
         info.name.toLowerCase().includes(q) ||
-        info.email.toLowerCase().includes(q)
+        info.email.toLowerCase().includes(q) ||
+        Boolean(c.shipment?.trackingId && c.shipment.trackingId.toLowerCase().includes(q))
       );
     });
-  }, [conversations, searchQuery]);
+  }, [conversations, statusFilter, searchQuery]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     if (isClosed) {
@@ -464,7 +628,16 @@ export function ChatClient() {
 
   return (
     <>
-      <div className="relative w-full rounded-[28px] sm:rounded-[32px] border border-white/10 bg-[#091b1b]/95 backdrop-blur-2xl shadow-[0_25px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col md:flex-row h-[calc(100vh-165px)] min-h-130 max-h-185">
+      <div
+        className={cn(
+          "overflow-hidden flex flex-col md:flex-row bg-[#091b1b] backdrop-blur-2xl text-white transition-all",
+          // Mobile responsive: Full page / Full screen modal experience
+          "max-md:fixed max-md:inset-0 max-md:z-50 max-md:h-dvh max-md:w-screen max-md:rounded-none max-md:border-0 max-md:shadow-none",
+          // Desktop: Floating card container
+          "md:relative md:inset-auto md:z-10 md:w-full md:rounded-[28px] md:sm:rounded-[32px] md:border md:border-white/10 md:shadow-[0_25px_70px_rgba(0,0,0,0.8)] md:h-[calc(100vh-165px)] md:min-h-[520px] md:max-h-[740px]",
+          className
+        )}
+      >
         {/* Ambient background glows */}
         <div className="pointer-events-none absolute -top-40 -right-40 size-96 rounded-full bg-[#00c9a7]/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-40 -left-40 size-96 rounded-full bg-[#0077b6]/10 blur-3xl" />
@@ -473,26 +646,40 @@ export function ChatClient() {
             1. CONVERSATION SIDEBAR
             ───────────────────────────────────────────────────────────── */}
         <div
-          className={`flex flex-col border-r border-white/10 bg-[#0e2626]/75 backdrop-blur-md z-10 ${
+          className={cn(
+            "flex flex-col border-r border-white/10 bg-[#0e2626]/75 backdrop-blur-md z-10 shrink-0",
             selectedConversation
               ? "hidden md:flex md:w-72.5 lg:w-[320px]"
-              : "w-full md:w-72.5 lg:w-[320px]"
-          } shrink-0`}
+              : "flex-1 w-full md:flex-initial md:w-72.5 lg:w-[320px]"
+          )}
         >
           {/* Search Header */}
-          <div className="p-3.5 space-y-2.5 border-b border-white/5">
+          <div className="p-3.5 space-y-2.5 border-b border-white/5 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="size-4 text-[#00c9a7]" />
                 <h2 className="text-sm font-bold text-white tracking-wide">Messages</h2>
               </div>
-              <button
-                onClick={() => void refreshConversations()}
-                title="Refresh inbox"
-                className="p-1.5 text-white/60 hover:text-[#00c9a7] rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <RotateCcw className="size-3.5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => void refreshConversations()}
+                  title="Refresh inbox"
+                  className="p-1.5 text-white/60 hover:text-[#00c9a7] rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="size-3.5" />
+                </button>
+                {/* Mobile Cross (Close) Button */}
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  title="Close chat"
+                  aria-label="Close chat"
+                  className="md:hidden p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
 
             {/* Capsule Search Input */}
@@ -502,9 +689,50 @@ export function ChatClient() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or email..."
-                className="w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-white/40 focus:outline-hidden focus:border-[#00c9a7]/60 focus:bg-white/10 transition-colors"
+                placeholder="Search by name, email, or tracking..."
+                className="w-full rounded-full border border-white/10 bg-white/5 pl-9 pr-3.5 py-1.5 text-xs text-white placeholder:text-white/40 focus:outline-hidden focus:border-[#00c9a7]/60 focus:bg-white/10 transition-all"
               />
+            </div>
+
+            {/* Filter Tabs: ALL / ACTIVE / DELIVERED */}
+            <div className="flex items-center gap-1 p-1 bg-black/25 rounded-xl border border-white/5">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ALL")}
+                className={cn(
+                  "flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all text-center cursor-pointer",
+                  statusFilter === "ALL"
+                    ? "bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30 shadow-xs"
+                    : "text-white/60 hover:text-white"
+                )}
+              >
+                All ({conversations.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("ACTIVE")}
+                className={cn(
+                  "flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all text-center cursor-pointer",
+                  statusFilter === "ACTIVE"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-xs"
+                    : "text-white/60 hover:text-white"
+                )}
+              >
+                Active ({activeCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("DELIVERED")}
+                className={cn(
+                  "flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all text-center cursor-pointer",
+                  statusFilter === "DELIVERED"
+                  
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs"
+                    : "text-white/60 hover:text-white"
+                )}
+              >
+                Delivered ({deliveredCount})
+              </button>
             </div>
           </div>
 
@@ -517,7 +745,7 @@ export function ChatClient() {
             {!isLoadingConversations && filteredConversations.length === 0 && (
               <div className="p-6 text-center">
                 <p className="text-xs text-white/60">
-                  {searchQuery ? "No matching contacts found." : "No active conversations yet."}
+                  {searchQuery ? "No matching contacts found." : "No conversations found."}
                 </p>
               </div>
             )}
@@ -533,19 +761,27 @@ export function ChatClient() {
                 <button
                   key={conv.id}
                   type="button"
-                  onClick={() => setSelectedConversation(conv)}
-                  className={`w-full text-left px-3 py-2 rounded-2xl transition-all flex items-center gap-2.5 outline-hidden cursor-pointer border ${
+                  onClick={() => handleSelectConversation(conv)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-2xl transition-all flex items-center gap-2.5 outline-hidden cursor-pointer border",
                     isSelected
-                      ? "bg-[#1c4545]/90 border-[#00c9a7]/50 shadow-md shadow-black/25"
+                      ? "bg-[#1c4545]/90 border-[#00c9a7]/50 shadow-md shadow-black/25 ring-1 ring-[#00c9a7]/30"
+                      : unread > 0
+                      ? "bg-[#143c3c]/80 border-[#00c9a7]/40 hover:bg-[#1a4a4a]"
                       : "bg-[#143232]/50 border-white/5 hover:bg-[#193e3e]/70"
-                  }`}
+                  )}
                 >
                   {/* Compact Circular Avatar with status ring */}
                   <div className="relative shrink-0">
                     <div className="size-8.5 rounded-full bg-linear-to-tr from-[#00c9a7] to-[#0077b6] text-white font-bold text-xs flex items-center justify-center shadow-xs">
                       {counterparty.name.slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="absolute bottom-0 right-0 size-2 rounded-full bg-emerald-400 border-2 border-[#143232]" />
+                    <span
+                      className={cn(
+                        "absolute bottom-0 right-0 size-2 rounded-full border-2 border-[#143232]",
+                        isConvDelivered ? "bg-amber-400" : "bg-emerald-400"
+                      )}
+                    />
                   </div>
 
                   {/* Name & Only Email */}
@@ -555,12 +791,18 @@ export function ChatClient() {
                         {counterparty.name}
                       </span>
                       <div className="flex items-center gap-1 shrink-0">
-                        {isConvDelivered && (
-                          <span className="text-[9px] px-1 py-0.2 rounded-md bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
-                            🔒 Closed
+                        {isConvDelivered ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30 flex items-center gap-0.5">
+                            <span>🔒</span>
+                            <span>Delivered</span>
                           </span>
-                        )}
-                        <span className="text-[10px] text-white/50 font-medium">
+                        ) : conv.shipment?.status ? (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30 flex items-center gap-1">
+                            <span className="inline-block size-1 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Active</span>
+                          </span>
+                        ) : null}
+                        <span className="text-[10px] text-white/50 font-medium ml-1">
                           {timeFormatted || "Today"}
                         </span>
                       </div>
@@ -575,8 +817,11 @@ export function ChatClient() {
                       </p>
 
                       {unread > 0 ? (
-                        <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-[#0a1f1f] border border-[#00c9a7] text-[9px] font-bold text-[#00e5c0]">
-                          {unread}
+                        <span className="relative flex items-center justify-center shrink-0">
+                          <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#00c9a7] opacity-60" />
+                          <span className="relative flex size-4.5 items-center justify-center rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[9px] font-black text-[#0a0f0f] shadow-[0_0_10px_rgba(0,201,167,0.5)]">
+                            {unread}
+                          </span>
                         </span>
                       ) : (
                         <CheckCheck className="size-3 text-white/30 shrink-0" />
@@ -593,15 +838,16 @@ export function ChatClient() {
             2. RIGHT MAIN CHAT AREA
             ───────────────────────────────────────────────────────────── */}
         <div
-          className={`flex flex-col grow bg-[#081818]/90 z-10 ${
-            !selectedConversation ? "hidden md:flex" : "flex"
-          }`}
+          className={cn(
+            "flex flex-col grow bg-[#081818]/90 z-10 min-w-0 h-full",
+            !selectedConversation ? "hidden md:flex" : "flex flex-1"
+          )}
         >
           {selectedConversation ? (
             <>
               {/* Header: Name & Email, Refresh History */}
-              <div className="m-2.5 sm:m-3 rounded-2xl bg-[#143333]/85 border border-white/10 backdrop-blur-md px-3.5 py-2 flex items-center justify-between shadow-md shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className="m-2 sm:m-2.5 md:m-3 rounded-2xl bg-[#143333]/85 border border-white/10 backdrop-blur-md px-3 sm:px-3.5 py-2 flex items-center justify-between shadow-md shrink-0">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                   {/* Mobile Back Button */}
                   <Button
                     type="button"
@@ -624,17 +870,22 @@ export function ChatClient() {
                   </div>
 
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <h3 className="text-xs sm:text-sm font-bold text-white truncate">
                         {selectedCounterparty.name}
                       </h3>
                       <span className="px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-[#00c9a7]/20 text-[#00e5c0] border border-[#00c9a7]/30 shrink-0">
                         {counterpartyRole}
                       </span>
-                      {isClosed && (
-                        <span className="px-1.5 py-0.2 rounded-md text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 flex items-center gap-1">
+                      {isClosed ? (
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 flex items-center gap-1 shadow-xs">
                           <span>🔒</span>
-                          <span>Closed</span>
+                          <span>Delivered • Closed</span>
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 flex items-center gap-1 shadow-xs">
+                          <span className="inline-block size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>Active Consignment</span>
                         </span>
                       )}
                     </div>
@@ -654,8 +905,8 @@ export function ChatClient() {
                   </div>
                 </div>
 
-                {/* Action Buttons: Refresh History */}
-                <div className="flex items-center gap-1 sm:gap-1.5 text-white/70">
+                {/* Action Buttons: Refresh History + Mobile Cross/Close Button */}
+                <div className="flex items-center gap-1 sm:gap-1.5 text-white/70 shrink-0">
                   <Button
                     type="button"
                     variant="ghost"
@@ -667,6 +918,20 @@ export function ChatClient() {
                     className="text-white/70 hover:text-white hover:bg-white/10"
                   >
                     <RotateCcw className="size-3.5 sm:size-4" />
+                  </Button>
+
+                  {/* Mobile Cross (Close) Button */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    shape="pill"
+                    onClick={handleClose}
+                    title="Close chat"
+                    aria-label="Close chat"
+                    className="md:hidden text-white/70 hover:text-white hover:bg-white/10"
+                  >
+                    <X className="size-4" />
                   </Button>
                 </div>
               </div>
@@ -880,18 +1145,31 @@ export function ChatClient() {
                     </div>
                   </div>
                 )}
+
+                {/* Floating New Message Indicator Button */}
+                {hasNewMessagesBelow && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToBottom(true)}
+                    className="sticky bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-linear-to-r from-[#00c9a7] to-[#00b4d8] text-[#0a0f0f] font-bold text-xs shadow-[0_4px_25px_rgba(0,201,167,0.5)] animate-bounce hover:scale-105 active:scale-95 transition-all cursor-pointer mx-auto"
+                    aria-label="Scroll to new messages"
+                  >
+                    <ArrowDown className="size-3.5" />
+                    <span>New message received</span>
+                  </button>
+                )}
               </div>
 
               {/* Input Bar or Read-Only Locked Banner */}
               {isClosed ? (
-                <div className="m-2.5 sm:m-3 shrink-0 rounded-2xl bg-gray-900 border border-gray-800 p-3 sm:p-3.5 text-center shadow-md">
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium flex items-center justify-center gap-2">
+                <div className="m-2 sm:m-2.5 md:m-3 shrink-0 rounded-2xl bg-amber-950/20 border border-amber-500/30 p-3 sm:p-3.5 text-center shadow-md">
+                  <p className="text-xs sm:text-sm text-amber-200/90 font-medium flex items-center justify-center gap-2">
                     <span>🔒</span>
-                    <span>This shipment has been delivered. Chat is no longer active.</span>
+                    <span>This consignment has been successfully delivered. Chat is closed.</span>
                   </p>
                 </div>
               ) : (
-                <div className="m-2.5 sm:m-3 flex flex-col gap-1.5 shrink-0">
+                <div className="m-2 sm:m-2.5 md:m-3 flex flex-col gap-1.5 shrink-0 pb-[max(env(safe-area-inset-bottom,0px),8px)] sm:pb-0">
                   {/* Editing Mode Banner */}
                   {editingMessage && (
                     <div className="px-3.5 py-1.5 rounded-t-2xl bg-[#143232] border-t border-x border-[#00c9a7]/40 text-xs flex items-center justify-between shadow-lg">
