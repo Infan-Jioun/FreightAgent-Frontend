@@ -62,12 +62,12 @@ const METRICS: MetricCardProps[] = [
 ];
 
 const PORT_STATUS = [
+  { port: "Port of Chattogram", status: "Active Gateway", wait: "0.5d berth", flag: "🇧🇩", color: "#00e5c0" },
   { port: "Port of Singapore", status: "Optimal", wait: "0.4d wait", flag: "🇸🇬", color: "#00e5c0" },
   { port: "Port of Rotterdam", status: "Optimal", wait: "0.8d wait", flag: "🇳🇱", color: "#00e5c0" },
   { port: "Shanghai Yangshan", status: "Flowing", wait: "0.9d wait", flag: "🇨🇳", color: "#00c9a7" },
   { port: "Dubai Jebel Ali", status: "Optimal", wait: "0.3d wait", flag: "🇦🇪", color: "#00e5c0" },
   { port: "Los Angeles / LB", status: "Moderate", wait: "1.6d wait", flag: "🇺🇸", color: "#f59e0b" },
-  { port: "Hamburg Port", status: "Optimal", wait: "0.6d wait", flag: "🇩🇪", color: "#00e5c0" },
 ];
 
 export function LiveOpsStatsTicker() {
