@@ -2,12 +2,17 @@
 
 import dynamic from "next/dynamic";
 import { Navbar } from "./Navbar";
+import { LiveOpsStatsTicker } from "./LiveOpsStatsTicker";
+import { MultiModalFleet } from "./MultiModalFleet";
 import { LiveTracking } from "./LiveTracking";
+import { FreightCostCalculator } from "./FreightCostCalculator";
 import { ShipmentLifecycle } from "./ShipmentLifecycle";
+import { BorderCustomsAutomation } from "./BorderCustomsAutomation";
 import { GlobalCoverage } from "./GlobalCoverage";
 import { AICommandCenter } from "./AICommandCenter";
 import { LogisticsInfrastructure } from "./LogisticsInfrastructure";
 import { HowItWorks } from "./HowItWorks";
+import { EnterpriseTestimonials } from "./EnterpriseTestimonials";
 import { FinalCTA } from "./FinalCTA";
 import { Footer } from "./Footer";
 
@@ -23,34 +28,49 @@ export function HomeClient() {
         Move the world. Track every shipment. — FreightAgent global freight platform.
       </h1>
 
-      {/* Hero 3D Section */}
+      {/* 1. Hero 3D Section */}
       <Hero3D />
 
-      {/* Global Interactive Route Network */}
+      {/* 2. NEW: Global Live Telemetry & Port Congestion Index */}
+      <LiveOpsStatsTicker />
+
+      {/* 3. Global Interactive Route Network */}
       <GlobalNetwork />
 
-      {/* Live Parcel & Freigeht Tracking Widget */}
+      {/* 4. NEW: Multi-Modal Fleet & Cargo Capabilities (Ocean, Air, Rail, Road) */}
+      <MultiModalFleet />
+
+      {/* 5. Live Parcel & Freight Tracking Widget */}
       <LiveTracking />
 
-      {/* Milestone Lifecycle Pipeline */}
+      {/* 6. NEW: Interactive Instant Freight Quoting & Carbon Footprint Calculator */}
+      <FreightCostCalculator />
+
+      {/* 7. Milestone Lifecycle Pipeline */}
       <ShipmentLifecycle />
 
-      {/* Global Port & Airport Coverage Map */}
+      {/* 8. NEW: AI Border Customs & Compliance Automation Engine */}
+      <BorderCustomsAutomation />
+
+      {/* 9. Global Port & Airport Coverage Map */}
       <GlobalCoverage />
 
-      {/* AI Telemetry Command Center */}
+      {/* 10. AI Telemetry Command Center */}
       <AICommandCenter />
 
-      {/* Logistics Infrastructure */}
+      {/* 11. Logistics Infrastructure */}
       <LogisticsInfrastructure />
 
-      {/* 4-Step Process */}
+      {/* 12. 4-Step Process */}
       <HowItWorks />
 
-      {/* Action CTA */}
+      {/* 13. NEW: Enterprise Shipper Success Stories, ROI Metrics & Certifications */}
+      <EnterpriseTestimonials />
+
+      {/* 14. Action CTA */}
       <FinalCTA />
 
-      {/* Navigation Footer */}
+      {/* 15. Navigation Footer */}
       <Footer />
     </main>
   );
